@@ -4,7 +4,7 @@
 
 ### [Windows](https://docs.microsoft.com/en-us/dotnet/core/install/windows)
 
-Install Visual Studio and .NET 5.  
+Install Visual Studio and .NET 5.
 It's also possible to use VS Code or another IDE that supports C# development (JetBrains Rider, for example).
 
 ### [Linux (Debian)](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)
@@ -25,7 +25,7 @@ sudo apt-get install -y dotnet-sdk-5.0;
 sudo dnf install dotnet-sdk-5.0
 ```
 
-### [MacOS](https://docs.microsoft.com/cs-cz/dotnet/core/install/macos)
+### [macOS](https://docs.microsoft.com/cs-cz/dotnet/core/install/macos)
 
 https://docs.microsoft.com/en-US/dotnet/core/install/macos
 
@@ -65,11 +65,11 @@ TBD
 ## What you need to know?
 
 - If you add a new configuration section, remember to include it in `appsettings.json`, so that the others know what you've added and don't have a hard time adjusting their own config files.
-- Use PRs (Pull Requests) to add features or make changes. **NO ONE** may push directly to the `master` branch.
+- Use PRs (pull requests) to add features or make changes. **NO ONE** may push directly to the `master` branch.
 - If you are not sure or don't know how to do something, **don't be shy about asking others** for help.
-- Check console (stdout, stderr) for logs.
-- This project uses a dependency injection container. It's required by the Discord.NET library.
+- Check the console (stdout, stderr) for any logs.
+- This project uses a dependency-injection container. It's required by the Discord.NET library.
 - If you want to add something, just follow these steps (everything should load automatically):
-  - Create a new class in the `Modules/` directory (and namespace).
-  - Inherit from the `ModuleBase` class.
-  - Enjoy!
+  1) Create a new class in the `Modules/` directory (and namespace).
+  2) Inherit from the `ModuleBase` class.
+  3) Enjoy!
