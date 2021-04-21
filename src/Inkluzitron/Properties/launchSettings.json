@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Inkluzitron": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
