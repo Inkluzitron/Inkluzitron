@@ -1,12 +1,13 @@
 # Inkluzitron
 
-## Vývoj
+## Development
 
-### Windows
+### [Windows](https://docs.microsoft.com/en-us/dotnet/core/install/windows)
 
-Nainstalujte Visual Studio a .NET 5.
+Install Visual Studio (recommended) with .NET 5.  
+It's also possible to use VScode or some other IDE that allows development in C#.
 
-### Linux (Debian)
+### [Linux (Debian)](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)
 
 ```sh
 wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -18,51 +19,57 @@ sudo apt-get update;
 sudo apt-get install -y dotnet-sdk-5.0;
 ```
 
-### Linux (RHEL)
+### [Linux (RHEL)](https://docs.microsoft.com/en-us/dotnet/core/install/linux-rhel)
 
 ```sh
 sudo dnf install dotnet-sdk-5.0
 ```
 
-### MacOS
+### [MacOS](https://docs.microsoft.com/cs-cz/dotnet/core/install/macos)
 
 https://docs.microsoft.com/cs-cz/dotnet/core/install/macos
 
-### Konfigurace
+### Configuration
 
-1) Zkopírujte si `appsettings.json` a pojmenujte ho `appsettings.Development.json`.
-2) Spusťte bota z IDE (VS, VSC, Rider, ...).
+1) Create an app on [Discord Developer](https://discord.com/developers/docs/intro) portal and take a token from the Bot section
+2) Create a copy of `appsettings.json` and name it `appsettings.Development.json` 
+3) Insert token for bot into `appsettings.Development.json`
+3) Start a bot either from IDE (VS, VSC, Rider, ...) or command line.
+```
+dotnet run --project <path_to_src/Inkluzitron>
+```
 
-## Produkční deployment
+## Production deployment
 
 TBD
 
-## Struktura? Who knows
+## Structure
 
-- `src/` - Zdrojáky
-  - `Inkluzitron` - Adresář s projektem
-    - `bin/` - Adresář s binárkama
-    - `obj/` - Nepotřebujete vědět
-    - `Extensions/` - Rozšiřující metody, které vám mohou zjednodušit život, ale asi je nikdy nevyužijete.
-    - `Handlers/` - Třídy a metody pro zachytávání událostí. Nebudete potřebovat.
-    - `Modules/` - Zde budou třídy s moduly, které budou obsluhovat commandy události, reakce, ... *Většinu času budete implementovat zde.*
-    - `Services/` - Podpůrné služby, aby život byl krásnější. *Asi nikdy sem nebudete potřebovat.*
-    - `appsettings.json` - Hlavní konfigurace a současně šablona configu.
-    - `Inkluzitron.csproj` - Projektový soubor
-    - ... (Cokoliv dalšího, ptej se ostatních)
-  - `.editorconfig` - Nesahat
-  - `Inkluzitron.sln` - Spouštěcí soubor do projektu pro VS (možná bude fungovat i rider.)
-- `README.md` (Toto readme)
+- `src/` - Source codes
+  - `Inkluzitron` - Directory containing project
+    - `bin/` - Binaries
+    - `obj/` - *You don't need to know*
+    - `Extensions/` - Extending methods that can make your life easier
+    - `Handlers/` - Classes and methods for catching events
+    - `Modules/` - Classes and modules that will handle commands, events, reactions, ...
+    - `Services/` - Support services to make life nicer
+    - `appsettings.json` - Main config file and template for config
+    - `Inkluzitron.csproj` - Project file
+    - ... (For anything else just ask)
+  - `.editorconfig` - DO NOT TOUCH
+  - `Inkluzitron.sln` - Project file for VS (may work for Rider too)
+- `README.md` - The thing you are reading right now
+- `README.cs.md` - The thing you are reading right now but in Czech
 - `.gitignore`
 
-## Co je třeba vědět?
+## What you need to know?
 
-- Cokoliv přidáte do configu, takto dejte do `appsettings.json`, aby ostatní věděli, co v tom vlastně je.
-- Všechno přidávejte formou PR. **NIKDO** nebude pushovat přímo do `master` branche.
-- Pokud nevíte. Ptejte se.
-- Dívejte se do konzole (to znamená stdout a stderr). Provádí se tam logování.
-- V projektu je využit dependency injection kontejner. Vyžaduje to knihovna Discord.NET.
-- Appka je napsaná, že by se mělo vše načítat dynamicky, tudíž, když budete chtít něco přidat, tak bude stačit udělat tyto jednoduché kroky:
-  - Vytvořte novou třídu v `Modules/`.
-  - Poděďte z bázové třídy `ModuleBase`.
-  - Užijte si zábavu. Pokud nevíte, tak se koukněte jinam.
+- Anything you add to config also add to `appsettings.json` so that others know what is inside it.
+- Use PRs (Pull Requests) to add features or make changes. **NO ONE** can push directly to the `master` branch.
+- If you are not sure or don't know how to do something **don't feel shy to ask others** for help.
+- Check console (stdout, stderr) for logs.
+- This project uses a dependency injection container. It's required by the Discord.NET library.
+- If you want to add something just follow these steps (everything should load dynamically):
+  - Create a new class `Modules/`.
+  - Inherit from base class `ModuleBase`.
+  - Enjoy!
