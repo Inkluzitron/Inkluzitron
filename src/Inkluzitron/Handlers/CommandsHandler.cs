@@ -62,7 +62,7 @@ namespace Inkluzitron.Handlers
                         ParameterInfo param = ((ParseResult)result).ErrorParameter;
                         var pos = param.Command.Parameters.ToList().IndexOf(param);
 
-                        reply = $"Nemohl jsem najít uživatele zadaného v {(pos + 1)}. argumentu ({(param.Summary ?? param.Name)}).\n> {GetCommandFormat(command.Value, param)}";
+                        reply = $"Nemohl jsem najít uživatele zadaného v {(pos + 1)}. argumentu.\n> {GetCommandFormat(command.Value, param)}";
                         break;
 
                     case CommandError.ParseFailed:
@@ -74,7 +74,7 @@ namespace Inkluzitron.Handlers
                         if (typeName == "Int32") typeName = "číslo";
                         if (typeName == "String") typeName = "řetězec";
 
-                        reply = $"V {(pos+1)}. argumentu ({(param.Summary ?? param.Name)}) má být **{typeName}**\n> {GetCommandFormat(command.Value, param)}";
+                        reply = $"V {(pos+1)}. argumentu má být **{typeName}**\n> {GetCommandFormat(command.Value, param)}";
                         break;
 
                     case CommandError.BadArgCount:
