@@ -27,7 +27,7 @@ sudo dnf install dotnet-sdk-5.0
 
 ### [MacOS](https://docs.microsoft.com/cs-cz/dotnet/core/install/macos)
 
-https://docs.microsoft.com/cs-cz/dotnet/core/install/macos
+https://docs.microsoft.com/en-US/dotnet/core/install/macos
 
 ### Configuration
 
