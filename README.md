@@ -1,12 +1,13 @@
 # Inkluzitron
 
-## Vývoj
+## Development
 
-### Windows
+### [Windows](https://docs.microsoft.com/en-us/dotnet/core/install/windows)
 
-Nainstalujte Visual Studio a .NET 5.
+Install Visual Studio and .NET 5.
+It's also possible to use VS Code or another IDE that supports C# development (JetBrains Rider, for example).
 
-### Linux (Debian)
+### [Linux (Debian)](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian)
 
 ```sh
 wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -18,66 +19,72 @@ sudo apt-get update;
 sudo apt-get install -y dotnet-sdk-5.0;
 ```
 
-### Linux (RHEL)
+### [Linux (RHEL)](https://docs.microsoft.com/en-us/dotnet/core/install/linux-rhel)
 
 ```sh
 sudo dnf install dotnet-sdk-5.0
 ```
 
-### MacOS
+### [macOS](https://docs.microsoft.com/cs-cz/dotnet/core/install/macos)
 
-https://docs.microsoft.com/cs-cz/dotnet/core/install/macos
+https://docs.microsoft.com/en-US/dotnet/core/install/macos
 
-### Konfigurace
+### Configuration
 
-1) Zkopírujte si `appsettings.json` a pojmenujte ho `appsettings.Development.json`.
-2) Spusťte bota z IDE (VS, VSC, Rider, ...).
+1) Create an app on the [Discord Developer](https://discord.com/developers/docs/intro) portal and retrieve a token from the _Bot_ section.
+2) Create a copy of `appsettings.json` and name it `appsettings.Development.json` .
+3) Fill your bot token into `appsettings.Development.json`.
+3) Run the application either in an IDE (VS, VSC, Rider, ...) or via the command prompt:
+```
+dotnet run --project <path_to_src/Inkluzitron>
+```
 
-## Produkční deployment
+## Production deployment
 
-Pro produkční nasazení je doporučená možnost použít Docker. V adresáři `src/` se nachází potřebné soubory pro vytvoření kontejneru.
+Docker is recommended for production deployment. The `src/` directory contains the necessary files to create docker image.
 
-### Lokální sestavení
+### Local build
 
-- Vstupte do adresáře `src/` (`cd src/`).
-- Zkopírujte si soubor `environment.template.env` a pojmenujte ho `environment.env` a vyplňte v něm požadované hodnoty.
-- Zavolejte příkaz `docker-compose up`. Bot by se měl automaticky přeložit a spustit.
+1) Switch to `src/` directory (`cd src/`).
+2) Copy the `environment.template.env` file and name it `environment.env` and fill the required values.
+3) Run `docker-compose up`. The bot should automatically build and run.
 
-### Spuštění z dockerhub (přes konzoli)
+### DockerHub image
 
-Prvně si vemte `environment.template.env` soubor, přejmenujte jej na `environment.env`. Bude se používat i ve výsledném kontejneru.
+Prepare environment file (first two steps in local build chapter) and run these commands:
 
 ```sh
 docker pull misha12/inkluzitron
 docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.env' misha12/inkluzitron
 ```
 
-## Struktura? Who knows
+## Repository structure
 
-- `src/` - Zdrojáky
-  - `Inkluzitron` - Adresář s projektem
-    - `bin/` - Adresář s binárkama
-    - `obj/` - Nepotřebujete vědět
-    - `Extensions/` - Rozšiřující metody, které vám mohou zjednodušit život, ale asi je nikdy nevyužijete.
-    - `Handlers/` - Třídy a metody pro zachytávání událostí. Nebudete potřebovat.
-    - `Modules/` - Zde budou třídy s moduly, které budou obsluhovat commandy události, reakce, ... *Většinu času budete implementovat zde.*
-    - `Services/` - Podpůrné služby, aby život byl krásnější. *Asi nikdy sem nebudete potřebovat.*
-    - `appsettings.json` - Hlavní konfigurace a současně šablona configu.
-    - `Inkluzitron.csproj` - Projektový soubor
-    - ... (Cokoliv dalšího, ptej se ostatních)
-  - `.editorconfig` - Nesahat
-  - `Inkluzitron.sln` - Spouštěcí soubor do projektu pro VS (možná bude fungovat i rider.)
-- `README.md` (Toto readme)
+- `src/` - Source code.
+  - `Inkluzitron` – Directory containing project.
+    - `bin/` – Binaries.
+    - `obj/` – *You don't need to know.*
+    - `Extensions/` – Extension methods that can make your life easier.
+    - `Handlers/` – Classes and methods for handling events. *You're probably not going to need them.*
+    - `Modules/` – Classes and modules that handle commands, reactions, etc. *You're mostly going to implement your shiny new code here.*
+    - `Services/` – Support services to make life nicer. *You're probably never going to modify these.*
+    - `appsettings.json` – The primary configuration file (and configuration template as well).
+    - `Inkluzitron.csproj` – The project file.
+    - ... (You can ask the others about the other files.)
+  - `.editorconfig` – DO NOT TOUCH!
+  - `Inkluzitron.sln` – The solution file (this encapsulates the project and this is the file to open in VS or Rider).
+- `README.md` – The thing you are reading right now.
+- `README.cs.md` – The thing you are reading right now but in Czech.
 - `.gitignore`
 
-## Co je třeba vědět?
+## What you need to know?
 
-- Cokoliv přidáte do configu, takto dejte do `appsettings.json`, aby ostatní věděli, co v tom vlastně je.
-- Všechno přidávejte formou PR. **NIKDO** nebude pushovat přímo do `master` branche.
-- Pokud nevíte. Ptejte se.
-- Dívejte se do konzole (to znamená stdout a stderr). Provádí se tam logování.
-- V projektu je využit dependency injection kontejner. Vyžaduje to knihovna Discord.NET.
-- Appka je napsaná, že by se mělo vše načítat dynamicky, tudíž, když budete chtít něco přidat, tak bude stačit udělat tyto jednoduché kroky:
-  - Vytvořte novou třídu v `Modules/`.
-  - Poděďte z bázové třídy `ModuleBase`.
-  - Užijte si zábavu. Pokud nevíte, tak se koukněte jinam.
+- If you add a new configuration section, remember to include it in `appsettings.json`, so that the others know what you've added and don't have a hard time adjusting their own config files.
+- Use PRs (pull requests) to add features or make changes. **NO ONE** may push directly to the `master` branch.
+- If you are not sure or don't know how to do something, **don't be shy about asking others** for help.
+- Check the console (stdout, stderr) for any logs.
+- This project uses a dependency-injection container. It's required by the Discord.NET library.
+- If you want to add something, just follow these steps (everything should load automatically):
+  1) Create a new class in the `Modules/` directory (and namespace).
+  2) Inherit from the `ModuleBase` class.
+  3) Enjoy!
