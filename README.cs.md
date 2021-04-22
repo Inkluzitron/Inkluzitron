@@ -41,7 +41,23 @@ dotnet run --project <path_to_src/Inkluzitron>
 
 ## Produkční deployment
 
-TBD
+Pro produkční nasazení je doporučované použití Dockeru. V adresáři `src/` se nachází potřebné soubory pro vytvoření kontejneru.
+
+### Lokální sestavení
+
+1) Vstupte do adresáře `src/` (`cd src/`).
+2) Zkopírujte si soubor `environment.template.env` do souboru `environment.env` a vyplňte v něm požadované hodnoty.
+3) Spusťte příkaz `docker-compose up`. Bot by se měl automaticky sestavit a spustit.
+
+### DockerHub
+
+Připravte si konfiguraci prostředí (první dva kroky v části Lokální sestavení) a spusťte následující příkazy:
+
+
+```sh
+docker pull misha12/inkluzitron
+docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.env' misha12/inkluzitron
+```
 
 ## Struktura repozitáře
 

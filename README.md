@@ -41,7 +41,22 @@ dotnet run --project <path_to_src/Inkluzitron>
 
 ## Production deployment
 
-TBD
+Using Docker is recommended for production deployment. All files necessary can be found in the `src` directory.
+
+### Local build
+
+1) Enter the `src/` directory (`cd src/`).
+2) Create a copy of the `environment.template.env` file named `environment.env`, and fill the required values inside.
+3) Run `docker-compose up`. The bot should be automatically built and run.
+
+### DockerHub image
+
+Prepare your environment file (first two steps in section Local build), and then run these commands:
+
+```sh
+docker pull misha12/inkluzitron
+docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.env' misha12/inkluzitron
+```
 
 ## Repository structure
 
