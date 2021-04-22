@@ -41,7 +41,7 @@ dotnet run --project <path_to_src/Inkluzitron>
 
 ## Produkční deployment
 
-Pro produkční nasazení je doporučená možnost použít Docker. V adresáři `src/` se nachází potřebné soubory pro vytvoření kontejneru.
+Pro produkční nasazení je doporučované použití Dockeru. V adresáři `src/` se nachází potřebné soubory pro vytvoření kontejneru.
 
 ### Lokální sestavení
 
@@ -53,7 +53,6 @@ Pro produkční nasazení je doporučená možnost použít Docker. V adresáři
 
 Připravte si konfiguraci prostředí (první dva kroky v části Lokální sestavení) a spusťte následující příkazy:
 
-Prvně si vemte `environment.template.env` soubor, přejmenujte jej na `environment.env`. Bude se používat i ve výsledném kontejneru.
 
 ```sh
 docker pull misha12/inkluzitron
