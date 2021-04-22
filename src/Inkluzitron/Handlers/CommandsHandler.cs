@@ -85,7 +85,8 @@ namespace Inkluzitron.Handlers
                         break;
                 }
 
-                await context.Message.ReplyAsync(reply, allowedMentions: AllowedMentions.None);
+                // Reply to command message and mention only replied user 
+                await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions {MentionRepliedUser = true });
             }
         }
     }
