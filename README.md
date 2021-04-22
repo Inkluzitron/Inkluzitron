@@ -35,7 +35,22 @@ https://docs.microsoft.com/cs-cz/dotnet/core/install/macos
 
 ## Produkční deployment
 
-TBD
+Pro produkční nasazení je doporučená možnost použít Docker. V adresáři `src/` se nachází potřebné soubory pro vytvoření kontejneru.
+
+### Lokální sestavení
+
+- Vstupte do adresáře `src/` (`cd src/`).
+- Zkopírujte si soubor `environment.template.env` a pojmenujte ho `environment.env` a vyplňte v něm požadované hodnoty.
+- Zavolejte příkaz `docker-compose up`. Bot by se měl automaticky přeložit.
+
+### Spuštění z dockerhub (přes konzoli)
+
+Prvně si vemte `environment.template.env` soubor, přejmenujte jej na `environment.env`. Bude se používat i ve výsledném kontejneru.
+
+```sh
+docker pull misha12/inkluzitron
+docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.env' misha12/inkluzitron
+```
 
 ## Struktura? Who knows
 
