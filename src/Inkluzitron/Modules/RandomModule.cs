@@ -25,7 +25,7 @@ namespace Inkluzitron.Modules
             options = options.Append(option).ToArray();
             
             var selectedValue = options[Random.Next(options.Length)];
-            await ReplyAsync(selectedValue, allowedMentions:AllowedMentions.None);
+            await ReplyAsync(selectedValue);
         }
 
         [Command("roll")]

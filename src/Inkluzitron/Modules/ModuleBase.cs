@@ -11,6 +11,15 @@ namespace Inkluzitron.Modules
             var options = RequestOptions.Default;
             var reference = new MessageReference(Context.Message.Id, Context.Channel.Id, Context.Guild.Id);
 
+            if (allowedMentions == null)
+            {
+                // Override default behaviour. Mention only replied user
+                allowedMentions = new AllowedMentions
+                {
+                    MentionRepliedUser = true
+                };
+            }
+
             return base.ReplyAsync(message, isTTS, embed, options, allowedMentions, reference);
         }
     }
