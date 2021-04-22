@@ -41,7 +41,7 @@ Pro produkční nasazení je doporučená možnost použít Docker. V adresáři
 
 - Vstupte do adresáře `src/` (`cd src/`).
 - Zkopírujte si soubor `environment.template.env` a pojmenujte ho `environment.env` a vyplňte v něm požadované hodnoty.
-- Zavolejte příkaz `docker-compose up`. Bot by se měl automaticky přeložit.
+- Zavolejte příkaz `docker-compose up`. Bot by se měl automaticky přeložit a spustit.
 
 ### Spuštění z dockerhub (přes konzoli)
 
