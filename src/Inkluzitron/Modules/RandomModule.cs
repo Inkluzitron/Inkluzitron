@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
@@ -21,10 +22,10 @@ namespace Inkluzitron.Modules
             [Summary("možnost")] string option,
             [Summary("možnost ...")] params string[] options)
         {
-            options.Append(option);
+            options = options.Append(option).ToArray();
             
-            var selectedValue = options[Random.Next(0, options.Length)];
-            await ReplyAsync(selectedValue);
+            var selectedValue = options[Random.Next(options.Length)];
+            await ReplyAsync(selectedValue, allowedMentions:AllowedMentions.None);
         }
 
         [Command("roll")]
