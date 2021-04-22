@@ -46,12 +46,12 @@ Pro produkční nasazení je doporučená možnost použít Docker. V adresáři
 ### Lokální sestavení
 
 1) Vstupte do adresáře `src/` (`cd src/`).
-2) Zkopírujte si soubor `environment.template.env` a pojmenujte ho `environment.env` a vyplňte v něm požadované hodnoty.
+2) Zkopírujte si soubor `environment.template.env` do souboru `environment.env` a vyplňte v něm požadované hodnoty.
 3) Spusťte příkaz `docker-compose up`. Bot by se měl automaticky sestavit a spustit.
 
 ### DockerHub
 
-Připravte si environment konfiguraci (první dva kroky v kapitole lokální sestavení) a spusťte následující příkazy:
+Připravte si konfiguraci prostředí (první dva kroky v části Lokální sestavení) a spusťte následující příkazy:
 
 Prvně si vemte `environment.template.env` soubor, přejmenujte jej na `environment.env`. Bude se používat i ve výsledném kontejneru.
 
