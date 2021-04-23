@@ -1,8 +1,6 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 
@@ -19,13 +17,19 @@ namespace Inkluzitron.Modules
     }
     
     [Command("mock")]
-    [Summary("Mockuje zadanou zprávu.")]
-    public async Task MockAsync([Remainder] string message)
+    [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
+    public async Task MockAsync(params string[] strings)
     {
+      var message = string.Join(" ", strings);
       if (message.Length == 0)
       {
-        await ReplyAsync("Chybí zpráva k mockování.");
-        return;
+        if (Context.Message.ReferencedMessage == null)
+        {
+          await ReplyAsync("Chybí zpráva k mockování.");
+          return;
+        }
+
+        message = Context.Message.ReferencedMessage.ToString();
       }
 
       var newString = "";
