@@ -38,7 +38,7 @@ namespace Inkluzitron.Handlers
                 await CommandService.ExecuteAsync(context, userMessage.Content[argPos..], ServiceProvider);
         }
 
-        static private bool TryParseMessageAndCheck(SocketMessage message, out SocketUserMessage socketUserMessage)
+        static public bool TryParseMessageAndCheck(SocketMessage message, out SocketUserMessage socketUserMessage)
         {
             socketUserMessage = null;
 

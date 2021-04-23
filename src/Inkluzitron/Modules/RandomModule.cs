@@ -1,5 +1,6 @@
 ﻿using Discord.Commands;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -15,16 +16,32 @@ namespace Inkluzitron.Modules
 
         [Command("pick")]
         [Summary("Vybere náhodnou možnost z možností.")]
-        public async Task PickAsync(params string[] options)
+        public async Task PickAsync(
+            [Summary("možnost")] string option,
+            [Summary("možnost ...")] params string[] options)
         {
-            if(options.Length == 0)
+            options = options.Append(option).ToArray();
+            
+            var selectedValue = options[Random.Next(options.Length)];
+            await ReplyAsync(selectedValue);
+        }
+
+        [Command("roll")]
+        [Summary("Vrátí náhodné číslo ze zadaného rozsahu.")]
+        public async Task RollAsync(
+            [Summary("od")]int from,
+            [Summary("do")]int to=0
+        )
+        {
+            if(from > to)
             {
-                await ReplyAsync("Zadej nějaké možnosti.");
-                return;
+                var temp = from;
+                from = to;
+                to = temp;
             }
 
-            var selectedValue = options[Random.Next(0, options.Length - 1)];
-            await ReplyAsync(selectedValue);
+            var selectedValue = Random.Next(from, to+1);
+            await ReplyAsync(selectedValue.ToString());
         }
     }
 }
