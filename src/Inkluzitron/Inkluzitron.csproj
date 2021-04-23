@@ -41,7 +41,7 @@
       <LastGenOutput>BonkResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Peepolove\PeepoloveResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
+      <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>PeepoloveResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>

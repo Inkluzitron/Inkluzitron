@@ -120,13 +120,13 @@ namespace Inkluzitron.Modules
 
         static private SysDrawImage RenderPeepoloveFrame(SysDrawImage profilePicture)
         {
-            using var body = new Bitmap(PeepoloveResources.peepoBody);
+            using var body = new Bitmap(PeepoloveResources.body);
             using var graphics = Graphics.FromImage(body);
 
             graphics.RotateTransform(-0.4F);
             graphics.DrawImage(profilePicture, new Rectangle(5, 312, 180, 180));
             graphics.RotateTransform(0.4F);
-            graphics.DrawImage(PeepoloveResources.peepoHands, new Rectangle(0, 0, 512, 512));
+            graphics.DrawImage(PeepoloveResources.hands, new Rectangle(0, 0, 512, 512));
 
             graphics.DrawImage(body, new Point(0, 0));
             return (body as SysDrawImage).CropImage(new Rectangle(0, 115, 512, 397));
