@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
+using Inkluzitron.Resources.Peepolove;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -64,16 +65,87 @@ namespace Inkluzitron.Modules
 
         #endregion
 
+        #region Peepolove
+
+        [Command("peepolove")]
+        [Alias("love")]
+        public async Task PeepoloveAsync(IUser member = null)
+        {
+            if (member == null) member = Context.User;
+            var imageName = CreateCachePath($"Peepolove_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
+
+            if (!File.Exists(imageName))
+            {
+                var profilePictureData = await member.DownloadProfilePictureAsync(size: 256);
+                using var memStream = new MemoryStream(profilePictureData);
+                using var rawProfilePicture = SysDrawImage.FromStream(memStream);
+
+                // Large animated profile pictures have problem with gif upload.
+                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= (Context.Guild.CalculateFileUploadLimit() / 3))
+                    imageName = Path.ChangeExtension(imageName, ".png");
+
+                if (Path.GetExtension(imageName) == ".gif")
+                {
+                    var frames = rawProfilePicture.SplitGifIntoFrames();
+
+                    try
+                    {
+                        using var gif = new AnimatedGifCreator(imageName, rawProfilePicture.CalculateGifDelay());
+                        foreach (var userFrame in frames)
+                        {
+                            using var roundedUserFrame = userFrame.RoundImage();
+                            using var frame = RenderPeepoloveFrame(roundedUserFrame);
+
+                            await gif.AddFrameAsync(frame, quality: GifQuality.Bit8);
+                        }
+                    }
+                    finally
+                    {
+                        frames.ForEach(o => o.Dispose());
+                        frames.Clear();
+                    }
+                }
+                else if (Path.GetExtension(imageName) == ".png")
+                {
+                    using var roundedProfileImage = rawProfilePicture.RoundImage();
+                    var profilePicture = roundedProfileImage.ResizeImage(256, 256);
+
+                    using var frame = RenderPeepoloveFrame(profilePicture);
+                    frame.Save(imageName, System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
+
+            await ReplyFileAsync(imageName);
+        }
+
+        static private SysDrawImage RenderPeepoloveFrame(SysDrawImage profilePicture)
+        {
+            using var body = new Bitmap(PeepoloveResources.peepoBody);
+            using var graphics = Graphics.FromImage(body);
+
+            graphics.RotateTransform(-0.4F);
+            graphics.DrawImage(profilePicture, new Rectangle(5, 312, 180, 180));
+            graphics.RotateTransform(0.4F);
+            graphics.DrawImage(PeepoloveResources.peepoHands, new Rectangle(0, 0, 512, 512));
+
+            graphics.DrawImage(body, new Point(0, 0));
+            return (body as SysDrawImage).CropImage(new Rectangle(0, 115, 512, 397));
+        }
+
+        #endregion
+
         #region Common parts
 
-        static private async Task<SysDrawImage> GetProfilePictureAsync(IUser user)
+        static private async Task<SysDrawImage> GetProfilePictureAsync(IUser user, ushort discordSize = 128, Size? size = null)
         {
-            var profilePictureData = await user.DownloadProfilePictureAsync();
+            if (size == null) size = new Size(100, 100);
+
+            var profilePictureData = await user.DownloadProfilePictureAsync(size: discordSize);
             using var memStream = new MemoryStream(profilePictureData);
             using var rawProfileImage = SysDrawImage.FromStream(memStream);
             using var roundedProfileImage = rawProfileImage.RoundImage();
 
-            return roundedProfileImage.ResizeImage(100, 100);
+            return roundedProfileImage.ResizeImage(size.Value.Width, size.Value.Height);
         }
 
         static private string CreateCachePath(string filename) => Path.Combine("ImageCache", filename);

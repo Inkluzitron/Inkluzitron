@@ -28,12 +28,21 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>BonkResources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\Peepolove\PeepoloveResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PeepoloveResources.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Update="Resources\Bonk\BonkResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>BonkResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Peepolove\PeepoloveResources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>PeepoloveResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

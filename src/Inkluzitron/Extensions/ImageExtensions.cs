@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -51,6 +52,34 @@ namespace Inkluzitron.Extensions
             }
 
             return destImage;
+        }
+
+        static public Image CropImage(this Image image, Rectangle screen)
+        {
+            var result = new Bitmap(screen.Width, screen.Height);
+            using var graphics = Graphics.FromImage(result);
+
+            graphics.DrawImage(image, 0, 0, screen, GraphicsUnit.Pixel);
+            return result;
+        }
+
+        static public List<Image> SplitGifIntoFrames(this Image image)
+        {
+            var frames = new List<Image>();
+
+            for (int i = 0; i < image.GetFrameCount(FrameDimension.Time); i++)
+            {
+                image.SelectActiveFrame(FrameDimension.Time, i);
+                frames.Add(new Bitmap(image));
+            }
+
+            return frames;
+        }
+
+        static public int CalculateGifDelay(this Image image)
+        {
+            var item = image.GetPropertyItem(0x5100); // FrameDelay in libgdi+.
+            return (item.Value[0] + (item.Value[1] * 256)) * 10;
         }
     }
 }
