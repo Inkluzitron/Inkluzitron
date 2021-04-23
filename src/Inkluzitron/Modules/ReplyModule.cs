@@ -33,7 +33,9 @@ namespace Inkluzitron.Modules
             }
             else if (Regex.IsMatch(message.Content, "m[aá]m pravdu.*\\?", RegexOptions.IgnoreCase))
             {
-                await ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.");
+                //await ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.");
+                // TODO Temp fix, než se fixne kontext ReplyAsync
+                await message.Channel.SendMessageAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.");
             }
             else if (Regex.IsMatch(message.Content, "^je [cč]erstv[aá]", RegexOptions.IgnoreCase))
             {
