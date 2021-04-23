@@ -48,7 +48,6 @@ namespace Inkluzitron.Modules
 
       await ReplyAsync(newString);
       await Context.Channel.SendFileAsync(Config["Spongebob"]);
-
     }
   }
 }
