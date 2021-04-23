@@ -1,0 +1,22 @@
+﻿using Discord.Commands;
+using Inkluzitron.Extensions;
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
+
+namespace Inkluzitron.Modules
+{
+    public class SystemModule : ModuleBase
+    {
+        [Command("uptime")]
+        public async Task UptimeAsync()
+        {
+            var process = Process.GetCurrentProcess();
+            var uptime = (DateTime.Now - process.StartTime).FullTextFormat();
+            var start = process.StartTime.ToString("dd. MM. yyyy HH:mm:ss");
+            var activeTime = process.TotalProcessorTime.FullTextFormat();
+
+            await ReplyAsync($"Start proběhl **{start}**, to znamená, že běžím {uptime}, ale reálně jsem pracoval {activeTime}.");
+        }
+    }
+}
