@@ -3,6 +3,7 @@ using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
+using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
 using System.Collections.Generic;
 using System.Drawing;
@@ -81,7 +82,7 @@ namespace Inkluzitron.Modules
                 using var rawProfilePicture = SysDrawImage.FromStream(memStream);
 
                 // Large animated profile pictures have problem with gif upload.
-                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= (Context.Guild.CalculateFileUploadLimit() / 3))
+                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= 2 * (Context.Guild.CalculateFileUploadLimit() / 3))
                     imageName = Path.ChangeExtension(imageName, ".png");
 
                 if (Path.GetExtension(imageName) == ".gif")
@@ -108,7 +109,7 @@ namespace Inkluzitron.Modules
                 else if (Path.GetExtension(imageName) == ".png")
                 {
                     using var roundedProfileImage = rawProfilePicture.RoundImage();
-                    var profilePicture = roundedProfileImage.ResizeImage(256, 256);
+                    using var profilePicture = roundedProfileImage.ResizeImage(256, 256);
 
                     using var frame = RenderPeepoloveFrame(profilePicture);
                     frame.Save(imageName, System.Drawing.Imaging.ImageFormat.Png);
@@ -130,6 +131,72 @@ namespace Inkluzitron.Modules
 
             graphics.DrawImage(body, new Point(0, 0));
             return (body as SysDrawImage).CropImage(new Rectangle(0, 115, 512, 397));
+        }
+
+        #endregion
+
+        #region Peepoangry
+
+        [Command("peepoangry")]
+        [Alias("angry")]
+        public async Task PeepoangryAsync(IUser member = null)
+        {
+            if (member == null) member = Context.User;
+            var imageName = CreateCachePath($"Peepoangry_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
+
+            if (!File.Exists(imageName))
+            {
+                var profilePictureData = await member.DownloadProfilePictureAsync(size: 64);
+                using var memStream = new MemoryStream(profilePictureData);
+                using var rawProfilePicture = SysDrawImage.FromStream(memStream);
+
+                // Large animated profile pictures have problem with gif upload.
+                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= 2 * (Context.Guild.CalculateFileUploadLimit() / 3))
+                    imageName = Path.ChangeExtension(imageName, ".png");
+
+                if (Path.GetExtension(imageName) == ".gif")
+                {
+                    var frames = rawProfilePicture.SplitGifIntoFrames();
+
+                    try
+                    {
+                        using var gif = new AnimatedGifCreator(imageName, rawProfilePicture.CalculateGifDelay());
+                        foreach (var userFrame in frames)
+                        {
+                            using var roundedUserFrame = userFrame.RoundImage();
+                            using var frame = RenderPeepoangryFrame(roundedUserFrame);
+
+                            await gif.AddFrameAsync(frame, quality: GifQuality.Bit8);
+                        }
+                    }
+                    finally
+                    {
+                        frames.ForEach(o => o.Dispose());
+                        frames.Clear();
+                    }
+                }
+                else if (Path.GetExtension(imageName) == ".png")
+                {
+                    using var roundedProfileImage = rawProfilePicture.RoundImage();
+                    var profilePicture = roundedProfileImage.ResizeImage(64, 64);
+
+                    using var frame = RenderPeepoangryFrame(profilePicture);
+                    frame.Save(imageName, System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
+
+            await ReplyFileAsync(imageName);
+        }
+
+        static private SysDrawImage RenderPeepoangryFrame(SysDrawImage profilePicture)
+        {
+            var body = new Bitmap(250, 105);
+            using var graphics = Graphics.FromImage(body);
+
+            graphics.DrawImage(profilePicture, new Rectangle(new Point(20, 10), new Size(64, 64)));
+            graphics.DrawImage(PeepoangryResources.peepoangry, new Point(115, -5));
+
+            return body;
         }
 
         #endregion
