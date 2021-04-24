@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
 {
-  
+
   public class MockingModule : ModuleBase
   {
     private IConfiguration Config { set; get; }
@@ -15,12 +15,12 @@ namespace Inkluzitron.Modules
     {
       Config = config;
     }
-    
+
     [Command("mock")]
     [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
     public async Task MockAsync(params string[] strings)
     {
-      var message = string.Join(" ", strings);
+      var message = string.Join(" ", strings).ToLower();
       if (message.Length == 0)
       {
         if (Context.Message.ReferencedMessage == null)
@@ -29,7 +29,7 @@ namespace Inkluzitron.Modules
           return;
         }
 
-        message = Context.Message.ReferencedMessage.ToString();
+        message = Context.Message.ReferencedMessage.ToString().ToLower();
       }
 
       var newString = "";
@@ -48,7 +48,6 @@ namespace Inkluzitron.Modules
 
       await ReplyAsync(newString);
       await Context.Channel.SendFileAsync(Config["Spongebob"]);
-      
     }
   }
 }
