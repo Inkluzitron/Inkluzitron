@@ -3,6 +3,7 @@ using Discord.Commands;
 using GrapeCity.Documents.Imaging;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
+using Inkluzitron.Resources.Pat;
 using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
@@ -33,6 +34,13 @@ namespace Inkluzitron.Modules
         public async Task BonkAsync(IUser member = null)
         {
             if (member == null) member = Context.User;
+
+            if (member == Context.Guild.CurrentUser)
+            {
+                await PeepoangryAsync(Context.User);
+                return;
+            }
+
             var gifName = CreateCachePath($"bonk_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
@@ -233,6 +241,13 @@ namespace Inkluzitron.Modules
         public async Task WhipAsync(IUser member = null)
         {
             if (member == null) member = Context.User;
+
+            if (member == Context.Guild.CurrentUser)
+            {
+                await PeepoangryAsync(Context.User);
+                return;
+            }
+
             var gifName = CreateCachePath($"Whip_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
@@ -297,6 +312,13 @@ namespace Inkluzitron.Modules
         private async Task SpankAsync(IUser member, bool harder)
         {
             if (member == null) member = Context.User;
+
+            if (member == Context.Guild.CurrentUser)
+            {
+                await PeepoangryAsync(Context.User);
+                return;
+            }
+
             int delayTime = harder ? 3 : 5;
             var gifName = CreateCachePath($"Spank_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
@@ -338,6 +360,64 @@ namespace Inkluzitron.Modules
 
             g.DrawImage(frame, new Point(10, 15));
             g.DrawImage(frameAvatar, new Point(80 - deformation[index], 10 - deformation[index]));
+
+            return bitmap;
+        }
+
+        #endregion
+
+        // Taken from https://github.com/Toaster192/rubbergod
+        #region Pat
+
+        [Command("pat")]
+        [Alias("pet")]
+        public async Task PatAsync(IUser member = null)
+        {
+            if (member == null) member = Context.User;
+            var gifName = CreateCachePath($"Pat_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+
+            if (!File.Exists(gifName))
+            {
+                var profilePicture = await GetProfilePictureAsync(member);
+                using var gifWriter = new GcGifWriter(gifName);
+                using var gcBitmap = new GcBitmap();
+
+                var frames = GetBitmapsFromResources<PatResources>();
+                for (int i = 0; i < frames.Count; i++)
+                {
+                    var frame = frames[i];
+                    using var bonkFrame = RenderPatFrame(profilePicture, frame, i);
+
+                    using var ms = new MemoryStream();
+                    bonkFrame.Save(ms, SysImgFormat.Png);
+
+                    gcBitmap.Load(ms.ToArray());
+                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 5);
+                }
+            }
+
+            await ReplyFileAsync(gifName);
+        }
+
+        static private Bitmap RenderPatFrame(SysDrawImage profilePicture, Bitmap frame, int index)
+        {
+            var deformation = new[]
+            {
+                new Point(-1, 4),
+                new Point(-2, 3),
+                new Point(1, 1),
+                new Point(2, 1),
+                new Point(1, -4)
+            };
+
+            var bitmap = new Bitmap(150, 150);
+            bitmap.MakeTransparent();
+
+            using var frameAvatar = profilePicture.ResizeImage(100 - deformation[index].X, 100 - deformation[index].Y);
+
+            using var g = Graphics.FromImage(bitmap);
+            g.DrawImage(frameAvatar, 150 - (110 - deformation[index].X), 150 - (100 - deformation[index].Y));
+            g.DrawImage(frame, 0, 0);
 
             return bitmap;
         }

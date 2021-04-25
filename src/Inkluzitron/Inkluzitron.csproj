@@ -29,6 +29,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>BonkResources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\Pat\PatResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PatResources.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\Peepoangry\PeepoangryResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -55,6 +60,10 @@
     <EmbeddedResource Update="Resources\Bonk\BonkResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>BonkResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Pat\PatResources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>PatResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Peepoangry\PeepoangryResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
