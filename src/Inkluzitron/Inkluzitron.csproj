@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AnimatedGif" Version="1.0.5" />
     <PackageReference Include="Discord.Net" Version="2.3.1" />
     <PackageReference Include="GrapeCity.Documents.Imaging" Version="4.0.0.633" />
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
