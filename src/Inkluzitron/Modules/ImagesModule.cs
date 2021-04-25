@@ -13,7 +13,6 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml.Schema;
 using SysDrawImage = System.Drawing.Image;
 using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 
@@ -27,6 +26,7 @@ namespace Inkluzitron.Modules
                 Directory.CreateDirectory("ImageCache");
         }
 
+        // Taken from https://github.com/sinus-x/rubbergoddess
         #region Bonk
 
         [Command("bonk")]
@@ -77,6 +77,7 @@ namespace Inkluzitron.Modules
 
         #endregion
 
+        // Taken from https://github.com/Misha12/GrillBot
         #region Peepolove
 
         [Command("peepolove")]
@@ -152,6 +153,7 @@ namespace Inkluzitron.Modules
 
         #endregion
 
+        // Taken from https://github.com/Misha12/GrillBot
         #region Peepoangry
 
         [Command("peepoangry")]
@@ -224,6 +226,7 @@ namespace Inkluzitron.Modules
 
         #endregion
 
+        // Taken from https://github.com/sinus-x/rubbergoddess
         #region Whip
 
         [Command("whip")]
@@ -276,6 +279,7 @@ namespace Inkluzitron.Modules
 
         #endregion
 
+        // Taken from https://github.com/sinus-x/rubbergoddess
         #region Spank
 
         [Command("spank")]
