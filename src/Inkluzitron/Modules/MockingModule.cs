@@ -38,7 +38,7 @@ namespace Inkluzitron.Modules
             }
 
             using var stream = new MemoryStream();
-            SpongeMockResources.mockingSponge.Save(stream, System.Drawing.Imaging.ImageFormat.Gif);
+            SpongeMockResources.mockingsponge.Save(stream, System.Drawing.Imaging.ImageFormat.Gif);
             stream.Seek(0, SeekOrigin.Begin);
 
             await ReplyStreamAsync(stream, "mock.gif", text: newString);
