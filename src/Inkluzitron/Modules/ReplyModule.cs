@@ -20,31 +20,38 @@ namespace Inkluzitron.Modules
             DiscordClient.MessageReceived += OnMessageReceivedAsync;
         }
 
+        private static bool ContainsPhrase(string message, string regex, bool matchOnlyWord=true)
+        {
+            if (matchOnlyWord) regex = $"(?<!\\w){regex}(?!\\w)";
+
+            return Regex.IsMatch(message, regex, RegexOptions.IgnoreCase);
+        }
+
         private async Task OnMessageReceivedAsync(SocketMessage message)
         {
             if (!MessagesHandler.TryParseMessageAndCheck(message, out SocketUserMessage userMessage)) return;
 
-            if (Regex.IsMatch(message.Content, "uh ?oh", RegexOptions.IgnoreCase))
+            if (ContainsPhrase(message.Content, "uh ?oh"))
             {
                 await message.Channel.SendMessageAsync("uh oh");
             }
-            else if (Regex.IsMatch(message.Content, "oh ?no", RegexOptions.IgnoreCase))
+            else if(ContainsPhrase(message.Content, "oh ?no"))
             {
                 await message.Channel.SendMessageAsync("oh no");
             }
-            else if (Regex.IsMatch(message.Content, "m[aá]m pravdu.*\\?", RegexOptions.IgnoreCase))
+            else if (ContainsPhrase(message.Content, "m[aá]m pravdu.*\\?", false))
             {
                 await userMessage.ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.", allowedMentions: CheckAndFixAllowedMentions(null));
             }
-            else if (Regex.IsMatch(message.Content, "^je [cč]erstv[aá]", RegexOptions.IgnoreCase))
+            else if (ContainsPhrase(message.Content, "^je [cč]erstv[aá]"))
             {
                 await message.Channel.SendMessageAsync("Není čerstvá!");
             }
-            else if (Regex.IsMatch(message.Content, "^nen[ií] [cč]erstv[aá]", RegexOptions.IgnoreCase))
+            else if (ContainsPhrase(message.Content, "^nen[ií] [cč]erstv[aá]"))
             {
                 await message.Channel.SendMessageAsync("Je čerstvá!");
             }
-            else if (Regex.IsMatch(message.Content, "^PR$", RegexOptions.IgnoreCase))
+            else if (ContainsPhrase(message.Content, "^PR$"))
             {
                 await message.Channel.SendMessageAsync("https://github.com/Misha12/Inkluzitron");
             }

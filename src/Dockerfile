@@ -9,6 +9,9 @@ RUN dotnet publish -c release -o /app -r linux-musl-x64 --self-contained false -
 
 FROM mcr.microsoft.com/dotnet/runtime:5.0-alpine-amd64
 WORKDIR /app
+# Temporary hack (Rewrite after PR #12 finished.)
+RUN mkdir Assets
+COPY --from=build /source/*.gif Assets/
 COPY --from=build /app .
 
 ENTRYPOINT ["./Inkluzitron"]
