@@ -25,7 +25,7 @@ namespace Inkluzitron.Modules
             return Context.Channel.SendFileAsync(filePath, options: options, allowedMentions: allowedMentions, messageReference: reference);
         }
 
-        static private AllowedMentions CheckAndFixAllowedMentions(AllowedMentions allowedMentions)
+        static protected AllowedMentions CheckAndFixAllowedMentions(AllowedMentions allowedMentions)
         {
             // Override default behaviour. Mention only replied user
             return allowedMentions ?? new AllowedMentions() { MentionRepliedUser = true };
