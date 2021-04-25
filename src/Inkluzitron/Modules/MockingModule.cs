@@ -1,47 +1,53 @@
-using System.IO;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
-using Inkluzitron.Resources.SpongeMock;
+using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
 {
-    public class MockingModule : ModuleBase
+
+  public class MockingModule : ModuleBase
+  {
+    private IConfiguration Config { set; get; }
+
+    public MockingModule(IConfiguration config)
     {
-        [Command("mock")]
-        [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
-        public async Task MockAsync(params string[] strings)
-        {
-            var message = string.Join(" ", strings).ToLower();
-            if (message.Length == 0)
-            {
-                if (Context.Message.ReferencedMessage == null)
-                {
-                    await ReplyAsync("Chybí zpráva k mockování.");
-                    return;
-                }
-
-                message = Context.Message.ReferencedMessage.ToString().ToLower();
-            }
-
-            var newString = "";
-            var toUpper = false;
-            foreach (var t in message)
-            {
-                if (t == ' ')
-                {
-                    newString += t;
-                    continue;
-                }
-
-                newString += toUpper ? t.ToString().ToUpper() : t;
-                toUpper = !toUpper;
-            }
-
-            using var stream = new MemoryStream();
-            SpongeMockResources.sponge.Save(stream, System.Drawing.Imaging.ImageFormat.Gif);
-            stream.Seek(0, SeekOrigin.Begin);
-
-            await ReplyStreamAsync(stream, "mock.gif", text: newString);
-        }
+      Config = config;
     }
+
+    [Command("mock")]
+    [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
+    public async Task MockAsync(params string[] strings)
+    {
+      var message = string.Join(" ", strings).ToLower();
+      if (message.Length == 0)
+      {
+        if (Context.Message.ReferencedMessage == null)
+        {
+          await ReplyAsync("Chybí zpráva k mockování.");
+          return;
+        }
+
+        message = Context.Message.ReferencedMessage.ToString().ToLower();
+      }
+
+      var newString = "";
+      var toUpper = false;
+      foreach (var t in message)
+      {
+        if (t == ' ')
+        {
+          newString += t;
+          continue;
+        }
+
+        newString += toUpper ? t.ToString().ToUpper() : t;
+        toUpper = !toUpper;
+      }
+
+      await ReplyAsync(newString);
+      await Context.Channel.SendFileAsync(Config["Spongebob"]);
+    }
+  }
 }
