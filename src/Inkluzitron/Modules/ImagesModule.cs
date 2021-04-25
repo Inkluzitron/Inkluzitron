@@ -77,7 +77,7 @@ namespace Inkluzitron.Modules
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            g.DrawImage(frameAvatar, 130, 60 + deformation[index]);
+            g.DrawImage(frameAvatar, 100, 60 + deformation[index]);
             g.DrawImage(frame, 0, 0);
 
             return bitmap;
@@ -410,13 +410,13 @@ namespace Inkluzitron.Modules
                 new Point(1, -4)
             };
 
-            var bitmap = new Bitmap(150, 150);
+            var bitmap = new Bitmap(130, 150);
             bitmap.MakeTransparent();
 
             using var frameAvatar = profilePicture.ResizeImage(100 - deformation[index].X, 100 - deformation[index].Y);
 
             using var g = Graphics.FromImage(bitmap);
-            g.DrawImage(frameAvatar, 150 - (110 - deformation[index].X), 150 - (100 - deformation[index].Y));
+            g.DrawImage(frameAvatar, 120 - (110 - deformation[index].X), 150 - (100 - deformation[index].Y));
             g.DrawImage(frame, 0, 0);
 
             return bitmap;

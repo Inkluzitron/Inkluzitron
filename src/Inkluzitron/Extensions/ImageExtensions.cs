@@ -35,8 +35,6 @@ namespace Inkluzitron.Extensions
             var destRect = new Rectangle(0, 0, width, height);
             var destImage = new Bitmap(width, height);
 
-            destImage.SetResolution(original.HorizontalResolution, original.VerticalResolution);
-
             using (var graphics = Graphics.FromImage(destImage))
             {
                 using var wrapMode = new ImageAttributes();
