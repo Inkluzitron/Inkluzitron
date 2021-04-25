@@ -48,11 +48,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>SpankResources.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\SpongeMock\SpongeMockResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>SpongeMockResources.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\Whip\WhipResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -80,10 +75,6 @@
     <EmbeddedResource Update="Resources\Spank\SpankResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>SpankResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\SpongeMock\SpongeMockResources.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>SpongeMockResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Whip\WhipResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
