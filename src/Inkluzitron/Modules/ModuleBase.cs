@@ -16,13 +16,13 @@ namespace Inkluzitron.Modules
             return base.ReplyAsync(message, isTTS, embed, options, allowedMentions, reference);
         }
 
-        protected Task<RestUserMessage> ReplyFileAsync(string filePath, AllowedMentions allowedMentions = null)
+        protected Task<RestUserMessage> ReplyFileAsync(string filePath, string text = null, AllowedMentions allowedMentions = null)
         {
             var options = RequestOptions.Default;
             var reference = new MessageReference(Context.Message.Id, Context.Channel.Id, Context.Guild.Id);
             allowedMentions = CheckAndFixAllowedMentions(allowedMentions);
 
-            return Context.Channel.SendFileAsync(filePath, options: options, allowedMentions: allowedMentions, messageReference: reference);
+            return Context.Channel.SendFileAsync(filePath, text: text, options: options, allowedMentions: allowedMentions, messageReference: reference);
         }
 
         static protected AllowedMentions CheckAndFixAllowedMentions(AllowedMentions allowedMentions)

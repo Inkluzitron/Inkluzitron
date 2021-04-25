@@ -7,47 +7,46 @@ using Microsoft.Extensions.Configuration;
 namespace Inkluzitron.Modules
 {
 
-  public class MockingModule : ModuleBase
-  {
-    private IConfiguration Config { set; get; }
-
-    public MockingModule(IConfiguration config)
+    public class MockingModule : ModuleBase
     {
-      Config = config;
-    }
+        private IConfiguration Config { set; get; }
 
-    [Command("mock")]
-    [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
-    public async Task MockAsync(params string[] strings)
-    {
-      var message = string.Join(" ", strings).ToLower();
-      if (message.Length == 0)
-      {
-        if (Context.Message.ReferencedMessage == null)
+        public MockingModule(IConfiguration config)
         {
-          await ReplyAsync("Chybí zpráva k mockování.");
-          return;
+            Config = config;
         }
 
-        message = Context.Message.ReferencedMessage.ToString().ToLower();
-      }
-
-      var newString = "";
-      var toUpper = false;
-      foreach (var t in message)
-      {
-        if (t == ' ')
+        [Command("mock")]
+        [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
+        public async Task MockAsync(params string[] strings)
         {
-          newString += t;
-          continue;
+            var message = string.Join(" ", strings).ToLower();
+            if (message.Length == 0)
+            {
+                if (Context.Message.ReferencedMessage == null)
+                {
+                    await ReplyAsync("Chybí zpráva k mockování.");
+                    return;
+                }
+
+                message = Context.Message.ReferencedMessage.ToString().ToLower();
+            }
+
+            var newString = "";
+            var toUpper = false;
+            foreach (var t in message)
+            {
+                if (t == ' ')
+                {
+                    newString += t;
+                    continue;
+                }
+
+                newString += toUpper ? t.ToString().ToUpper() : t;
+                toUpper = !toUpper;
+            }
+
+            await ReplyFileAsync(Config["Spongebob"], newString);
         }
-
-        newString += toUpper ? t.ToString().ToUpper() : t;
-        toUpper = !toUpper;
-      }
-
-      await ReplyAsync(newString);
-      await Context.Channel.SendFileAsync(Config["Spongebob"]);
     }
-  }
 }
