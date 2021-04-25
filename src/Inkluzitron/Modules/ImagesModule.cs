@@ -5,6 +5,7 @@ using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
 using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
+using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
 using System.Collections.Generic;
 using System.Drawing;
@@ -12,6 +13,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Schema;
 using SysDrawImage = System.Drawing.Image;
 using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 
@@ -243,7 +245,7 @@ namespace Inkluzitron.Modules
                     var whipFrame = RenderWhipFrame(profilePicture, frame, i);
 
                     using var ms = new MemoryStream();
-                    whipFrame.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    whipFrame.Save(ms, SysImgFormat.Png);
 
                     gcBitmap.Load(ms.ToArray());
                     gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor);
@@ -268,6 +270,70 @@ namespace Inkluzitron.Modules
 
             g.DrawImage(frameAvatar, 135 + deformation[index] + translation[index], 25);
             g.DrawImage(frame, 0, 0);
+
+            return bitmap;
+        }
+
+        #endregion
+
+        #region Spank
+
+        [Command("spank")]
+        public async Task SpankAsync(IUser member = null)
+        {
+            await SpankAsync(member, false);
+        }
+
+        [Command("spank-harder")]
+        public async Task SpankHarderAsync(IUser member = null)
+        {
+            await SpankAsync(member, true);
+        }
+
+        private async Task SpankAsync(IUser member, bool harder)
+        {
+            if (member == null) member = Context.User;
+            int delayTime = harder ? 3 : 5;
+            var gifName = CreateCachePath($"Spank_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+
+            if (!File.Exists(gifName))
+            {
+                var profilePicture = await GetProfilePictureAsync(member);
+                using var gifWriter = new GcGifWriter(gifName);
+                using var gcBitmap = new GcBitmap();
+
+                var frames = GetBitmapsFromResources<SpankResources>();
+                for (int i = 0; i < frames.Count; i++)
+                {
+                    var frame = frames[i];
+                    var whipFrame = RenderSpankFrame(profilePicture, frame, i, harder);
+
+                    using var ms = new MemoryStream();
+                    whipFrame.Save(ms, SysImgFormat.Png);
+
+                    gcBitmap.Load(ms.ToArray());
+                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delayTime);
+                }
+            }
+
+            await ReplyFileAsync(gifName);
+        }
+
+        static private Bitmap RenderSpankFrame(SysDrawImage profilePicture, Bitmap frame, int index, bool harder)
+        {
+            var deformation = new[] { 4, 2, 1, 0, 0, 0, 0, 3 };
+            int deformationCoef = harder ? 7 : 2;
+
+            var bitmap = new Bitmap(230, 150);
+            bitmap.MakeTransparent();
+
+            using var frameAvatar = profilePicture.ResizeImage(100 + (deformationCoef * deformation[index]), 100 + (deformationCoef * deformation[index]));
+
+            using var g = Graphics.FromImage(bitmap);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            g.DrawImage(frame, new Point(10, 15));
+            g.DrawImage(frameAvatar, new Point(80 - deformation[index], 10 - deformation[index]));
 
             return bitmap;
         }
