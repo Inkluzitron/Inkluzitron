@@ -63,9 +63,9 @@ namespace Inkluzitron.Resources.SpongeMock {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        public static System.Drawing.Bitmap mockingsponge {
+        public static System.Drawing.Bitmap sponge {
             get {
-                object obj = ResourceManager.GetObject("mockingsponge", resourceCulture);
+                object obj = ResourceManager.GetObject("sponge", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
