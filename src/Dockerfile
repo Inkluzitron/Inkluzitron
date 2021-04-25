@@ -1,17 +1,17 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0-alpine AS build
-
+FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
 ENV DOTNET_PRINT_TELEMETRY_MESSAGE 'false'
-WORKDIR /source
-COPY Inkluzitron/*.csproj .
-RUN dotnet restore -r linux-musl-x64
-COPY Inkluzitron/* ./
-RUN dotnet publish -c release -o /app -r linux-musl-x64 --self-contained false --no-restore
 
-FROM mcr.microsoft.com/dotnet/runtime:5.0-alpine-amd64
+WORKDIR /source
+COPY Inkluzitron/*.csproj Inkluzitron/
+RUN dotnet restore Inkluzitron/ -r linux-x64
+COPY . .
+RUN dotnet publish Inkluzitron/ -c release -o /app -r linux-x64 --self-contained false --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:5.0-buster-slim
+RUN apt-get update && apt-get -y install libgdiplus tzdata && apt-get clean
+ENV TZ=Europe/Prague
 WORKDIR /app
-# Temporary hack (Rewrite after PR #12 finished.)
-RUN mkdir Assets
-COPY --from=build /source/*.gif Assets/
 COPY --from=build /app .
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 ENTRYPOINT ["./Inkluzitron"]
