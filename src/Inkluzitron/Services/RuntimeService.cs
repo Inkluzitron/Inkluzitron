@@ -15,6 +15,7 @@ namespace Inkluzitron.Services
         private IServiceProvider ServiceProvider { get; }
         private CommandService CommandService { get; }
         private IConfiguration Configuration { get; }
+        private IServiceScope CommandServiceScope { get; set; }
 
         public RuntimeService(DiscordSocketClient discordClient, IServiceProvider serviceProvider, CommandService commandService,
             IConfiguration configuration)
@@ -33,8 +34,8 @@ namespace Inkluzitron.Services
             await DiscordClient.LoginAsync(TokenType.Bot, token);
             await DiscordClient.StartAsync();
 
-            using var scope = ServiceProvider.CreateScope();
-            await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), scope.ServiceProvider);
+            CommandServiceScope = ServiceProvider.CreateScope();
+            await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), CommandServiceScope.ServiceProvider);
         }
 
         static private void CheckToken(string token)
@@ -47,6 +48,8 @@ namespace Inkluzitron.Services
         {
             await DiscordClient.StopAsync();
             await DiscordClient.LogoutAsync();
+            CommandServiceScope?.Dispose();
+            CommandServiceScope = null;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
@@ -48,10 +49,12 @@ namespace Inkluzitron
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
+                .AddSingleton<DataMigrationService>()
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
-                .AddSingleton<Random>();
+                .AddSingleton<Random>()
+                .AddDbContext<DataContext>();
 
             services.AddLogging(config =>
             {
@@ -74,6 +77,9 @@ namespace Inkluzitron
 
             provider.GetRequiredService<LoggingService>();
             handlers.ForEach(o => provider.GetRequiredService(o));
+
+            var dataMigrationService = provider.GetRequiredService<DataMigrationService>();
+            await dataMigrationService.StartAsync();
 
             var runtime = provider.GetRequiredService<RuntimeService>();
             await runtime.StartAsync();

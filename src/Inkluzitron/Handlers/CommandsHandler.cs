@@ -83,6 +83,9 @@ namespace Inkluzitron.Handlers
                         
                         reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {GetCommandFormat(command.Value)}";
                         break;
+
+                    default:
+                        return;
                 }
 
                 // Reply to command message and mention only replied user 
