@@ -74,19 +74,19 @@ namespace Inkluzitron.Handlers
                         if (typeName == "Int32") typeName = "číslo";
                         if (typeName == "String") typeName = "řetězec";
 
-                        reply = $"V {(pos+1)}. argumentu má být **{typeName}**\n> {GetCommandFormat(command.Value, param)}";
+                        reply = $"V {(pos + 1)}. argumentu má být **{typeName}**\n> {GetCommandFormat(command.Value, param)}";
                         break;
 
                     case CommandError.BadArgCount:
-                        var prefix = Configuration["Prefix"];
                         var firstLine = Configuration.GetSection("BadArgumentFirstLine").AsEnumerable().Where(o => o.Value != null).ToArray();
-                        
+
                         reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {GetCommandFormat(command.Value)}";
                         break;
                 }
 
-                // Reply to command message and mention only replied user 
-                await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions {MentionRepliedUser = true });
+                // Reply to command message and mention only replied user
+                if (!string.IsNullOrEmpty(reply))
+                    await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions { MentionRepliedUser = true });
             }
         }
     }

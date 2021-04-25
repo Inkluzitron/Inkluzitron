@@ -1,4 +1,5 @@
 ﻿using Discord.WebSocket;
+using Discord;
 using Inkluzitron.Handlers;
 using System;
 using System.Text.RegularExpressions;
@@ -28,7 +29,7 @@ namespace Inkluzitron.Modules
 
         private async Task OnMessageReceivedAsync(SocketMessage message)
         {
-            if (!MessagesHandler.TryParseMessageAndCheck(message, out SocketUserMessage _)) return;
+            if (!MessagesHandler.TryParseMessageAndCheck(message, out SocketUserMessage userMessage)) return;
 
             if (ContainsPhrase(message.Content, "uh ?oh"))
             {
@@ -40,9 +41,7 @@ namespace Inkluzitron.Modules
             }
             else if (ContainsPhrase(message.Content, "m[aá]m pravdu.*\\?", false))
             {
-                //await ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.");
-                // TODO Temp fix, než se fixne kontext ReplyAsync
-                await message.Channel.SendMessageAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.");
+                await userMessage.ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.", allowedMentions: CheckAndFixAllowedMentions(null));
             }
             else if (ContainsPhrase(message.Content, "^je [cč]erstv[aá]"))
             {

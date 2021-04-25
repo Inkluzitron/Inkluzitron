@@ -53,7 +53,6 @@ Pro produkční nasazení je doporučované použití Dockeru. V adresáři `src
 
 Připravte si konfiguraci prostředí (první dva kroky v části Lokální sestavení) a spusťte následující příkazy:
 
-
 ```sh
 docker pull misha12/inkluzitron
 docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.env' misha12/inkluzitron
