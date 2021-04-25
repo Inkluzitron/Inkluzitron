@@ -6,9 +6,9 @@ namespace Inkluzitron.Services
 {
     public class DataMigrationService
     {
-        public DataContext Context { get; }
+        public BotDatabaseContext Context { get; }
 
-        public DataMigrationService(DataContext context)
+        public DataMigrationService(BotDatabaseContext context)
         {
             Context = context;
         }        

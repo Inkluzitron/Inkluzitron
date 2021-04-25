@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Handlers;
+using Inkluzitron.Modules;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,7 +55,8 @@ namespace Inkluzitron
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
                 .AddSingleton<Random>()
-                .AddDbContext<DataContext>();
+                .AddDbContext<BotDatabaseContext>()
+                .AddSingleton<PaginationSettings>();
 
             services.AddLogging(config =>
             {

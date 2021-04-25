@@ -1,6 +1,6 @@
 ﻿namespace Inkluzitron.Data
 {
-    public class DoubleTestResultItem : BaseTestResultItem
+    public class QuizDoubleItem : QuizItem
     {
         public double Value { get; set; }
     }

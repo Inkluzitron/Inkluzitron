@@ -2,10 +2,10 @@
 
 namespace Inkluzitron.Data
 {
-    public class BaseTestResultItem
+    public class QuizItem
     {
         public Guid ItemId { get; set; }
-        public BaseTestResult TestResult { get; set; }
+        public QuizResult Parent { get; set; }
         public string Key { get; set; }
     }
 }
