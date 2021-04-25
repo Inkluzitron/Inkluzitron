@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -40,12 +39,6 @@ namespace Inkluzitron.Extensions
 
             using (var graphics = Graphics.FromImage(destImage))
             {
-                graphics.CompositingMode = CompositingMode.SourceCopy;
-                graphics.CompositingQuality = CompositingQuality.HighQuality;
-                graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
                 using var wrapMode = new ImageAttributes();
                 wrapMode.SetWrapMode(WrapMode.TileFlipXY);
                 graphics.DrawImage(original, destRect, 0, 0, original.Width, original.Height, GraphicsUnit.Pixel, wrapMode);
@@ -79,7 +72,7 @@ namespace Inkluzitron.Extensions
         static public int CalculateGifDelay(this Image image)
         {
             var item = image.GetPropertyItem(0x5100); // FrameDelay in libgdi+.
-            return (item.Value[0] + (item.Value[1] * 256)) * 10;
+            return item.Value[0] + (item.Value[1] * 256);
         }
     }
 }

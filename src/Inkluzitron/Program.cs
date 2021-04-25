@@ -88,7 +88,7 @@ namespace Inkluzitron
             }
 
             await runtime.StopAsync();
-            await provider.DisposeAsync();
+            provider.Dispose();
         }
 
         static private IConfiguration BuildConfiguration(string[] args)
