@@ -304,6 +304,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("spank-harder")]
+        [Alias("harder-daddy")]
         public async Task SpankHarderAsync(IUser member = null)
         {
             await SpankAsync(member, true);
