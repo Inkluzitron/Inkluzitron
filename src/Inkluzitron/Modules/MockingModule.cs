@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +7,7 @@ namespace Inkluzitron.Modules
 
     public class MockingModule : ModuleBase
     {
-        private IConfiguration Config { set; get; }
+        private IConfiguration Config { get; }
 
         public MockingModule(IConfiguration config)
         {
