@@ -35,7 +35,7 @@ namespace Inkluzitron.Modules
         {
             if (member == null) member = Context.User;
 
-            if (member == Context.Guild.CurrentUser)
+            if (member == Context.Client.CurrentUser)
             {
                 await PeepoangryAsync(Context.User);
                 return;
@@ -242,7 +242,7 @@ namespace Inkluzitron.Modules
         {
             if (member == null) member = Context.User;
 
-            if (member == Context.Guild.CurrentUser)
+            if (member == Context.Client.CurrentUser)
             {
                 await PeepoangryAsync(Context.User);
                 return;
@@ -314,7 +314,7 @@ namespace Inkluzitron.Modules
         {
             if (member == null) member = Context.User;
 
-            if (member == Context.Guild.CurrentUser)
+            if (member == Context.Client.CurrentUser)
             {
                 await PeepoangryAsync(Context.User);
                 return;
