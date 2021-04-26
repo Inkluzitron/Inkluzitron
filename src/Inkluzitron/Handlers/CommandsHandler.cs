@@ -82,6 +82,9 @@ namespace Inkluzitron.Handlers
 
                         reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {GetCommandFormat(command.Value)}";
                         break;
+                    case CommandError.Exception:
+                        await context.Message.AddReactionAsync(new Emoji("❌"));
+                        break;
                 }
 
                 // Reply to command message and mention only replied user
