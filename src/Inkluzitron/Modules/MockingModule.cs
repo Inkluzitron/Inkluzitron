@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
 
@@ -21,6 +22,7 @@ namespace Inkluzitron.Modules
         public async Task MockAsync(params string[] strings)
         {
             var message = string.Join(" ", strings).ToLower();
+            var hasReferencedMsg = false;
             if (message.Length == 0)
             {
                 if (Context.Message.ReferencedMessage == null)
@@ -29,6 +31,7 @@ namespace Inkluzitron.Modules
                     return;
                 }
 
+                hasReferencedMsg = true;
                 message = Context.Message.ReferencedMessage.ToString().ToLower();
             }
 
@@ -59,7 +62,26 @@ namespace Inkluzitron.Modules
                 toUpper = tmp >= 3 ? !toUpper : toUpper;
             }
 
-            await ReplyFileAsync(Config["Spongebob"], newString);
+            // if mocking of referenced message don't use prepared ReplyFileAsync function because we want to reply to
+            // author of referenced message instead of replying to mocker
+            if (hasReferencedMsg)
+            {
+                var am = new AllowedMentions() {MentionRepliedUser = true};
+                var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id, Context.Guild.Id);
+
+                await Context.Channel.SendFileAsync(
+                    "./Assets/mockingSponge.gif",
+                    text: newString,
+                    isTTS: false,
+                    embed: null,
+                    options: RequestOptions.Default,
+                    isSpoiler: false,
+                    allowedMentions: am,
+                    messageReference: mr
+                );
+            }
+            else
+                await ReplyFileAsync(Config["Spongebob"], newString);
         }
     }
 }
