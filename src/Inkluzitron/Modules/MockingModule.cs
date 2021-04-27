@@ -71,11 +71,8 @@ namespace Inkluzitron.Modules
 
                 await Context.Channel.SendFileAsync(
                     "./Assets/mockingSponge.gif",
-                    text: newString,
-                    isTTS: false,
-                    embed: null,
+                    newString,
                     options: RequestOptions.Default,
-                    isSpoiler: false,
                     allowedMentions: am,
                     messageReference: mr
                 );
