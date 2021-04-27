@@ -38,13 +38,23 @@ namespace Inkluzitron.Modules
             var toUpper = lastDigit >= 5;
             foreach (var t in message)
             {
-                if (t == ' ')
+                // add special chars and letter 'i' without changing toUpper variable
+                if (t < 97 || t > 122 || t == 'i')
                 {
                     newString += t;
                     continue;
                 }
+                // add letter 'l' casted to uppercase without changing toUpper variable
+                if (t == 'l')
+                {
+                    newString += t.ToString().ToUpper();
+                    continue;
+                }
+
 
                 newString += toUpper ? t.ToString().ToUpper() : t;
+
+                // get new random number that decides whether we should change to upper/lower
                 var tmp = int.Parse(rnd.Next().ToString().Last().ToString());
                 toUpper = tmp >= 3 ? !toUpper : toUpper;
             }
