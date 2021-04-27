@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Discord.Commands;
 using Microsoft.Extensions.Configuration;
@@ -31,7 +33,9 @@ namespace Inkluzitron.Modules
             }
 
             var newString = "";
-            var toUpper = false;
+            var rnd = new Random(int.Parse(DateTimeOffset.Now.ToUnixTimeSeconds().ToString()));
+            var lastDigit = int.Parse(rnd.Next().ToString().Last().ToString());
+            var toUpper = lastDigit >= 5;
             foreach (var t in message)
             {
                 if (t == ' ')
@@ -41,7 +45,8 @@ namespace Inkluzitron.Modules
                 }
 
                 newString += toUpper ? t.ToString().ToUpper() : t;
-                toUpper = !toUpper;
+                var tmp = int.Parse(rnd.Next().ToString().Last().ToString());
+                toUpper = tmp >= 3 ? !toUpper : toUpper;
             }
 
             await ReplyFileAsync(Config["Spongebob"], newString);
