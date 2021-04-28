@@ -49,7 +49,7 @@ namespace Inkluzitron.Modules
             using var response = await client.GetAsync("api/duck/currentState");
 
             if (!response.IsSuccessStatusCode)
-                throw new WebException($"Nepodařilo se zjistit stav kachny. Zkus {Configuration["IsKachnaOpen:Api"]}");
+                throw new WebException($"Nepodařilo se zjistit stav kachny. Zkus <{Configuration["IsKachnaOpen:Api"]}>");
 
             var json = await response.Content.ReadAsStringAsync();
             return JsonConvert.DeserializeObject<DuckCurrentState>(json);
