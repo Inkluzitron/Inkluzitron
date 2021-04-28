@@ -11,10 +11,12 @@ namespace Inkluzitron.Modules
     public class MockingModule : ModuleBase
     {
         private IConfiguration Config { get; }
+        private Random Random { get; }
 
-        public MockingModule(IConfiguration config)
+        public MockingModule(IConfiguration config, Random random)
         {
             Config = config;
+            Random = random;
         }
 
         [Command("mock")]
@@ -36,8 +38,7 @@ namespace Inkluzitron.Modules
             }
 
             var newString = "";
-            var rnd = new Random(int.Parse(DateTimeOffset.Now.ToUnixTimeSeconds().ToString()));
-            var lastDigit = int.Parse(rnd.Next().ToString().Last().ToString());
+            var lastDigit = Random.Next(0, 10);
             var toUpper = lastDigit >= 5;
             foreach (var t in message)
             {
@@ -58,7 +59,7 @@ namespace Inkluzitron.Modules
                 newString += toUpper ? t.ToString().ToUpper() : t;
 
                 // get new random number that decides whether we should change to upper/lower
-                var tmp = int.Parse(rnd.Next().ToString().Last().ToString());
+                var tmp = Random.Next(0, 10);
                 toUpper = tmp >= 3 ? !toUpper : toUpper;
             }
 
@@ -70,7 +71,7 @@ namespace Inkluzitron.Modules
                 var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id, Context.Guild.Id);
 
                 await Context.Channel.SendFileAsync(
-                    "./Assets/mockingSponge.gif",
+                    Config["Spongebob"],
                     newString,
                     options: RequestOptions.Default,
                     allowedMentions: am,
