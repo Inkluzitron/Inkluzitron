@@ -164,11 +164,8 @@ namespace Inkluzitron.Modules
         // Taken from https://github.com/Misha12/GrillBot
         #region Peepoangry
 
-        [Command("peepoangry")]
-        [Alias("angry")]
-        public async Task PeepoangryAsync(IUser member = null)
+        public async Task<string> GetPeepoangryImagePath(IUser member)
         {
-            if (member == null) member = Context.User;
             var imageName = CreateCachePath($"Peepoangry_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
 
             if (!File.Exists(imageName))
@@ -217,6 +214,17 @@ namespace Inkluzitron.Modules
                     frame.Save(imageName, SysImgFormat.Png);
                 }
             }
+
+            return imageName;
+        }
+
+
+        [Command("peepoangry")]
+        [Alias("angry")]
+        public async Task PeepoangryAsync(IUser member = null)
+        {
+            if (member == null) member = Context.User;
+            var imageName = await GetPeepoangryImagePath(member);
 
             await ReplyFileAsync(imageName);
         }
