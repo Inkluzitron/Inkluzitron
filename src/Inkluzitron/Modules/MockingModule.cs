@@ -13,10 +13,13 @@ namespace Inkluzitron.Modules
         private IConfiguration Config { get; }
         private Random Random { get; }
 
+        private ImagesModule ImagesModule { get;  }
+
         public MockingModule(IConfiguration config, Random random)
         {
             Config = config;
             Random = random;
+            ImagesModule = new ImagesModule();
         }
 
         // Get maximum range value for a random number generator that decides if the char should be uppercase.
@@ -43,6 +46,15 @@ namespace Inkluzitron.Modules
                 }
 
                 hasReferencedMsg = true;
+
+                // Easter egg. If user is mocking bot, send peepoangry instead
+                if(Context.Message.ReferencedMessage.Author == Context.Guild.CurrentUser)
+                {
+                    var imageName = await ImagesModule.GetPeepoangryImagePath(Context.Message.Author);
+                    await ReplyFileAsync(imageName);
+                    return;
+                }
+
                 message = Context.Message.ReferencedMessage.ToString().ToLower();
             }
 
