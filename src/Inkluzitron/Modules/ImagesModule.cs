@@ -59,7 +59,7 @@ namespace Inkluzitron.Modules
                     bonkFrame.Save(ms, SysImgFormat.Png);
 
                     gcBitmap.Load(ms.ToArray());
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 5);
+                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 3);
                 }
             }
 
@@ -68,16 +68,16 @@ namespace Inkluzitron.Modules
 
         static private Bitmap RenderBonkFrame(SysDrawImage profilePicture, Bitmap frame, int index)
         {
-            var bitmap = new Bitmap(250, 170);
+            var bitmap = new Bitmap(250, 200);
             bitmap.MakeTransparent();
 
-            var deformation = new[] { 0, 0, 0, 5, 10, 20, 15, 5 };
+            var deformation = new[] { 0, 0, 0, 0, 5, 20, 15, 5 };
             using var frameAvatar = profilePicture.ResizeImage(110, 100 - deformation[index]);
 
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            g.DrawImage(frameAvatar, 100, 60 + deformation[index]);
+            g.DrawImage(frameAvatar, 100, 100 + deformation[index]);
             g.DrawImage(frame, 0, 0);
 
             return bitmap;
