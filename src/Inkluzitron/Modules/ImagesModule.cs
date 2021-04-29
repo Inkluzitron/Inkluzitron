@@ -68,7 +68,7 @@ namespace Inkluzitron.Modules
 
         static private Bitmap RenderBonkFrame(SysDrawImage profilePicture, Bitmap frame, int index)
         {
-            var bitmap = new Bitmap(250, 200);
+            var bitmap = new Bitmap(250, 170);
             bitmap.MakeTransparent();
 
             var deformation = new[] { 0, 0, 0, 0, 5, 20, 15, 5 };
@@ -77,7 +77,7 @@ namespace Inkluzitron.Modules
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            g.DrawImage(frameAvatar, 100, 100 + deformation[index]);
+            g.DrawImage(frameAvatar, 100, 60 + deformation[index]);
             g.DrawImage(frame, 0, 0);
 
             return bitmap;
@@ -278,7 +278,7 @@ namespace Inkluzitron.Modules
             var deformation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 5, 9, 6, 4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             var translation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-            var bitmap = new Bitmap(300, 145);
+            var bitmap = new Bitmap(250, 145);
             bitmap.MakeTransparent();
 
             using var frameAvatar = profilePicture.ResizeImage(100 - deformation[index], 100);
@@ -286,7 +286,7 @@ namespace Inkluzitron.Modules
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            g.DrawImage(frameAvatar, 170 + deformation[index] + translation[index], 30);
+            g.DrawImage(frameAvatar, 135 + deformation[index] + translation[index], 30);
             g.DrawImage(frame, 0, -10);
 
             return bitmap;
