@@ -19,6 +19,15 @@ namespace Inkluzitron.Modules
             Random = random;
         }
 
+        // Get maximum range value for a random number generator that decides if the char should be uppercase.
+        // When the char is uppercased, the index is set to last element.
+        // The index is decremented for each lowercased char
+        // 
+        // This means the char following uppercased char has 20% (1/5) chance of changing to uppercase.
+        // If it's not changed, then the next char has 50% (1/2) chance of being uppercased. Finally if
+        // even the second char is not uppercased, the next valid char has 100% chance.
+        private readonly int[] MockRandomCoefficient = { 1, 2, 5 };
+
         [Command("mock")]
         [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
         public async Task MockAsync(params string[] strings)
@@ -37,30 +46,26 @@ namespace Inkluzitron.Modules
                 message = Context.Message.ReferencedMessage.ToString().ToLower();
             }
 
-            var newString = "";
-            var lastDigit = Random.Next(0, 10);
-            var toUpper = lastDigit >= 5;
-            foreach (var t in message)
+            var mockedMessage = "";
+            var coeffIndex = 0;
+            
+            foreach (var c in message)
             {
-                // add special chars and letter 'i' without changing toUpper variable
-                if (t < 97 || t > 122 || t == 'i')
+                // Letter 'i' cannot be uppercased and letter 'l' should be always uppercased. 
+                // This feature is here to prevent confusion of lowercase 'l' and uppercase 'i'
+                if (char.IsLetter(c) && c != 'i' && (c == 'l' || Random.Next(MockRandomCoefficient[coeffIndex]) == 0))
                 {
-                    newString += t;
-                    continue;
-                }
-                // add letter 'l' casted to uppercase without changing toUpper variable
-                if (t == 'l')
-                {
-                    newString += t.ToString().ToUpper();
+                    mockedMessage += char.ToUpperInvariant(c);
+                    coeffIndex = MockRandomCoefficient.Length - 1;
                     continue;
                 }
 
+                mockedMessage += c;
 
-                newString += toUpper ? t.ToString().ToUpper() : t;
-
-                // get new random number that decides whether we should change to upper/lower
-                var tmp = Random.Next(0, 10);
-                toUpper = tmp >= 3 ? !toUpper : toUpper;
+                if (coeffIndex > 0)
+                {
+                    coeffIndex--;
+                }
             }
 
             // if mocking of referenced message don't use prepared ReplyFileAsync function because we want to reply to
@@ -72,14 +77,14 @@ namespace Inkluzitron.Modules
 
                 await Context.Channel.SendFileAsync(
                     Config["Spongebob"],
-                    newString,
+                    mockedMessage,
                     options: RequestOptions.Default,
                     allowedMentions: am,
                     messageReference: mr
                 );
             }
             else
-                await ReplyFileAsync(Config["Spongebob"], newString);
+                await ReplyFileAsync(Config["Spongebob"], mockedMessage);
         }
     }
 }
