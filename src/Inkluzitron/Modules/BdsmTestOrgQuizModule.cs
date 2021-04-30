@@ -132,7 +132,7 @@ namespace Inkluzitron.Modules
 
             foreach (Match match in itemsMatch)
             {
-                var traitName = m.Groups["trait"].Value;
+                var traitName = match.Groups["trait"].Value;
                 if (!TraitList.Contains(traitName))
                 {
                     await ReplyAsync(InvalidTraitMessage);
