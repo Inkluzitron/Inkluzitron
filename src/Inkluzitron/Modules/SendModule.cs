@@ -36,7 +36,7 @@ namespace Inkluzitron.Modules
 
                 if (!response.IsSuccessStatusCode) continue;
 
-                var stream = await response.Content.ReadAsStreamAsync();
+                using var stream = await response.Content.ReadAsStreamAsync();
                 await Context.Channel.SendFileAsync(stream, a.Filename, isSpoiler: a.IsSpoiler());
             }
         }
