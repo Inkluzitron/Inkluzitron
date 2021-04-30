@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -25,7 +24,7 @@ namespace Inkluzitron.Modules
         // Get maximum range value for a random number generator that decides if the char should be uppercase.
         // When the char is uppercased, the index is set to last element.
         // The index is decremented for each lowercased char
-        // 
+        //
         // This means the char following uppercased char has 20% (1/5) chance of changing to uppercase.
         // If it's not changed, then the next char has 50% (1/2) chance of being uppercased. Finally if
         // even the second char is not uppercased, the next valid char has 100% chance.
@@ -60,10 +59,10 @@ namespace Inkluzitron.Modules
 
             var mockedMessage = "";
             var coeffIndex = 0;
-            
+
             foreach (var c in message)
             {
-                // Letter 'i' cannot be uppercased and letter 'l' should be always uppercased. 
+                // Letter 'i' cannot be uppercased and letter 'l' should be always uppercased.
                 // This feature is here to prevent confusion of lowercase 'l' and uppercase 'i'
                 if (char.IsLetter(c) && c != 'i' && (c == 'l' || Random.Next(MockRandomCoefficient[coeffIndex]) == 0))
                 {
@@ -80,15 +79,16 @@ namespace Inkluzitron.Modules
                 }
             }
 
+            mockedMessage = Config["Spongebob"] + " " + mockedMessage + " " + Config["Spongebob"];
             // if mocking of referenced message don't use prepared ReplyFileAsync function because we want to reply to
             // author of referenced message instead of replying to mocker
             if (hasReferencedMsg)
             {
                 var am = new AllowedMentions() {MentionRepliedUser = true};
-                var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id, Context.Guild.Id);
+                var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id,
+                    Context.Guild.Id);
 
-                await Context.Channel.SendFileAsync(
-                    Config["Spongebob"],
+                await Context.Channel.SendMessageAsync(
                     mockedMessage,
                     options: RequestOptions.Default,
                     allowedMentions: am,
@@ -96,7 +96,7 @@ namespace Inkluzitron.Modules
                 );
             }
             else
-                await ReplyFileAsync(Config["Spongebob"], mockedMessage);
+                await ReplyAsync(mockedMessage);
         }
     }
 }
