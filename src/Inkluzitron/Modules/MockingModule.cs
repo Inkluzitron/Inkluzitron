@@ -79,7 +79,7 @@ namespace Inkluzitron.Modules
                 }
             }
 
-            mockedMessage = Config["Spongebob"] + " " + mockedMessage + " " + Config["Spongebob"];
+            mockedMessage = $"{Config["Spongebob"]} {mockedMessage} {Config["Spongebob"]}";
             // if mocking of referenced message don't use prepared ReplyFileAsync function because we want to reply to
             // author of referenced message instead of replying to mocker
             if (hasReferencedMsg)
