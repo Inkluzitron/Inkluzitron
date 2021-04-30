@@ -139,7 +139,7 @@ namespace Inkluzitron.Modules
                     return;
                 }
 
-                if (!TryParseTraitPercentage(m.Groups["pctg"].Value, out var traitPercentage))
+                if (!TryParseTraitPercentage(match.Groups["pctg"].Value, out var traitPercentage))
                 {
                     await ReplyAsync(InvalidPercentageMessage);
                     return;
