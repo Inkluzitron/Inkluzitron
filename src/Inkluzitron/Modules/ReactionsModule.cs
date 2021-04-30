@@ -78,6 +78,7 @@ namespace Inkluzitron.Modules
                 catch (Exception e)
                 {
                     Logger.LogError(
+                        e,
                         "Reaction handler {0} threw an exception when handling reaction {1} added to message {2}.",
                         reactionHandler,
                         arg3.Emote.Name,
