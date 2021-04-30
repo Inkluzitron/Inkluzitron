@@ -39,11 +39,8 @@ namespace Inkluzitron.Modules
 
         public BdsmTestOrgQuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, IConfiguration config)
         {
-            DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-            ReactionSettings = reactionSettings ?? throw new ArgumentNullException(nameof(reactionSettings));
-
-            if (config is null)
-                throw new ArgumentNullException(nameof(config));
+            DbContext = dbContext;
+            ReactionSettings = reactionSettings;
 
             const string SectionName = "BdsmTestOrgQuizModule";
             string GetRequiredConfig(string key)

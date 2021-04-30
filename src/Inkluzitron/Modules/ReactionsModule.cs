@@ -20,14 +20,14 @@ namespace Inkluzitron.Modules
 
         public ReactionsModule(DiscordSocketClient discordClient, ReactionSettings reactionSettings, IEnumerable<IReactionHandler> reactionHandlers, ILogger<ReactionsModule> logger)
         {
-            DiscordClient = discordClient ?? throw new ArgumentNullException(nameof(discordClient));
-            Settings = reactionSettings ?? throw new ArgumentNullException(nameof(reactionSettings));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            ReactionHandlers = (reactionHandlers ?? throw new ArgumentNullException(nameof(reactionHandlers))).ToArray();
+            DiscordClient = discordClient;
+            Settings = reactionSettings;
+            Logger = logger;
+            ReactionHandlers = reactionHandlers.ToArray();
 
             DiscordClient.ReactionAdded += DiscordClient_ReactionAdded;
         }
-        private async Task DiscordClient_ReactionAdded(Cacheable<Discord.IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
+        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
         {
             
             if (arg3.Message.GetValueOrDefault() is not IUserMessage message)
