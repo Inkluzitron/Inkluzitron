@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -50,6 +51,10 @@ namespace Inkluzitron
                 DefaultRunMode = RunMode.Async
             };
 
+            var dbFileLocation = configuration.GetValue<string>("DatabaseFilePath");
+            if (dbFileLocation == null)
+                throw new InvalidOperationException("The 'DatabaseFilePath' configuration value is missing.");
+
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
@@ -57,7 +62,7 @@ namespace Inkluzitron
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
                 .AddSingleton<Random>()
-                .AddDbContext<BotDatabaseContext>()
+                .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<ReactionsModule>();
 
@@ -69,6 +74,13 @@ namespace Inkluzitron
                     {
                         opt.IncludeScopes = true;
                         opt.TimestampFormat = "dd. MM. yyyy HH:mm:ss\t";
+                    })
+                    .AddFilter((category, level) =>
+                    {
+                        if (category.StartsWith("Microsoft.EntityFrameworkCore"))
+                            return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
+                        else
+                            return true;
                     });
             });
 
@@ -122,6 +134,16 @@ namespace Inkluzitron
                 .AddCommandLine(args)
                 .AddEnvironmentVariables()
                 .Build();
+        }
+
+        static private string BuildConnectionString(string sqliteDatabasePath)
+        {
+            var builder = new DbConnectionStringBuilder()
+            {
+                { "Data Source", sqliteDatabasePath }
+            };
+
+            return builder.ConnectionString;
         }
     }
 }
