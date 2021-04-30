@@ -67,6 +67,7 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
     - `Extensions/` – Rozšiřující metody, které vám mohou zjednodušit život, ale asi je nikdy nevyužijete.
     - `Handlers/` – Třídy a metody pro zachytávání událostí. *Pravděpodobně je nebudete potřebovat.*
     - `Modules/` – Zde budou třídy s moduly, které budou obsluhovat obsluhu událostí, reakcí atd. *Většinu svého krásného nového kódu budete implementovat zde.*
+    - `Resources/` – Dodatečný obsah, který se má připojit k aplikaci (obrázky, ...).
     - `Services/` – Podpůrné služby, díky kterým je život krásnější. *Sem asi nikdy nebudete potřebovat.*
     - `appsettings.json` – Hlavní konfigurační soubor (a zároveň šablona konfigurace).
     - `Inkluzitron.csproj` – Soubor s projektem.

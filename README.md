@@ -67,6 +67,7 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
     - `Extensions/` – Extension methods that can make your life easier.
     - `Handlers/` – Classes and methods for handling events. *You're probably not going to need them.*
     - `Modules/` – Classes and modules that handle commands, reactions, etc. *You're mostly going to implement your shiny new code here.*
+    - `Resources/` – Additional content to be append to the application assembly (images, ...).
     - `Services/` – Support services to make life nicer. *You're probably never going to modify these.*
     - `appsettings.json` – The primary configuration file (and configuration template as well).
     - `Inkluzitron.csproj` – The project file.
