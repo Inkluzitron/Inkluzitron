@@ -64,6 +64,8 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
   - `Inkluzitron` – Directory containing project.
     - `bin/` – Binaries.
     - `obj/` – *You don't need to know.*
+    - `Data/` - Classes that constitute the bot's data model.
+    - `Migrations/` - Code responsible for updating the database schema. It is generated automatically, do not edit these files manually.
     - `Extensions/` – Extension methods that can make your life easier.
     - `Handlers/` – Classes and methods for handling events. *You're probably not going to need them.*
     - `Modules/` – Classes and modules that handle commands, reactions, etc. *You're mostly going to implement your shiny new code here.*
@@ -84,6 +86,12 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
 - If you are not sure or don't know how to do something, **don't be shy about asking others** for help.
 - Check the console (stdout, stderr) for any logs.
 - This project uses a dependency-injection container. It's required by the Discord.NET library.
+- If you want to start saving a new entity into the bot's database, you'll need to create an entity class and add it as a property of type `DbSet<TridaNoveEntity>` in `Data/BotDatabaseContext.cs`.
+- If you make any changes to the data model (i.e. touch anything in the `Data`) folder, remember to also generate a migration using the below command:
+  ```sh
+  dotnet ef migrations add TerseSummaryOfChangesMadeToDataModel
+  ```
+  You might need to install the `dotnet ef` tool first [according to the EF Core documentation](https://docs.microsoft.com/cs-cz/ef/core/get-started/overview/install#get-the-net-core-cli-tools).
 - If you want to add something, just follow these steps (everything should load automatically):
   1) Create a new class in the `Modules/` directory (and namespace).
   2) Inherit from the `ModuleBase` class.
