@@ -11,8 +11,9 @@ namespace Inkluzitron.Migrations
                 name: "QuizResults",
                 columns: table => new
                 {
-                    ResultId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    SubmittedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    ResultId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SubmittedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     SubmittedById = table.Column<ulong>(type: "INTEGER", nullable: false),
                     SubmittedByName = table.Column<string>(type: "TEXT", nullable: true),
                     Discriminator = table.Column<string>(type: "TEXT", nullable: false),
@@ -27,8 +28,9 @@ namespace Inkluzitron.Migrations
                 name: "QuizItems",
                 columns: table => new
                 {
-                    ItemId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    ParentResultId = table.Column<Guid>(type: "TEXT", nullable: true),
+                    ItemId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ParentResultId = table.Column<ulong>(type: "INTEGER", nullable: true),
                     Key = table.Column<string>(type: "TEXT", nullable: true),
                     Discriminator = table.Column<string>(type: "TEXT", nullable: false),
                     Value = table.Column<double>(type: "REAL", nullable: true)

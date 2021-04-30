@@ -18,9 +18,9 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.QuizItem", b =>
                 {
-                    b.Property<Guid>("ItemId")
+                    b.Property<ulong>("ItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
@@ -29,8 +29,8 @@ namespace Inkluzitron.Migrations
                     b.Property<string>("Key")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("ParentResultId")
-                        .HasColumnType("TEXT");
+                    b.Property<ulong?>("ParentResultId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("ItemId");
 
@@ -43,15 +43,15 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.QuizResult", b =>
                 {
-                    b.Property<Guid>("ResultId")
+                    b.Property<ulong>("ResultId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("SubmittedAt")
+                    b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<ulong>("SubmittedById")

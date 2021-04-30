@@ -1,10 +1,13 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Contracts;
 using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Modules;
 using Inkluzitron.Services;
+using Inkluzitron.Settings;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -50,13 +53,13 @@ namespace Inkluzitron
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
-                .AddSingleton<DataMigrationService>()
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
                 .AddSingleton<Random>()
                 .AddDbContext<BotDatabaseContext>()
-                .AddSingleton<PaginationSettings>();
+                .AddSingleton<ReactionSettings>()
+                .AddSingleton<ReactionsModule>();
 
             services.AddLogging(config =>
             {
@@ -75,13 +78,20 @@ namespace Inkluzitron
 
             handlers.ForEach(handler => services.AddSingleton(handler));
 
+            Assembly.GetExecutingAssembly().GetTypes()
+                .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
+                .ToList()
+                .ForEach(reactionHandlerType => services.AddSingleton(typeof(IReactionHandler), reactionHandlerType));
+
             var provider = services.BuildServiceProvider();
 
             provider.GetRequiredService<LoggingService>();
             handlers.ForEach(o => provider.GetRequiredService(o));
 
-            var dataMigrationService = provider.GetRequiredService<DataMigrationService>();
-            await dataMigrationService.StartAsync();
+            var context = provider.GetRequiredService<BotDatabaseContext>();
+            await context.Database.MigrateAsync();
+
+            provider.GetRequiredService<ReactionsModule>();
 
             var runtime = provider.GetRequiredService<RuntimeService>();
             await runtime.StartAsync();

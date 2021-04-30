@@ -4,6 +4,7 @@ using Discord.Commands.Builders;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Extensions;
+using Inkluzitron.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,27 +31,7 @@ namespace Inkluzitron.Modules
             return comparison;
         }
     }
-
-    public class PaginationSettings
-    {
-        public string First { get; }
-        public string Previous { get; }
-        public string Next { get; }
-        public string Last { get; }
-
-        public IEmote[] Emojis { get; }
-        public HashSet<string> Values { get; }
-        public PaginationSettings(IConfiguration config)
-        {
-            First = config["Pagination:First"];
-            Previous = config["Pagination:Previous"];
-            Next = config["Pagination:Next"];
-            Last = config["Pagination:Last"];
-
-            Emojis = new[] { First, Previous, Next, Last }.Select(x => new Emoji(x)).ToArray<IEmote>();
-            Values = Emojis.Select(e => e.Name).ToHashSet();
-        }
-    }
+       
 
     public class BdsmTestOrgQuizModule : ModuleBase
     {
@@ -59,12 +40,10 @@ namespace Inkluzitron.Modules
         private readonly string _subcommandsUsage;
 
         private readonly BotDatabaseContext _dbContext;
-        private readonly PaginationSettings _settings;
 
         public BdsmTestOrgQuizModule(IServiceProvider serviceProvider)
         {
             _dbContext = serviceProvider.GetRequiredService<BotDatabaseContext>();
-            _settings = serviceProvider.GetRequiredService<PaginationSettings>();
 
             var subcommandTypes = new[] { typeof(ProcessQuizSubmissionSubcommand), typeof(FallbackSubcommand), typeof(ShowLatestQuizResultSubcommand) };
             var usageBuilder = new StringBuilder();
@@ -91,68 +70,8 @@ namespace Inkluzitron.Modules
             }
 
             _subcommandsUsage = usageBuilder.ToString();
-
-            var dcClient = serviceProvider.GetRequiredService<DiscordSocketClient>();
-            dcClient.ReactionAdded += async (x, y, z) => await Client_ReactionAdded(dcClient.CurrentUser.Id, x, y, z); // todo: -=
         }
-
-
-        private async Task Client_ReactionAdded(ulong ownId, Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
-        {
-            if (arg3.Message.GetValueOrDefault() is not SocketUserMessage message)
-                return;
-
-            if (arg3.User.GetValueOrDefault() is not IUser user)
-                return;
-
-            if (user.Id == ownId)
-                return;
-
-            if (message.Author.Id != ownId)
-                return;
-
-            if (!_settings.Values.Contains(arg3.Emote.Name))
-                return;
-
-            if (message.Embeds.Count != 1)
-                return;
-
-            var embed = message.Embeds.Single();
-            if (embed.Footer is not EmbedFooter footer)
-                return;
-
-            if (embed.Author is not EmbedAuthor author)
-                return;
-
-            async Task<BdsmTestOrgQuizResult> Navigate(BdsmTestOrgQuizResult submission, string navigationReaction)
-            {
-                var r = _dbContext.BdsmTestOrgQuizResults.Include(x => x.Items).AsAsyncEnumerable();
-
-                if (navigationReaction == _settings.First) // the most recent, with maximum timestamp in DateTimeOffset
-                    return await r.Where(x => x.SubmittedById == submission.SubmittedById).OrderByDescending(x => x.SubmittedAt).FirstOrDefaultAsync();
-                else if (navigationReaction == _settings.Last) // the least recent, with minimum timestamp in DateTimeOffset
-                    return await r.Where(x => x.SubmittedById == submission.SubmittedById).OrderBy(x => x.SubmittedAt).FirstOrDefaultAsync();
-                else if (navigationReaction == _settings.Previous) // from all submissions whose timestamp is greater than the original, pick the closest (= previous) aka lowest one
-                    return await r.Where(x => x.SubmittedById == submission.SubmittedById && x.SubmittedAt > submission.SubmittedAt).OrderBy(x => x.SubmittedAt).FirstOrDefaultAsync();
-                else if (navigationReaction == _settings.Next) // from all submissions whose timestamp is lower than the original, pick the closest (= next) aka greatest one
-                    return await r.Where(x => x.SubmittedById == submission.SubmittedById && x.SubmittedAt < submission.SubmittedAt).OrderByDescending(x => x.SubmittedAt).FirstOrDefaultAsync(); 
-                else
-                    return null;
-            }
-
-            if (!BdsmQuizIdentifier.TryParse(footer.Text, out var quizId))
-                await message.ModifyAsync(p => p.Embed = BdsmQuizEmbedBuilder.BuildErrorEmbed());
-            else if (await _dbContext.BdsmTestOrgQuizResults.FindAsync(quizId.Id) is not BdsmTestOrgQuizResult currentSubmission)
-                await message.ModifyAsync(p => p.Embed = BdsmQuizEmbedBuilder.BuildUnableToLocateEmbed());
-            else if (await Navigate(currentSubmission, arg3.Emote.Name) is BdsmTestOrgQuizResult newSubmission)
-            {
-                var newEmbedBuilder = new BdsmQuizEmbedBuilder(newSubmission);
-                var newEmbed = await newEmbedBuilder.BuildAsync(_dbContext, x => x.WithAuthor(author.Name, author.IconUrl, author.Url));
-                await message.ModifyAsync(p => p.Embed = newEmbed);
-            }
-
-            await message.RemoveReactionAsync(arg3.Emote, user);
-        }
+ 
 
         private abstract class Subcommand
         {
@@ -227,7 +146,7 @@ namespace Inkluzitron.Modules
 
                 var testResult = new BdsmTestOrgQuizResult
                 {
-                    SubmittedAt = DateTimeOffset.Now,
+                    SubmittedAt = DateTime.UtcNow,
                     SubmittedByName = context.Message.Author.Username,
                     SubmittedById = context.Message.Author.Id,
                     Link = testResultLink
@@ -250,118 +169,44 @@ namespace Inkluzitron.Modules
             }
         }
 
-        private struct BdsmQuizIdentifier
-        {
-            public Guid Id { get; }
-
-            private static readonly Regex Pattern = new Regex(@"^bdsmtest\.org test result ([0-9a-f]{32})", RegexOptions.IgnoreCase);
-
-            public BdsmQuizIdentifier(Guid id)
-            {
-                Id = id;
-            }
-
-            public override string ToString()
-                => $"bdsmtest.org test result {Id:n}";
-
-            public static bool TryParse(string input, out BdsmQuizIdentifier id)
-            {
-                var match = Pattern.Match(input);
-                var guid = Guid.Empty;
-
-                if (match.Success)
-                    guid = Guid.Parse(match.Groups[1].Value);
-
-                id = new BdsmQuizIdentifier(guid);
-                return match.Success;
-            }
-        }
-
-        private class BdsmQuizEmbedBuilder
-        {
-            private readonly BdsmTestOrgQuizResult submission;
-
-            public BdsmQuizEmbedBuilder(BdsmTestOrgQuizResult testResult)
-            {
-                this.submission = testResult;
-            }
-
-            public static Embed BuildUnableToLocateEmbed()
-                => new EmbedBuilder()
-                .WithColor(Color.Red)
-                .AddField("Test Result Not Found", "The original test result no longer exists and as such, it is not possible to navigate from it.")
-                .Build();
-
-            public static Embed BuildErrorEmbed()
-                => new EmbedBuilder()
-                .WithColor(Color.Red)
-                .AddField("Test Result Not Found", "The navigation metadata could not be processed.")
-                .Build();
-
-            public async Task<Embed> BuildAsync(BotDatabaseContext dbContext, Func<EmbedBuilder, EmbedBuilder> authorBuilder)
-            {
-                var count = await dbContext.BdsmTestOrgQuizResults
-                  .AsAsyncEnumerable()
-                  .Where(r => r.SubmittedById == submission.SubmittedById)
-                  .CountAsync();
-
-                var countNewer = await dbContext.BdsmTestOrgQuizResults
-                    .AsAsyncEnumerable()
-                    .Where(r => r.SubmittedById == submission.SubmittedById)
-                    .Where(r => r.SubmittedAt > submission.SubmittedAt)
-                    .CountAsync();
-
-                var identifier = new BdsmQuizIdentifier(submission.ResultId);
-
-                var embedBuilder = new EmbedBuilder()
-                    .WithTitle(submission.Link)
-                    .WithUrl(submission.Link)
-                    .WithTimestamp(submission.SubmittedAt)
-                    .WithFooter($"{identifier} – {countNewer + 1}/{count}");
-
-                embedBuilder = authorBuilder(embedBuilder);
-
-                foreach (var item in submission.Items.OfType<QuizDoubleItem>().OrderByDescending(i => i.Value))
-                    embedBuilder = embedBuilder.AddField(item.Key, $"{item.Value:P0}", true);
-
-                return embedBuilder.Build();
-            }
-        }
-
         private class ShowLatestQuizResultSubcommand : Subcommand
         {
             public BotDatabaseContext DbContext { get; }
-            public PaginationSettings PaginationSettings { get; }
+            public ReactionSettings ReactionSettings { get; }
 
-            public ShowLatestQuizResultSubcommand(BotDatabaseContext dbContext, PaginationSettings paginationSettings)
+            public ShowLatestQuizResultSubcommand(BotDatabaseContext dbContext, ReactionSettings reactionSettings)
                 : base("Show latest quiz result.", aliases: "show")
             {
                 DbContext = dbContext;
-                PaginationSettings = paginationSettings;
+                ReactionSettings = reactionSettings;
             }
 
             public override async Task HandleAsync(SocketCommandContext context)
             {
                 var authorId = context.Message.Author.Id;
 
-               var submission = await DbContext.BdsmTestOrgQuizResults
+                var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
                     .Include(x => x.Items)
-                    .AsAsyncEnumerable()
-                    .Where(r => r.SubmittedById == authorId)
-                    .OrderByDescending(r => r.SubmittedAt)
+                    .Where(x => x.SubmittedById == authorId);
+
+                var resultCount = await quizResultsOfUser.CountAsync();
+                var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
                     .Take(1)
                     .FirstOrDefaultAsync();
 
-                if (submission == null)
+                if (mostRecentResult is null)
                 {
                     await ReplyAsync(context, "No quiz results on record.");
                     return;
                 }
 
-                var builder = new BdsmQuizEmbedBuilder(submission);
-                var embed = await builder.BuildAsync(DbContext, x => x.WithAuthor(context.Message.Author));
+                var embed = new BdsmQuizEmbedBuilder()
+                    .WithQuizResult(mostRecentResult, 1, resultCount)
+                    .WithAuthor(context.Message.Author)
+                    .Build();
+
                 var message = await ReplyAsync(context, embed: embed);
-                await message.AddReactionsAsync(PaginationSettings.Emojis);
+                await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
             }
         }
 

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    [Migration("20210425150200_Initial")]
+    [Migration("20210430194538_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -20,9 +20,9 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.QuizItem", b =>
                 {
-                    b.Property<Guid>("ItemId")
+                    b.Property<ulong>("ItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
@@ -31,8 +31,8 @@ namespace Inkluzitron.Migrations
                     b.Property<string>("Key")
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("ParentResultId")
-                        .HasColumnType("TEXT");
+                    b.Property<ulong?>("ParentResultId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("ItemId");
 
@@ -45,15 +45,15 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.QuizResult", b =>
                 {
-                    b.Property<Guid>("ResultId")
+                    b.Property<ulong>("ResultId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Discriminator")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("SubmittedAt")
+                    b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<ulong>("SubmittedById")
