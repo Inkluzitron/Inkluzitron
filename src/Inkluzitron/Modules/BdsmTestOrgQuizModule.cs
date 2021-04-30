@@ -130,7 +130,7 @@ namespace Inkluzitron.Modules
                 Link = testResultLink
             };
 
-            foreach (Match m in itemsMatch)
+            foreach (Match match in itemsMatch)
             {
                 var traitName = m.Groups["trait"].Value;
                 if (!TraitList.Contains(traitName))
