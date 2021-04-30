@@ -173,7 +173,7 @@ namespace Inkluzitron.Modules
                 return false;
             }
 
-            percentage = integralPercentage / 100;
+            percentage = integralPercentage / 100.0;
             return true;
         }        
     }
