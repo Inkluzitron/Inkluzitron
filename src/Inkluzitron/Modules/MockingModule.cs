@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Inkluzitron.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
@@ -12,13 +13,11 @@ namespace Inkluzitron.Modules
         private IConfiguration Config { get; }
         private Random Random { get; }
 
-        private ImagesModule ImagesModule { get;  }
 
         public MockingModule(IConfiguration config, Random random)
         {
             Config = config;
             Random = random;
-            ImagesModule = new ImagesModule();
         }
 
         // Get maximum range value for a random number generator that decides if the char should be uppercase.
@@ -32,7 +31,7 @@ namespace Inkluzitron.Modules
 
         [Command("mock")]
         [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
-        public async Task MockAsync(params string[] strings)
+        public async Task<RuntimeResult> MockAsync(params string[] strings)
         {
             var message = string.Join(" ", strings).ToLower();
             var hasReferencedMsg = false;
@@ -41,18 +40,14 @@ namespace Inkluzitron.Modules
                 if (Context.Message.ReferencedMessage == null)
                 {
                     await ReplyAsync("Chybí zpráva k mockování.");
-                    return;
+                    return null;
                 }
 
                 hasReferencedMsg = true;
 
                 // Easter egg. If user is mocking bot, send peepoangry instead
-                if(Context.Message.ReferencedMessage.Author == Context.Guild.CurrentUser)
-                {
-                    var imageName = await ImagesModule.GetPeepoangryImagePath(Context.Message.Author);
-                    await ReplyFileAsync(imageName);
-                    return;
-                }
+                if (Context.Message.ReferencedMessage.Author == Context.Guild.CurrentUser)
+                    return new CommandRedirectResult($"angry {Context.User.Id}");
 
                 message = Context.Message.ReferencedMessage.ToString().ToLower();
             }
@@ -84,7 +79,7 @@ namespace Inkluzitron.Modules
             // author of referenced message instead of replying to mocker
             if (hasReferencedMsg)
             {
-                var am = new AllowedMentions() {MentionRepliedUser = true};
+                var am = new AllowedMentions() { MentionRepliedUser = true };
                 var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id,
                     Context.Guild.Id);
 
@@ -97,6 +92,8 @@ namespace Inkluzitron.Modules
             }
             else
                 await ReplyAsync(mockedMessage);
+
+            return null;
         }
     }
 }
