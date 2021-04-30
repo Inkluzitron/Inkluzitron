@@ -27,14 +27,14 @@ namespace Inkluzitron.Modules
 
             DiscordClient.ReactionAdded += DiscordClient_ReactionAdded;
         }
-        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, ISocketMessageChannel arg2, SocketReaction arg3)
+        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> cacheableUser, ISocketMessageChannel channel, SocketReaction reaction)
         {
             
-            if (arg3.Message.GetValueOrDefault() is not IUserMessage message)
+            if (reaction.Message.GetValueOrDefault() is not IUserMessage message)
             {
                 try
                 {
-                    message = (await arg2.GetMessageAsync(arg3.MessageId)) as IUserMessage;
+                    message = (await channel.GetMessageAsync(reaction.MessageId)) as IUserMessage;
                     if (message is null)
                         return;
                 }
@@ -45,11 +45,11 @@ namespace Inkluzitron.Modules
                 }
             }
 
-            if (arg3.User.GetValueOrDefault() is not IUser user)
+            if (reaction.User.GetValueOrDefault() is not IUser user)
             {
                 try
                 {
-                    user = await DiscordClient.Rest.GetUserAsync(arg3.UserId);
+                    user = await DiscordClient.Rest.GetUserAsync(reaction.UserId);
                     if (user is null)
                         return;
                 }
@@ -71,7 +71,7 @@ namespace Inkluzitron.Modules
             {
                 try
                 {
-                    var reactionHandled = await reactionHandler.Handle(message, arg3.Emote, user);
+                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user);
                     if (reactionHandled)
                         break;
                 }
@@ -81,7 +81,7 @@ namespace Inkluzitron.Modules
                         e,
                         "Reaction handler {0} threw an exception when handling reaction {1} added to message {2}.",
                         reactionHandler,
-                        arg3.Emote.Name,
+                        reaction.Emote.Name,
                         message.Id
                     );
                 }
