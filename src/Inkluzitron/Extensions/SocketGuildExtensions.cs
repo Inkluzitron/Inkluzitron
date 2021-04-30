@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Extensions
@@ -16,6 +17,19 @@ namespace Inkluzitron.Extensions
             }
 
             return user;
+        }
+
+        /// <summary>
+        /// Calculates maximum file size in attachment.
+        /// </summary>
+        static public int CalculateFileUploadLimit(this SocketGuild guild)
+        {
+            return (guild.PremiumTier switch
+            {
+                PremiumTier.Tier2 => 50,
+                PremiumTier.Tier3 => 100,
+                _ => 8
+            }) * 1024 * 1024;
         }
     }
 }
