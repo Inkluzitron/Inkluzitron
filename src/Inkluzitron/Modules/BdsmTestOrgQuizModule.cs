@@ -60,6 +60,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("bdsmtest")]
+        [Alias("bdsm")]
         [Summary("Zobrazí výsledky BdsmTest.org uživatele, nebo takový výsledek přidá do databáze.")]
         public async Task HandleBdsmTestOrgCommandAsync(params string[] strings)
         {

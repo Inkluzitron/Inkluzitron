@@ -7,14 +7,10 @@ namespace Inkluzitron.Extensions
     {
         static public IEmote ToDiscordEmote(this string configuredValue)
         {
-            var enumerator = StringInfo.GetTextElementEnumerator(configuredValue);
-            var hasFirstElement = enumerator.MoveNext();
-            var hasSecondElement = enumerator.MoveNext();
-
-            if (hasFirstElement && !hasSecondElement)
-                return new Emoji(configuredValue);
+            if (Emote.TryParse(configuredValue, out var emote))
+                return emote;
             else
-                return Emote.Parse(configuredValue);
+                return new Emoji(configuredValue);
         }
     }
 }
