@@ -163,15 +163,20 @@ namespace Inkluzitron.Modules
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
         }
 
-        static private bool TryParseTraitPercentage(string traitPercentage, out double pctg)
+        static private bool TryParseTraitPercentage(string traitPercentage, out double percentage)
         {
-            pctg = int.Parse(traitPercentage, CultureInfo.InvariantCulture);
-            if (pctg > 100)
+            if (!int.TryParse(traitPercentage, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integralPercentage))
+            {
+                percentage = 0;
                 return false;
-            else if (pctg < 0)
+            }
+            else if (integralPercentage < 0 || integralPercentage > 100)
+            {
+                percentage = 0;
                 return false;
+            }
 
-            pctg /= 100.0;
+            percentage = integralPercentage / 100;
             return true;
         }        
     }
