@@ -3,11 +3,10 @@ using Inkluzitron.Data;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
-    public class BdsmQuizEmbedBuilder : EmbedBuilder
+    public class BdsmTestOrgQuizEmbedBuilder : EmbedBuilder
     {
         static private readonly Regex FooterPattern = new Regex(@"^BdsmTest\.org~([a-f0-9]+) – (\d+)", RegexOptions.IgnoreCase);
         private const double TraitDisplayThreshold = 0.5;
@@ -29,7 +28,7 @@ namespace Inkluzitron.Modules
             }
         }
 
-        public BdsmQuizEmbedBuilder WithQuizResult(BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
+        public BdsmTestOrgQuizEmbedBuilder WithQuizResult(BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
         {
             if (quizResult is null)
                 throw new ArgumentNullException(nameof(quizResult));

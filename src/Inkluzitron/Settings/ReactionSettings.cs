@@ -11,6 +11,7 @@ namespace Inkluzitron.Settings
         public IEmote MoveToPrevious { get; }
         public IEmote MoveToNext { get; }
         public IEmote MoveToLast { get; }
+        public IEmote BdsmTestResultAdded { get; }
 
         public IEmote[] PaginationReactions { get; }
 
@@ -23,6 +24,7 @@ namespace Inkluzitron.Settings
             MoveToPrevious = config["ReactionSettings:MoveToPrevious"].ToDiscordEmote();
             MoveToNext = config["ReactionSettings:MoveToNext"].ToDiscordEmote();
             MoveToLast = config["ReactionSettings:MoveToLast"].ToDiscordEmote();
+            BdsmTestResultAdded = config["ReactionSettings:BdsmTestResultAdded"].ToDiscordEmote();
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
         }        

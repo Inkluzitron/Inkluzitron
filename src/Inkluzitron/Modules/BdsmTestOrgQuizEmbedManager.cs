@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
 using Inkluzitron.Settings;
@@ -10,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
-    public class BdsmOrgQuizEmbedManager : IReactionHandler
+    public class BdsmTestOrgQuizEmbedManager : IReactionHandler
     {
         protected BotDatabaseContext DbContext { get; }
         protected ReactionSettings Settings { get; }
 
-        public BdsmOrgQuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings settings)
+        public BdsmTestOrgQuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings settings)
         {
             DbContext = dbContext;
             Settings = settings;
@@ -37,7 +36,7 @@ namespace Inkluzitron.Modules
                 return false;
 
             var footerText = embed.Footer.Value.Text;
-            if (!BdsmQuizEmbedBuilder.TryParseFooterText(footerText, out var authorId, out var formerPageNumber))
+            if (!BdsmTestOrgQuizEmbedBuilder.TryParseFooterText(footerText, out var authorId, out var formerPageNumber))
                 return false;
 
             var quizResultsOfUser = DbContext
@@ -74,7 +73,7 @@ namespace Inkluzitron.Modules
                 if (newResultToDisplay is null)
                     return false;
 
-                var newEmbed = new BdsmQuizEmbedBuilder()
+                var newEmbed = new BdsmTestOrgQuizEmbedBuilder()
                     .WithQuizResult(newResultToDisplay, newPageNumber, count)
                     .WithAuthor(embed.Author.Value.Name, embed.Author.Value.IconUrl, embed.Author.Value.Url)
                     .Build();
