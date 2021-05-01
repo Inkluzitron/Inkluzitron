@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
 {
+  [Name("Hugování")]
   public class HuggingModule : ModuleBase
   {
     private IConfiguration Config { get; }
