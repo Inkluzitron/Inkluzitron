@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
-using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Logging;
 using System;
@@ -71,7 +70,7 @@ namespace Inkluzitron.Modules
             {
                 try
                 {
-                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user);
+                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user, DiscordClient.CurrentUser);
                     if (reactionHandled)
                         break;
                 }

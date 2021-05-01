@@ -30,34 +30,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         private BotDatabaseContext DbContext { get; }
         private ReactionSettings ReactionSettings { get; }
-        private string NoResultsOnRecordMessage { get; }
-        private string InvalidFormatMessage { get; }
-        private string LinkAlreadyPresentMessage { get; }
-        private string InvalidTraitMessage { get; }
-        private string InvalidPercentageMessage { get; }
-        private string InvalidTraitCountMessage { get; }
-        private HashSet<string> TraitList { get; }
+        private BdsmTestOrgSettings Settings { get; }
 
-        public QuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, IConfiguration config)
+        public QuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
         {
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
-
-            const string SectionName = "BdsmTestOrgQuizModule";
-            string GetRequiredConfig(string key)
-            {
-                key = $"{SectionName}:{key}";
-                var result = config.GetValue<string>(key);
-                return result ?? throw new InvalidOperationException($"Missing required configuration value with key {key}");
-            }
-
-            NoResultsOnRecordMessage = GetRequiredConfig(nameof(NoResultsOnRecordMessage));
-            InvalidFormatMessage = GetRequiredConfig(nameof(InvalidFormatMessage));
-            LinkAlreadyPresentMessage = GetRequiredConfig(nameof(LinkAlreadyPresentMessage));
-            InvalidTraitMessage = GetRequiredConfig(nameof(InvalidTraitMessage));
-            InvalidPercentageMessage = GetRequiredConfig(nameof(InvalidPercentageMessage));
-            InvalidTraitCountMessage = GetRequiredConfig(nameof(InvalidTraitCountMessage));
-            TraitList = new HashSet<string>(config.GetSection($"{SectionName}:Traits").GetChildren().Select(c => c.Value));
+            Settings = bdsmTestOrgSettings;
         }
 
         [Command("bdsmtest")]
@@ -74,29 +53,24 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private async Task ReplyWithBdsmTestEmbed()
         {
             var authorId = Context.Message.Author.Id;
-
             var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
                 .Include(x => x.Items)
                 .Where(x => x.SubmittedById == authorId);
 
-            var resultCount = await quizResultsOfUser.CountAsync();
+            var pageCount = await quizResultsOfUser.CountAsync();
             var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
                 .Take(1)
                 .FirstOrDefaultAsync();
 
+            var embedBuilder = new EmbedBuilder().WithAuthor(Context.Message.Author);
+
             if (mostRecentResult is null)
-            {
-                await ReplyAsync(NoResultsOnRecordMessage);
-                return;
-            }
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Context.Message.Author, Settings);
+            else
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(mostRecentResult, 1, pageCount);
 
-            var embed = new QuizEmbedBuilder()
-                .WithQuizResult(mostRecentResult, 1, resultCount)
-                .WithAuthor(Context.Message.Author)
-                .Build();
-
-            var message = await ReplyAsync(embed: embed);
-            await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
+            var message = await ReplyAsync(embed: embedBuilder.Build());
+            await message.AddReactionsAsync(ReactionSettings.PaginationReactionsWithRemoval);
         }
 
         private async Task ProcessQuizResultSubmission()
@@ -105,7 +79,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResultMatches = TestResultRegex.Matches(reconstructedMessage);
             if (testResultMatches.Count == 0)
             {
-                await ReplyAsync(InvalidFormatMessage);
+                await ReplyAsync(Settings.InvalidFormatMessage);
                 return;
             }
 
@@ -115,7 +89,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             if (await DbContext.BdsmTestOrgQuizResults.AsAsyncEnumerable().AnyAsync(r => r.Link == testResultLink))
             {
-                await ReplyAsync(LinkAlreadyPresentMessage);
+                await ReplyAsync(Settings.LinkAlreadyPresentMessage);
                 return;
             }
 
@@ -132,15 +106,15 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             foreach (Match match in itemsMatch)
             {
                 var traitName = match.Groups["trait"].Value;
-                if (!TraitList.Contains(traitName))
+                if (!Settings.TraitList.Contains(traitName))
                 {
-                    await ReplyAsync(InvalidTraitMessage);
+                    await ReplyAsync(Settings.InvalidTraitMessage);
                     return;
                 }
 
                 if (!TryParseTraitPercentage(match.Groups["pctg"].Value, out var traitPercentage))
                 {
-                    await ReplyAsync(InvalidPercentageMessage);
+                    await ReplyAsync(Settings.InvalidPercentageMessage);
                     return;
                 }
 
@@ -151,9 +125,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 });
             }
 
-            if (testResult.Items.Count != TraitList.Count)
+            if (testResult.Items.Count != Settings.TraitList.Count)
             {
-                await ReplyAsync(InvalidTraitCountMessage);
+                await ReplyAsync(Settings.InvalidTraitCountMessage);
                 return;
             }
 
