@@ -93,6 +93,9 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
   ```
   Nástroj `dotnet ef` může být nejprve potřeba doinstalovat [podle pokynů v dokumentaci EF Core](https://docs.microsoft.com/cs-cz/ef/core/get-started/overview/install#get-the-net-core-cli-tools).
 - Appka je napsaná tak, že by se mělo vše načítat dynamicky, tudíž pro přidání nové funkcionality stačí udělat tyto jednoduché kroky:
-  - Vytvořte novou třídu v `Modules/`.
-  - Poděďte z bázové třídy `ModuleBase`.
-  - Bavte se! Pokud nevíte, koukněte se jinam.
+  1) Vytvořte novou třídu v `Modules/`.
+  2) Poděďte z bázové třídy `ModuleBase`.
+  3) Bavte se! Pokud nevíte, koukněte se jinam.
+- Každý modul, který bude obsahovat příkazy bude automaticky propagován při volání příkazu `help`. Pokud chcete, aby se vám příkazy zobrazovaly správně, tak proveďte následující kroky:
+  1) Ke třídě nastavte atribut `Name`. Pokud bude atribut `Name` chybět, tak se použije název třídy.
+  2) Ke každému příkazu lze zadat souhrnný popis příkazu pomocí atributu `Summary`. Pokud bude atribut `Summary` chybět, tak se místo něj doplní řetězec `---`.
