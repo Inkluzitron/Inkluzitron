@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿
+using Discord.Commands;
 using Inkluzitron.Extensions;
 using System;
 using System.Diagnostics;
@@ -6,9 +7,11 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    [Name("System")]
     public class SystemModule : ModuleBase
     {
         [Command("uptime")]
+        [Summary("Zjištění, jak dlouho bot běží.")]
         public async Task UptimeAsync()
         {
             var process = Process.GetCurrentProcess();

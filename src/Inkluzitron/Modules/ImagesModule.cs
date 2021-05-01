@@ -19,6 +19,7 @@ using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 
 namespace Inkluzitron.Modules
 {
+    [Name("Generování obrázků")]
     public class ImagesModule : ModuleBase
     {
         public ImagesModule()
