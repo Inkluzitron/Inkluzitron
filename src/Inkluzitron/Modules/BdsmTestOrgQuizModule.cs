@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    [Name("BDSM test")]
     public class BdsmTestOrgQuizModule : ModuleBase
     {
         static private readonly Regex TestResultRegex = new Regex(
@@ -61,7 +62,7 @@ namespace Inkluzitron.Modules
 
         [Command("bdsmtest")]
         [Alias("bdsm")]
-        [Summary("Zobrazí výsledky BdsmTest.org uživatele, nebo takový výsledek přidá do databáze.")]
+        [Summary("Zobrazí výsledky BdsmTest.org uživatele, nebo takový výsledek přidá do databáze.\nPro přidání vložte jako parametr váš výsledek. Pro získání nezadávejte žádný parametr.")]
         public async Task HandleBdsmTestOrgCommandAsync(params string[] strings)
         {
             if (strings.Length == 0)

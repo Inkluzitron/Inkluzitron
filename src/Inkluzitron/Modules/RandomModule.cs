@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    [Name("Random")]
     public class RandomModule : ModuleBase
     {
         private Random Random { get; }
@@ -21,7 +22,7 @@ namespace Inkluzitron.Modules
             [Summary("možnost ...")] params string[] options)
         {
             options = options.Append(option).ToArray();
-            
+
             var selectedValue = options[Random.Next(options.Length)];
             await ReplyAsync(selectedValue);
         }
@@ -29,18 +30,18 @@ namespace Inkluzitron.Modules
         [Command("roll")]
         [Summary("Vrátí náhodné číslo ze zadaného rozsahu.")]
         public async Task RollAsync(
-            [Summary("od")]int from,
-            [Summary("do")]int to=0
+            [Summary("od")] int from,
+            [Summary("do")] int to = 0
         )
         {
-            if(from > to)
+            if (from > to)
             {
                 var temp = from;
                 from = to;
                 to = temp;
             }
 
-            var selectedValue = Random.Next(from, to+1);
+            var selectedValue = Random.Next(from, to + 1);
             await ReplyAsync(selectedValue.ToString());
         }
     }

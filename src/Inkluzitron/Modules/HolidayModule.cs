@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 #pragma warning disable S3358 // Ternary operators should not be nested (Useless warning)
 namespace Inkluzitron.Modules
 {
+    [Name("Svátky")]
     public class HolidayModule : ModuleBase
     {
         private IConfiguration Configuration { get; }
@@ -20,12 +21,14 @@ namespace Inkluzitron.Modules
         }
 
         [Command("svatek")]
+        [Summary("Svátky v česku")]
         public async Task GetCzechHolidaysAsync()
         {
             await GetHolidayAsync(false);
         }
 
         [Command("meniny")]
+        [Summary("Svátky na slovensku")]
         public async Task GetSlovakHolidaysAsync()
         {
             await GetHolidayAsync(true);

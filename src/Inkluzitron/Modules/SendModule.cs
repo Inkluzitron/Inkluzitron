@@ -5,6 +5,7 @@ using Discord.Commands;
 
 namespace Inkluzitron.Modules
 {
+    [Name("Odesílání zpráv")]
     public class SendModule : ModuleBase
     {
         [Command("send")]
