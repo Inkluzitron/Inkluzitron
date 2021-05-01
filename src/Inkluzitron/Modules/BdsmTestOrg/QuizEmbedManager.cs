@@ -1,20 +1,21 @@
 ﻿using Discord;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
-using Inkluzitron.Settings;
+using Inkluzitron.Models.Settings;
+using Inkluzitron.Modules.BdsmTestOrg;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Inkluzitron.Modules
+namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class BdsmTestOrgQuizEmbedManager : IReactionHandler
+    public class QuizEmbedManager : IReactionHandler
     {
         protected BotDatabaseContext DbContext { get; }
         protected ReactionSettings Settings { get; }
 
-        public BdsmTestOrgQuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings settings)
+        public QuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings settings)
         {
             DbContext = dbContext;
             Settings = settings;
@@ -36,7 +37,7 @@ namespace Inkluzitron.Modules
                 return false;
 
             var footerText = embed.Footer.Value.Text;
-            if (!BdsmTestOrgQuizEmbedBuilder.TryParseFooterText(footerText, out var authorId, out var formerPageNumber))
+            if (!QuizEmbedBuilder.TryParseFooterText(footerText, out var authorId, out var formerPageNumber))
                 return false;
 
             var quizResultsOfUser = DbContext
@@ -73,7 +74,7 @@ namespace Inkluzitron.Modules
                 if (newResultToDisplay is null)
                     return false;
 
-                var newEmbed = new BdsmTestOrgQuizEmbedBuilder()
+                var newEmbed = new QuizEmbedBuilder()
                     .WithQuizResult(newResultToDisplay, newPageNumber, count)
                     .WithAuthor(embed.Author.Value.Name, embed.Author.Value.IconUrl, embed.Author.Value.Url)
                     .Build();

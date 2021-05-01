@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Inkluzitron.Data
+﻿namespace Inkluzitron.Data.Entities
 {
     public class QuizItem
     {

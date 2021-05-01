@@ -1,7 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Data;
-using Inkluzitron.Settings;
+using Inkluzitron.Data.Entities;
+using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -11,18 +12,18 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace Inkluzitron.Modules
+namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class BdsmTestOrgQuizModule : ModuleBase
+    public class QuizModule : ModuleBase
     {
-        static private readonly Regex TestResultRegex = new Regex(
+        static private readonly Regex TestResultRegex = new(
             @"==\sResults\sfrom\sbdsmtest.org\s==\s+
     (?<results>.+)
     (?<link>https?://bdsmtest\.org/r/[\d\w]+)",
             RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline
         );
 
-        static private readonly Regex TestResultItemRegex = new Regex(
+        static private readonly Regex TestResultItemRegex = new(
             @"^(?<pctg>\d+)%\s+(?<trait>[^\n]+?)\s*$",
             RegexOptions.Multiline
         );
@@ -37,7 +38,7 @@ namespace Inkluzitron.Modules
         private string InvalidTraitCountMessage { get; }
         private HashSet<string> TraitList { get; }
 
-        public BdsmTestOrgQuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, IConfiguration config)
+        public QuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, IConfiguration config)
         {
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
@@ -89,7 +90,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var embed = new BdsmTestOrgQuizEmbedBuilder()
+            var embed = new QuizEmbedBuilder()
                 .WithQuizResult(mostRecentResult, 1, resultCount)
                 .WithAuthor(Context.Message.Author)
                 .Build();
@@ -163,12 +164,11 @@ namespace Inkluzitron.Modules
 
         static private bool TryParseTraitPercentage(string traitPercentage, out double percentage)
         {
-            if (!int.TryParse(traitPercentage, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integralPercentage))
-            {
-                percentage = 0;
-                return false;
-            }
-            else if (integralPercentage < 0 || integralPercentage > 100)
+            var inputIsValid = int.TryParse(traitPercentage, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integralPercentage)
+                && integralPercentage >= 0
+                && integralPercentage <= 100;
+
+            if (!inputIsValid)
             {
                 percentage = 0;
                 return false;
@@ -176,6 +176,6 @@ namespace Inkluzitron.Modules
 
             percentage = integralPercentage / 100.0;
             return true;
-        }        
+        }
     }
 }

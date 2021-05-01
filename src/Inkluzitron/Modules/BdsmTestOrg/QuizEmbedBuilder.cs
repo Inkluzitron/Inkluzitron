@@ -1,14 +1,14 @@
 ﻿using Discord;
-using Inkluzitron.Data;
+using Inkluzitron.Data.Entities;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Inkluzitron.Modules
+namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class BdsmTestOrgQuizEmbedBuilder : EmbedBuilder
+    public class QuizEmbedBuilder : EmbedBuilder
     {
-        static private readonly Regex FooterPattern = new Regex(@"^BdsmTest\.org~([a-f0-9]+) – (\d+)", RegexOptions.IgnoreCase);
+        static private readonly Regex FooterPattern = new(@"^BdsmTest\.org~([a-f0-9]+) – (\d+)", RegexOptions.IgnoreCase);
         private const double TraitDisplayThreshold = 0.5;
 
         static public bool TryParseFooterText(string footerText, out ulong userId, out int pageNumber)
@@ -28,7 +28,7 @@ namespace Inkluzitron.Modules
             }
         }
 
-        public BdsmTestOrgQuizEmbedBuilder WithQuizResult(BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
+        public QuizEmbedBuilder WithQuizResult(BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
         {
             if (quizResult is null)
                 throw new ArgumentNullException(nameof(quizResult));
@@ -38,7 +38,7 @@ namespace Inkluzitron.Modules
             WithTimestamp(quizResult.SubmittedAt);
             WithFooter($"BdsmTest.org~{quizResult.SubmittedById:X} – {pageNumber}/{pageCount}");
 
-            foreach (var item in quizResult.Items.OfType<QuizDoubleItem>().OrderByDescending(i => i.Value).Where(i => i.Value > TraitDisplayThreshold))
+            foreach (var item in quizResult.Items.OfType<QuizDoubleItem>().Where(i => i.Value > TraitDisplayThreshold).OrderByDescending(i => i.Value))
                 AddField(item.Key, $"{item.Value:P0}", true);
 
             return this;

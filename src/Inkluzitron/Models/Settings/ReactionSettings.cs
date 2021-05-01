@@ -3,7 +3,7 @@ using Inkluzitron.Extensions;
 using Microsoft.Extensions.Configuration;
 using System;
 
-namespace Inkluzitron.Settings
+namespace Inkluzitron.Models.Settings
 {
     public class ReactionSettings
     {
@@ -27,6 +27,6 @@ namespace Inkluzitron.Settings
             BdsmTestResultAdded = config["ReactionSettings:BdsmTestResultAdded"].ToDiscordEmote();
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
-        }        
+        }
     }
 }

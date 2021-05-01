@@ -2,7 +2,7 @@
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Extensions;
-using Inkluzitron.Settings;
+using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -27,9 +27,9 @@ namespace Inkluzitron.Modules
 
             DiscordClient.ReactionAdded += DiscordClient_ReactionAdded;
         }
+
         private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> cacheableUser, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            
             if (reaction.Message.GetValueOrDefault() is not IUserMessage message)
             {
                 try
@@ -85,7 +85,7 @@ namespace Inkluzitron.Modules
                         message.Id
                     );
                 }
-            }            
+            }
         }
     }
 }

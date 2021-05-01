@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Inkluzitron.Data
+namespace Inkluzitron.Data.Entities
 {
     public class QuizResult
     {
