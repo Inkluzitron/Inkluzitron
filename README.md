@@ -96,3 +96,6 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
   1) Create a new class in the `Modules/` directory (and namespace).
   2) Inherit from the `ModuleBase` class.
   3) Enjoy!
+- Each module that contains commands will be automatically promoted when the `help` command is called. If you want the commands to display correctly, follow these steps:
+  1) Set the `Name` attribute to the class. If the `Name` attribute is missing, the class name is used.
+  2) For each command, you can enter a summary description of the command using the `Summary` attribute. If the `Summary` attribute is missing, the string` --- `will be added instead.
