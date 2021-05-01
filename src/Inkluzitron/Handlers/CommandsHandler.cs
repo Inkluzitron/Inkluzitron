@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -29,22 +30,6 @@ namespace Inkluzitron.Handlers
             CommandService.CommandExecuted += CommandExecutedAsync;
         }
 
-        private string GetCommandFormat(CommandInfo command, ParameterInfo highlightArg = null)
-        {
-            var prefix = Configuration["Prefix"];
-
-            var reply = $"{prefix}{command.Name}";
-            foreach (var param in command.Parameters)
-            {
-                reply += " ";
-                if (param == highlightArg) reply += "**__";
-                reply += $"{(param.IsOptional ? "[" : "")}{param.Summary ?? param.Name}{(param.IsOptional ? $"]" : "")}";
-                if (param == highlightArg) reply += "__**";
-            }
-
-            return reply;
-        }
-
         private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
         {
             // Null is success, because some modules returns null after success and library always returns ExecuteResult.
@@ -69,7 +54,7 @@ namespace Inkluzitron.Handlers
                         ParameterInfo param = ((ParseResult)result).ErrorParameter;
                         var pos = param.Command.Parameters.ToList().IndexOf(param);
 
-                        reply = $"Nemohl jsem najít uživatele zadaného v {(pos + 1)}. argumentu.\n> {GetCommandFormat(command.Value, param)}";
+                        reply = $"Nemohl jsem najít uživatele zadaného v {pos + 1}. argumentu.\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
                         break;
 
                     case CommandError.ParseFailed:
@@ -81,15 +66,15 @@ namespace Inkluzitron.Handlers
                         if (typeName == "Int32") typeName = "číslo";
                         if (typeName == "String") typeName = "řetězec";
 
-                        reply = $"V {(pos + 1)}. argumentu má být **{typeName}**\n> {GetCommandFormat(command.Value, param)}";
+                        reply = $"V {(pos + 1)}. argumentu má být **{typeName}**\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
                         break;
 
                     case CommandError.BadArgCount:
                         var firstLine = Configuration.GetSection("BadArgumentFirstLine").AsEnumerable().Where(o => o.Value != null).ToArray();
 
-                        reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {GetCommandFormat(command.Value)}";
+                        reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {command.Value.GetCommandFormat(Configuration["Prefix"])}";
                         break;
-                        
+
                     case CommandError.Exception:
                         await context.Message.AddReactionAsync(new Emoji("❌"));
                         break;
