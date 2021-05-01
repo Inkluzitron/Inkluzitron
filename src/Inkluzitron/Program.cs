@@ -1,12 +1,18 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Contracts;
+using Inkluzitron.Data;
 using Inkluzitron.Handlers;
+using Inkluzitron.Modules;
 using Inkluzitron.Services;
+using Inkluzitron.Settings;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -45,13 +51,20 @@ namespace Inkluzitron
                 DefaultRunMode = RunMode.Async
             };
 
+            var dbFileLocation = configuration.GetValue<string>("DatabaseFilePath");
+            if (dbFileLocation == null)
+                throw new InvalidOperationException("The 'DatabaseFilePath' configuration value is missing.");
+
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
-                .AddSingleton<Random>();
+                .AddSingleton<Random>()
+                .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
+                .AddSingleton<ReactionSettings>()
+                .AddSingleton<ReactionsModule>();
 
             services.AddLogging(config =>
             {
@@ -61,6 +74,13 @@ namespace Inkluzitron
                     {
                         opt.IncludeScopes = true;
                         opt.TimestampFormat = "dd. MM. yyyy HH:mm:ss\t";
+                    })
+                    .AddFilter((category, level) =>
+                    {
+                        if (category.StartsWith("Microsoft.EntityFrameworkCore"))
+                            return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
+                        else
+                            return true;
                     });
             });
 
@@ -70,10 +90,20 @@ namespace Inkluzitron
 
             handlers.ForEach(handler => services.AddSingleton(handler));
 
+            Assembly.GetExecutingAssembly().GetTypes()
+                .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
+                .ToList()
+                .ForEach(reactionHandlerType => services.AddSingleton(typeof(IReactionHandler), reactionHandlerType));
+
             var provider = services.BuildServiceProvider();
 
             provider.GetRequiredService<LoggingService>();
             handlers.ForEach(o => provider.GetRequiredService(o));
+
+            var context = provider.GetRequiredService<BotDatabaseContext>();
+            await context.Database.MigrateAsync();
+
+            provider.GetRequiredService<ReactionsModule>();
 
             var runtime = provider.GetRequiredService<RuntimeService>();
             await runtime.StartAsync();
@@ -88,7 +118,7 @@ namespace Inkluzitron
             }
 
             await runtime.StopAsync();
-            provider.Dispose();
+            await provider.DisposeAsync();
         }
 
         static private IConfiguration BuildConfiguration(string[] args)
@@ -104,6 +134,16 @@ namespace Inkluzitron
                 .AddCommandLine(args)
                 .AddEnvironmentVariables()
                 .Build();
+        }
+
+        static private string BuildConnectionString(string sqliteDatabasePath)
+        {
+            var builder = new DbConnectionStringBuilder()
+            {
+                { "Data Source", sqliteDatabasePath }
+            };
+
+            return builder.ConnectionString;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Inkluzitron.Models;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
@@ -13,20 +14,19 @@ namespace Inkluzitron.Handlers
     public class CommandsHandler : IHandler
     {
         private CommandService CommandService { get; }
-
+        private IServiceProvider Provider { get; }
         private IConfiguration Configuration { get; }
 
         private Random Random { get; }
 
-        public CommandsHandler(Random random, CommandService commandService, IConfiguration configuration)
+        public CommandsHandler(Random random, CommandService commandService, IConfiguration configuration, IServiceProvider provider)
         {
             CommandService = commandService;
+            Configuration = configuration;
+            Random = random;
+            Provider = provider;
 
             CommandService.CommandExecuted += CommandExecutedAsync;
-
-            Configuration = configuration;
-
-            Random = random;
         }
 
         private string GetCommandFormat(CommandInfo command, ParameterInfo highlightArg = null)
@@ -47,12 +47,19 @@ namespace Inkluzitron.Handlers
 
         private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
         {
+            // Null is success, because some modules returns null after success and library always returns ExecuteResult.
+            if (result == null) result = ExecuteResult.FromSuccess();
+
             if (!result.IsSuccess && result.Error != null)
             {
                 string reply = "";
 
                 switch (result.Error.Value)
                 {
+                    case CommandError.Unsuccessful when result is CommandRedirectResult crr && !string.IsNullOrEmpty(crr.NewCommand):
+                        await CommandService.ExecuteAsync(context, crr.NewCommand, Provider);
+                        break;
+
                     case CommandError.UnmetPrecondition:
                     case CommandError.Unsuccessful:
                         reply = result.ErrorReason;
@@ -82,6 +89,7 @@ namespace Inkluzitron.Handlers
 
                         reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {GetCommandFormat(command.Value)}";
                         break;
+                        
                     case CommandError.Exception:
                         await context.Message.AddReactionAsync(new Emoji("❌"));
                         break;

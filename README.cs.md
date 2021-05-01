@@ -64,6 +64,8 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
   - `Inkluzitron` – Adresář s projektem.
     - `bin/` – Adresář s binárkami.
     - `obj/` – *Nepotřebujete vědět.*
+    - `Data/` - Třídy tvořící datový model bota.
+    - `Migrations/` - Kód pro aktualizaci databázového schématu. Generuje se automaticky, obsah není určen k ručním úpravám.
     - `Extensions/` – Rozšiřující metody, které vám mohou zjednodušit život, ale asi je nikdy nevyužijete.
     - `Handlers/` – Třídy a metody pro zachytávání událostí. *Pravděpodobně je nebudete potřebovat.*
     - `Modules/` – Zde budou třídy s moduly, které budou obsluhovat obsluhu událostí, reakcí atd. *Většinu svého krásného nového kódu budete implementovat zde.*
@@ -84,6 +86,12 @@ docker run -d --name Inkluzitron --env-file '/path/to/environment/environment.en
 - Pokud si něčím nejste jistí nebo něco nevíte, **nebojte se zeptat ostatních**.
 - Dívejte se do konzole (to znamená stdout a stderr). Najdete tam logy.
 - V projektu je využit dependency injection kontejner. Vyžaduje to knihovna Discord.NET.
+- Pokud chcete do databáze začít ukládat novou entitu, je pro ni potřeba vytvořit třídu a přidat ji jako property typu `DbSet<TridaNoveEntity>` do třídy `Data/BotDatabaseContext.cs`.
+- Pokud uděláte jakoukoliv úpravu datového modelu (tj. zásah do souborů ve složce `Data`), je nutné vygenerovat migraci následujícím příkazem:
+  ```sh
+  dotnet ef migrations add StrucnyPopisZmenProvedenychDatovemuModelu
+  ```
+  Nástroj `dotnet ef` může být nejprve potřeba doinstalovat [podle pokynů v dokumentaci EF Core](https://docs.microsoft.com/cs-cz/ef/core/get-started/overview/install#get-the-net-core-cli-tools).
 - Appka je napsaná tak, že by se mělo vše načítat dynamicky, tudíž pro přidání nové funkcionality stačí udělat tyto jednoduché kroky:
   - Vytvořte novou třídu v `Modules/`.
   - Poděďte z bázové třídy `ModuleBase`.
