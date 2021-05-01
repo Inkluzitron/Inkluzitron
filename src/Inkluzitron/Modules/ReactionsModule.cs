@@ -26,44 +26,17 @@ namespace Inkluzitron.Modules
 
             DiscordClient.ReactionAdded += DiscordClient_ReactionAdded;
         }
-        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> cacheableUser, ISocketMessageChannel channel, SocketReaction reaction)
+
+        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction)
         {
+            var message = await userMessage.GetOrDownloadAsync();
+            if (message == null) return;
 
-            if (reaction.Message.GetValueOrDefault() is not IUserMessage message)
-            {
-                try
-                {
-                    message = (await channel.GetMessageAsync(reaction.MessageId)) as IUserMessage;
-                    if (message is null)
-                        return;
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Could not retrieve non-cached message that has been reacted to.");
-                    return;
-                }
-            }
-
-            if (reaction.User.GetValueOrDefault() is not IUser user)
-            {
-                try
-                {
-                    user = await DiscordClient.Rest.GetUserAsync(reaction.UserId);
-                    if (user is null)
-                        return;
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Could not retrieve non-cached user that added reaction to a message.");
-                    return;
-                }
-            }
+            var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+            if (user == null) return;
 
             var ownId = DiscordClient.CurrentUser.Id;
-            if (user.Id == ownId)
-                return;
-
-            if (message.Author.Id != ownId)
+            if (user.Id == ownId || message.Author.Id != ownId)
                 return;
 
             foreach (var reactionHandler in ReactionHandlers)
