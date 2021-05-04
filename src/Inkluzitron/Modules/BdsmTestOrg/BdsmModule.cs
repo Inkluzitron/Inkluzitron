@@ -4,7 +4,6 @@ using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -16,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
+    [Name("BDSMTest.org")]
     [Group("bdsm")]
     public class BdsmModule : ModuleBase
     {
@@ -43,6 +43,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command]
+        [Name("")]
         [Summary("Zobrazí výsledky BdsmTest.org uživatele.")]
         public async Task ShowUserResultsAsync()
         {
@@ -68,23 +69,23 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("gdo")]
-        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru.")]
+        [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru.")]
         public Task SearchAsync()
             => ProcessQuery(false);
 
         [Command("gdo")]
-        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru.")]
-        public Task FilteredSearchAsync(params string[] categoriesToShow)
+        [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru.")]
+        public Task FilteredSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
             => ProcessQuery(false, categoriesToShow);
 
         [Command("GDO")]
-        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru a vypíše i prázdné kategorie.")]
+        [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
         public Task VerboseSearchAsync()
            => ProcessQuery(true);
 
         [Command("GDO")]
-        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru a vypíše i prázdné kategorie.")]
-        public Task FilteredVerboseSearchAsync(params string[] categoriesToShow)
+        [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
+        public Task FilteredVerboseSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
            => ProcessQuery(true, categoriesToShow);
 
         private async Task ProcessQuery(bool showAllMode, params string[] query)
@@ -156,8 +157,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("add")]
-        [Summary("Přidá do databáze výsledek testu. Jako parametr přijímá textovou forma výsledků.")]
-        public async Task ProcessQuizResultSubmission(params string[] strings)
+        [Summary("Přidá do databáze výsledek testu.")]
+        public async Task ProcessQuizResultSubmission([Name("<textová forma výsledků>")] params string[] textResults)
         {
             var reconstructedMessage = Context.Message.ToString();
             var testResultMatches = TestResultRegex.Matches(reconstructedMessage);
