@@ -78,9 +78,9 @@ namespace Inkluzitron
                     })
                     .AddFilter((category, level) =>
                     {
-                        /*if (category.StartsWith("Microsoft.EntityFrameworkCore"))
+                        if (category.StartsWith("Microsoft.EntityFrameworkCore"))
                             return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
-                        else*/
+                        else
                             return true;
                     });
             });
