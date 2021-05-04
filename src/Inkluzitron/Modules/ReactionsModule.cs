@@ -44,7 +44,7 @@ namespace Inkluzitron.Modules
             {
                 try
                 {
-                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user, ownUser);
+                    var reactionHandled = await reactionHandler.HandleAsync(message, reaction.Emote, user, ownUser);
                     if (reactionHandled)
                         break;
                 }

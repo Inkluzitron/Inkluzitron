@@ -10,9 +10,5 @@ namespace Inkluzitron.Data.Entities
         public ulong SubmittedById { get; set; }
         public string SubmittedByName { get; set; }
         public List<QuizItem> Items { get; set; } = new List<QuizItem>();
-
-
-
-
- }
+    }
 }

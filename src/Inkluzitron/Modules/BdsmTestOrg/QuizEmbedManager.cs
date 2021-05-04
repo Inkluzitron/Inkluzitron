@@ -23,7 +23,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             Settings = settings;
         }
 
-        public async Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
+        public async Task<bool> HandleAsync(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
         {
             if (message.Author.Id != botUser.Id)
                 return false;

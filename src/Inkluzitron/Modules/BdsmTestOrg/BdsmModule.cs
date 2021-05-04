@@ -54,7 +54,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var pageCount = await quizResultsOfUser.CountAsync();
             var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
-                .Take(1)
                 .FirstOrDefaultAsync();
 
             var embedBuilder = new EmbedBuilder().WithAuthor(Context.Message.Author);
@@ -71,24 +70,24 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         [Command("gdo")]
         [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru.")]
         public Task SearchAsync()
-            => ProcessQuery(false);
+            => ProcessQueryAsync(false);
 
         [Command("gdo")]
         [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru.")]
         public Task FilteredSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
-            => ProcessQuery(false, categoriesToShow);
+            => ProcessQueryAsync(false, categoriesToShow);
 
         [Command("GDO")]
         [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
         public Task VerboseSearchAsync()
-           => ProcessQuery(true);
+           => ProcessQueryAsync(true);
 
         [Command("GDO")]
         [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
         public Task FilteredVerboseSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
-           => ProcessQuery(true, categoriesToShow);
+           => ProcessQueryAsync(true, categoriesToShow);
 
-        private async Task ProcessQuery(bool showAllMode, params string[] query)
+        private async Task ProcessQueryAsync(bool showAllMode, params string[] query)
         {
             var traitsToSearchFor = new HashSet<string>();
 
@@ -158,7 +157,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         [Command("add")]
         [Summary("Přidá do databáze výsledek testu.")]
-        public async Task ProcessQuizResultSubmission([Name("<textová forma výsledků>")] params string[] textResults)
+        public async Task ProcessQuizResultSubmissionAsync([Name("<textová forma výsledků>")] params string[] textResults)
         {
             var reconstructedMessage = Context.Message.ToString();
             var testResultMatches = TestResultRegex.Matches(reconstructedMessage);
@@ -172,7 +171,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResultItems = testResultMatch.Groups["results"].Value;
             var testResultLink = testResultMatch.Groups["link"].Value;
 
-            if (await DbContext.BdsmTestOrgQuizResults.AsAsyncEnumerable().AnyAsync(r => r.Link == testResultLink))
+            if (await DbContext.BdsmTestOrgQuizResults.AsQueryable().AnyAsync(r => r.Link == testResultLink))
             {
                 await ReplyAsync(Settings.LinkAlreadyPresentMessage);
                 return;
