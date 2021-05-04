@@ -51,6 +51,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
             }
 
+            if (!currentPageResultWasRemoved)
+                currentPageResultWasRemoved = (await DbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId)) is null;
+
             var quizResultsOfUser = DbContext
                 .BdsmTestOrgQuizResults
                 .Include(x => x.Items)
@@ -87,9 +90,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var newEmbed = new EmbedBuilder().WithAuthor(user);
 
                 if (newResultToDisplay is null)
-                    newEmbed = newEmbed.WithBdsmTestOrgQuizInvitation(user, Settings);
+                    newEmbed = newEmbed.WithBdsmTestOrgQuizInvitation(Settings, user);
                 else
-                    newEmbed = newEmbed.WithBdsmTestOrgQuizResult(newResultToDisplay, newPageNumber, count);
+                    newEmbed = newEmbed.WithBdsmTestOrgQuizResult(Settings, newResultToDisplay, newPageNumber, count);
 
                 await message.ModifyAsync(p => p.Embed = newEmbed.Build());
             }

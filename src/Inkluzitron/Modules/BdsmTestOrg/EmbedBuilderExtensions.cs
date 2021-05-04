@@ -9,9 +9,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 {
     static public class EmbedBuilderExtensions
     {
-        private const double TraitDisplayThreshold = 0.4;
-
-        static public EmbedBuilder WithBdsmTestOrgQuizInvitation(this EmbedBuilder builder, IUser user, BdsmTestOrgSettings settings)
+        static public EmbedBuilder WithBdsmTestOrgQuizInvitation(this EmbedBuilder builder, BdsmTestOrgSettings settings, IUser user)
         {
             builder.WithTitle(settings.TestLinkUrl);
             builder.WithUrl(settings.TestLinkUrl);
@@ -27,7 +25,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             return builder;
         }
 
-        static public EmbedBuilder WithBdsmTestOrgQuizResult(this EmbedBuilder builder, BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
+        static public EmbedBuilder WithBdsmTestOrgQuizResult(this EmbedBuilder builder, BdsmTestOrgSettings settings, BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
         {
             if (quizResult is null)
                 throw new ArgumentNullException(nameof(quizResult));
@@ -43,8 +41,16 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 PageNumber = pageNumber
             });
 
-            foreach (var item in quizResult.Items.OfType<QuizDoubleItem>().Where(i => i.Value > TraitDisplayThreshold).OrderByDescending(i => i.Value))
-                builder.AddField(item.Key, $"{item.Value:P0}");
+            var relevantItems = quizResult.Items.OfType<QuizDoubleItem>()
+                .Where(i => i.Value >= settings.TraitReportingThreshold)
+                .OrderByDescending(i => i.Value)
+                .ToList();
+
+            if (relevantItems.Count == 0)
+                builder.WithDescription(settings.NoTraitsToReportMessage);
+
+            foreach (var relevantItem in relevantItems)
+                builder.AddField(relevantItem.Key, $"{relevantItem.Value:P0}");
 
             return builder;
         }

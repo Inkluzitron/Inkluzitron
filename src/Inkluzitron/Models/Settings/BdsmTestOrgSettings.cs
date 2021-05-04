@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Inkluzitron.Models.Settings
@@ -13,6 +14,12 @@ namespace Inkluzitron.Models.Settings
         public string InvalidTraitMessage { get; }
         public string InvalidPercentageMessage { get; }
         public string InvalidTraitCountMessage { get; }
+        public string NoMatchesMessage { get; }
+        public int MaximumMatchCount { get; }
+        public double TraitReportingThreshold { get; }
+        public string NoTraitsToReportMessage { get; }
+        public string InvalidVerboseModeUsage { get; }
+        public string BadFilterQueryMessage { get; }
         public IReadOnlySet<string> TraitList { get; }
         public string TestLinkUrl { get; }
 
@@ -32,6 +39,11 @@ namespace Inkluzitron.Models.Settings
             InvalidTraitMessage = GetRequiredConfig(nameof(InvalidTraitMessage));
             InvalidPercentageMessage = GetRequiredConfig(nameof(InvalidPercentageMessage));
             InvalidTraitCountMessage = GetRequiredConfig(nameof(InvalidTraitCountMessage));
+            NoMatchesMessage = GetRequiredConfig(nameof(NoMatchesMessage));
+            MaximumMatchCount = int.Parse(GetRequiredConfig(nameof(MaximumMatchCount)), CultureInfo.InvariantCulture);
+            TraitReportingThreshold = double.Parse(GetRequiredConfig(nameof(TraitReportingThreshold)), CultureInfo.InvariantCulture);
+            NoTraitsToReportMessage = GetRequiredConfig(nameof(NoTraitsToReportMessage));
+            BadFilterQueryMessage = GetRequiredConfig(nameof(BadFilterQueryMessage));
             TraitList = new HashSet<string>(config.GetSection($"{SectionName}:Traits").GetChildren().Select(c => c.Value));
             TestLinkUrl = GetRequiredConfig(nameof(TestLinkUrl));
         }

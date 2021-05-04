@@ -6,6 +6,7 @@ using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -15,7 +16,8 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class QuizModule : ModuleBase
+    [Group("bdsm")]
+    public class BdsmModule : ModuleBase
     {
         static private readonly Regex TestResultRegex = new(
             @"==\sResults\sfrom\sbdsmtest.org\s==\s+
@@ -33,27 +35,16 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
 
-        public QuizModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
+        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
         {
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
         }
 
-        [Command("bdsmtest")]
-        [Alias("bdsm")]
-        [Summary("Zobrazí výsledky BdsmTest.org uživatele, nebo takový výsledek přidá do databáze.")]
-        public async Task HandleBdsmTestOrgCommandAsync(params string[] strings)
-        {
-            if (strings.Length == 0)
-                await ReplyWithBdsmTestEmbed();
-            else if (strings[0] == "gdo")
-                await ProcessQuery(strings.Skip(1));
-            else
-                await ProcessQuizResultSubmission();
-        }
-
-        private async Task ReplyWithBdsmTestEmbed()
+        [Command]
+        [Summary("Zobrazí výsledky BdsmTest.org uživatele.")]
+        public async Task ShowUserResultsAsync()
         {
             var authorId = Context.Message.Author.Id;
             var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
@@ -68,97 +59,105 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var embedBuilder = new EmbedBuilder().WithAuthor(Context.Message.Author);
 
             if (mostRecentResult is null)
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Context.Message.Author, Settings);
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, Context.Message.Author);
             else
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(mostRecentResult, 1, pageCount);
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(Settings, mostRecentResult, 1, pageCount);
 
             var message = await ReplyAsync(embed: embedBuilder.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactionsWithRemoval);
         }
 
-        private async Task ProcessQuery(IEnumerable<string> query)
+        [Command("gdo")]
+        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru.")]
+        public Task SearchAsync()
+            => ProcessQuery(false);
+
+        [Command("gdo")]
+        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru.")]
+        public Task FilteredSearchAsync(params string[] categoriesToShow)
+            => ProcessQuery(false, categoriesToShow);
+
+        [Command("GDO")]
+        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru a vypíše i prázdné kategorie.")]
+        public Task VerboseSearchAsync()
+           => ProcessQuery(true);
+
+        [Command("GDO")]
+        [Summary("Zobrazí žebříček z výsledků BdsmTest.org zadaných uživateli serveru a vypíše i prázdné kategorie.")]
+        public Task FilteredVerboseSearchAsync(params string[] categoriesToShow)
+           => ProcessQuery(true, categoriesToShow);
+
+        private async Task ProcessQuery(bool showAllMode, params string[] query)
         {
-            var queryParams = query.ToList();
             var traitsToSearchFor = new HashSet<string>();
-            if (queryParams.Count == 0)
-                traitsToSearchFor.UnionWith(Settings.TraitList);
-            else
+
+            foreach (var queryItem in query)
             {
-                foreach (var queryItem in query)
+                var matchFound = false;
+
+                foreach (var trait in Settings.TraitList)
                 {
-                    foreach (var trait in Settings.TraitList)
-                    {
-                        if (trait.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
-                            traitsToSearchFor.Add(trait);
-                    }
+                    if (trait.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
+                        matchFound |= traitsToSearchFor.Add(trait);
+                }
+
+                if (!matchFound)
+                {
+                    await ReplyAsync($"{Settings.BadFilterQueryMessage}: {queryItem}");
+                    return;
                 }
             }
 
+            if (traitsToSearchFor.Count == 0)
+                traitsToSearchFor.UnionWith(Settings.TraitList);
 
             var relevantItems = DbContext.BdsmTestOrgQuizResults.AsQueryable()
-                .GroupBy(r => r.SubmittedById, (u, results) => results.Max(r => r.ResultId))
+                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
                 .Join(
                     DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
                     x => x,
                     y => y.Parent.ResultId,
-                    (u, r) => r
+                    (_, r) => r
                 );
 
-            var resultsDict = new Dictionary<string, List<QuizDoubleItem>>();
-
+            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
             foreach (var trait in traitsToSearchFor)
             {
-                var test = relevantItems
+                resultsDict[trait] = relevantItems
                     .Where(i => i.Key == trait)
+                    .Where(i => i.Value > Settings.TraitReportingThreshold)
                     .OrderByDescending(row => row.Value)
                     .ThenByDescending(row => row.Parent.SubmittedAt)
-                    .ToAsyncEnumerable();
-
-                double lastValue = 1;
-
-                await foreach (var y in test)
-                {
-                    if (resultsDict.ContainsKey(y.Key) && resultsDict[y.Key].Count > 10 && (lastValue - y.Value) > double.Epsilon)
-                        break;
-                    else
-                        lastValue = y.Value;
-
-                    if (!resultsDict.ContainsKey(y.Key))
-                        resultsDict[y.Key] = new List<QuizDoubleItem>();
-
-                    resultsDict[y.Key].Add(y);
-                }
+                    .Take(Settings.MaximumMatchCount)
+                    .ToList();
             }
-
 
             var results = new StringBuilder();
             foreach (var trait in traitsToSearchFor.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
             {
-                results.AppendFormat("{0}: ", trait);
+                string resultsLine;
 
-                if (!resultsDict.TryGetValue(trait, out var items))
-                    results.Append("nigdo :sadge:");
+                var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
+                if (resultsGot)
+                    resultsLine = string.Join(", ", items.Select(i => $"<@{i.Parent.SubmittedById}> ({i.Value:P0})"));
+                else if (showAllMode)
+                    resultsLine = Settings.NoMatchesMessage;
                 else
-                {
-                    var first = true;
-                    foreach (var item in items)
-                    {
-                        if (first)
-                            first = false;
-                        else
-                            results.Append(", ");
+                    continue;
 
-                        results.AppendFormat("{0} ({1:P0})", item.Parent.SubmittedByName, item.Value);
-                    }
-                }
-
-                results.AppendLine();
+                results.AppendFormat("**{0}**: ", trait);
+                results.AppendLine(resultsLine);
             }
 
-            await ReplyAsync(results.ToString());
+            if (results.Length == 0)
+                results.Append(Settings.NoMatchesMessage);
+
+            await ReplyAsync(results.ToString(), allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
-        private async Task ProcessQuizResultSubmission()
+        [Command("add")]
+        [Summary("Přidá do databáze výsledek testu. Jako parametr přijímá textovou forma výsledků.")]
+        public async Task ProcessQuizResultSubmission(params string[] strings)
         {
             var reconstructedMessage = Context.Message.ToString();
             var testResultMatches = TestResultRegex.Matches(reconstructedMessage);
