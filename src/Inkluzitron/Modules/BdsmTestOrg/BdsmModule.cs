@@ -44,7 +44,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         [Command]
         [Name("")]
-        [Summary("Zobrazí výsledky BdsmTest.org uživatele.")]
+        [Summary("Zobrazí výsledky uživatele.")]
         public async Task ShowUserResultsAsync()
         {
             var authorId = Context.Message.Author.Id;
