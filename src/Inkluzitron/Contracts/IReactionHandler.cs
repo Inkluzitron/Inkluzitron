@@ -5,6 +5,6 @@ namespace Inkluzitron.Contracts
 {
     public interface IReactionHandler
     {
-        Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user, IUser self);
+        Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user, IUser botUser);
     }
 }

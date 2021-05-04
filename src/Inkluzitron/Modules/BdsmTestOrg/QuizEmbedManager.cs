@@ -23,9 +23,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             Settings = settings;
         }
 
-        public async Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user, IUser self)
+        public async Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
         {
-            if (message.Author.Id != self.Id)
+            if (message.Author.Id != botUser.Id)
                 return false;
 
             if (message.Embeds.Count != 1)

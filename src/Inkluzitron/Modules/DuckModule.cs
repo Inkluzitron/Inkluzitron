@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    [Name("Kachna")]
     public class DuckModule : ModuleBase
     {
         private IConfiguration Configuration { get; }
@@ -24,6 +25,7 @@ namespace Inkluzitron.Modules
 
         [Command("kachna")]
         [Alias("duck")]
+        [Summary("Zjištění aktuálního stavu kachny.")]
         public async Task GetDuckAsync()
         {
             try

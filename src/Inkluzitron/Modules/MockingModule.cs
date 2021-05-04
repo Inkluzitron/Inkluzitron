@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
 {
-
+    [Name("Mock")]
     public class MockingModule : ModuleBase
     {
         private IConfiguration Config { get; }
