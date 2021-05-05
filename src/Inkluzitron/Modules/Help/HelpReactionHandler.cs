@@ -3,7 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Extensions;
-using Inkluzitron.Settings;
+using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
@@ -41,16 +41,15 @@ namespace Inkluzitron.Modules.Help
             if (embed.Author.Value.Name != user.ToString())
                 return false;
 
-            var parsedFooter = HelpPageEmbed.TryParseFooter(embed.Footer.Value.Text);
-            if (parsedFooter == null)
-                return false; // Embed format check.
+            if (!embed.TryParseMetadata<HelpPageEmbedMetadata>(out var metadata))
+                return false; // Not a help embed.
 
             var context = new CommandContext(Client, message);
             var availableModules = await CommandService.Modules
                 .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(context, Provider)).Count > 0);
 
-            int maxPages = Math.Min(parsedFooter.Item2, availableModules.Count); // Maximal count of available pages.
-            int newPage = parsedFooter.Item1;
+            int maxPages = Math.Min(metadata.PageCount, availableModules.Count); // Maximal count of available pages.
+            int newPage = metadata.PageNumber;
             if (reaction.Equals(ReactionSettings.MoveToFirst))
                 newPage = 1;
             else if (reaction.Equals(ReactionSettings.MoveToLast))
@@ -60,12 +59,11 @@ namespace Inkluzitron.Modules.Help
             else if (reaction.Equals(ReactionSettings.MoveToPrevious) && newPage > 1)
                 newPage--;
 
-            if (newPage != parsedFooter.Item1)
+            if (newPage != metadata.PageNumber)
             {
                 var module = availableModules[newPage - 1];
                 var newEmbed = (await new HelpPageEmbed()
-                    .WithModuleAsync(module, context, Provider, maxPages, Configuration["Prefix"], newPage))
-                    .WithAuthor(user)
+                    .WithModuleAsync(module, user, context, Provider, maxPages, Configuration["Prefix"], newPage))
                     .Build();
 
                 await message.ModifyAsync(msg => msg.Embed = newEmbed);

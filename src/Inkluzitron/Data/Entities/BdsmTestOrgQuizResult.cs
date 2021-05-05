@@ -1,4 +1,4 @@
-﻿namespace Inkluzitron.Data
+﻿namespace Inkluzitron.Data.Entities
 {
     public class BdsmTestOrgQuizResult : QuizResult
     {

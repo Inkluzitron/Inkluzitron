@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Inkluzitron.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inkluzitron.Data
 {

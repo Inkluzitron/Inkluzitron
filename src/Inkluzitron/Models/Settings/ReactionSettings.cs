@@ -3,7 +3,7 @@ using Inkluzitron.Extensions;
 using Microsoft.Extensions.Configuration;
 using System;
 
-namespace Inkluzitron.Settings
+namespace Inkluzitron.Models.Settings
 {
     public class ReactionSettings
     {
@@ -11,9 +11,11 @@ namespace Inkluzitron.Settings
         public IEmote MoveToPrevious { get; }
         public IEmote MoveToNext { get; }
         public IEmote MoveToLast { get; }
+        public IEmote Remove { get; }
         public IEmote BdsmTestResultAdded { get; }
 
         public IEmote[] PaginationReactions { get; }
+        public IEmote[] PaginationReactionsWithRemoval { get; }
 
         public ReactionSettings(IConfiguration config)
         {
@@ -24,9 +26,12 @@ namespace Inkluzitron.Settings
             MoveToPrevious = config["ReactionSettings:MoveToPrevious"].ToDiscordEmote();
             MoveToNext = config["ReactionSettings:MoveToNext"].ToDiscordEmote();
             MoveToLast = config["ReactionSettings:MoveToLast"].ToDiscordEmote();
+            Remove = config["ReactionSettings:Remove"].ToDiscordEmote();
+
             BdsmTestResultAdded = config["ReactionSettings:BdsmTestResultAdded"].ToDiscordEmote();
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
-        }        
+            PaginationReactionsWithRemoval = new[] { MoveToFirst, MoveToPrevious, Remove, MoveToNext, MoveToLast };
+        }
     }
 }

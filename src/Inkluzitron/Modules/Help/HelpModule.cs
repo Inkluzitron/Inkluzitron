@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
-using Inkluzitron.Settings;
+using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
@@ -17,8 +17,7 @@ namespace Inkluzitron.Modules.Help
         private IServiceProvider Provider { get; }
         private IConfiguration Configuration { get; }
 
-        public HelpModule(CommandService commandService, ReactionSettings reactionSettings, IServiceProvider provider,
-            IConfiguration configuration)
+        public HelpModule(CommandService commandService, ReactionSettings reactionSettings, IServiceProvider provider, IConfiguration configuration)
         {
             CommandService = commandService;
             ReactionSettings = reactionSettings;
@@ -40,7 +39,7 @@ namespace Inkluzitron.Modules.Help
             }
 
             var prefix = Configuration["Prefix"];
-            var embed = await new HelpPageEmbed().WithModuleAsync(availableModules.FirstOrDefault(), Context, Provider, availableModules.Count, prefix);
+            var embed = await new HelpPageEmbed().WithModuleAsync(availableModules.FirstOrDefault(), Context.User, Context, Provider, availableModules.Count, prefix);
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
         }
