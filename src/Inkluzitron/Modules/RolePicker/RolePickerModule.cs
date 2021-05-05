@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    [RequireUserPermission(GuildPermission.ManageRoles)]
     [Name("Uživatelsky volitelné role")]
     [Group("rolepicker")]
     public class RolePickerModule : ModuleBase
