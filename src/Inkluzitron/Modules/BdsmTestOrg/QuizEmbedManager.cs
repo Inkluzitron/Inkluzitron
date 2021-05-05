@@ -57,7 +57,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var quizResultsOfUser = DbContext
                 .BdsmTestOrgQuizResults
                 .Include(x => x.Items)
-                .AsAsyncEnumerable()
+                .AsQueryable()
                 .Where(r => r.SubmittedById == metadata.UserId)
                 .OrderByDescending(r => r.SubmittedAt);
 
