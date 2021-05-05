@@ -1,9 +1,6 @@
 ﻿using Discord.Commands;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Inkluzitron.Extensions
 {
@@ -11,7 +8,22 @@ namespace Inkluzitron.Extensions
     {
         static public string GetCommandFormat(this CommandInfo command, string prefix, ParameterInfo highlightArg = null)
         {
-            var builder = new StringBuilder().Append(prefix).Append(command.Name);
+            var builder = new StringBuilder(prefix);
+
+            var groups = new Stack<string>();
+            var module = command.Module;
+            while (module != null)
+            {
+                if (module.Group != null)
+                    groups.Push(module.Group);
+
+                module = module.Parent;
+            }
+
+            while (groups.TryPop(out var groupName))
+                builder.Append(groupName).Append(' ');
+
+            builder.Append(command.Name);
 
             foreach (var param in command.Parameters)
             {
@@ -21,7 +33,7 @@ namespace Inkluzitron.Extensions
                 if (param == highlightArg) builder.Append("__**");
             }
 
-            return builder.ToString();
+            return builder.ToString().Trim();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
-using Inkluzitron.Settings;
+using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -35,7 +35,8 @@ namespace Inkluzitron.Modules
             var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
             if (user == null) return;
 
-            var ownId = DiscordClient.CurrentUser.Id;
+            var ownUser = DiscordClient.CurrentUser;
+            var ownId = ownUser.Id;
             if (user.Id == ownId || message.Author.Id != ownId)
                 return;
 
@@ -43,7 +44,7 @@ namespace Inkluzitron.Modules
             {
                 try
                 {
-                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user);
+                    var reactionHandled = await reactionHandler.HandleAsync(message, reaction.Emote, user, ownUser);
                     if (reactionHandled)
                         break;
                 }

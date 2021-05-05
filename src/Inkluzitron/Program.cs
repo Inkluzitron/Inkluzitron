@@ -4,9 +4,9 @@ using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
 using Inkluzitron.Handlers;
+using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Services;
-using Inkluzitron.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +64,7 @@ namespace Inkluzitron
                 .AddSingleton<Random>()
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<ReactionSettings>()
+                .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>();
 
             services.AddLogging(config =>

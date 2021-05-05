@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Inkluzitron.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inkluzitron.Data
 {
@@ -22,7 +23,7 @@ namespace Inkluzitron.Data
 
             modelBuilder.Entity<QuizItem>().HasKey(i => i.ItemId);
             modelBuilder.Entity<QuizItem>().HasOne(i => i.Parent);
-            modelBuilder.Entity<QuizItem>().HasDiscriminator<string>("Discriminator");            
+            modelBuilder.Entity<QuizItem>().HasDiscriminator<string>("Discriminator");
         }
     }
 }
