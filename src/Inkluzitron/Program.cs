@@ -41,7 +41,7 @@ namespace Inkluzitron
             {
                 LogLevel = LogSeverity.Verbose,
                 MessageCacheSize = 100000,
-                RateLimitPrecision = RateLimitPrecision.Millisecond
+                RateLimitPrecision = RateLimitPrecision.Millisecond,
             };
 
             var commandsConfig = new CommandServiceConfig()

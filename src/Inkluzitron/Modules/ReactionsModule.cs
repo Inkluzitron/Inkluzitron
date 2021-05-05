@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
+using Inkluzitron.Enums;
 using Inkluzitron.Settings;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,17 +18,23 @@ namespace Inkluzitron.Modules
         public ILogger<ReactionsModule> Logger { get; }
         protected IReactionHandler[] ReactionHandlers { get; }
 
-        public ReactionsModule(DiscordSocketClient discordClient, ReactionSettings reactionSettings, IEnumerable<IReactionHandler> reactionHandlers, ILogger<ReactionsModule> logger)
+        public ReactionsModule(DiscordSocketClient discordClient, ReactionSettings reactionSettings,
+            IEnumerable<IReactionHandler> reactionHandlers,
+            ILogger<ReactionsModule> logger)
         {
             DiscordClient = discordClient;
             Settings = reactionSettings;
             Logger = logger;
             ReactionHandlers = reactionHandlers.ToArray();
 
-            DiscordClient.ReactionAdded += DiscordClient_ReactionAdded;
+            DiscordClient.ReactionAdded += (userMessage, channel, reaction) =>
+                DiscordClient_ReactionChanged(userMessage, channel, reaction, ReactionEvent.Added);
+
+            DiscordClient.ReactionRemoved += (userMessage, channel, reaction) =>
+                DiscordClient_ReactionChanged(userMessage, channel, reaction, ReactionEvent.Removed);
         }
 
-        private async Task DiscordClient_ReactionAdded(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction)
+        private async Task DiscordClient_ReactionChanged(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction, ReactionEvent eventType)
         {
             var message = await userMessage.GetOrDownloadAsync();
             if (message == null) return;
@@ -43,7 +50,22 @@ namespace Inkluzitron.Modules
             {
                 try
                 {
-                    var reactionHandled = await reactionHandler.Handle(message, reaction.Emote, user);
+                    bool reactionHandled = await reactionHandler.HandleReactionChangedAsync(message, reaction.Emote, user, eventType);
+
+                    if (reactionHandled)
+                    {
+                        break;
+                    }
+
+                    if (eventType == ReactionEvent.Added)
+                    {
+                        reactionHandled = await reactionHandler.HandleReactionAddedAsync(message, reaction.Emote, user);
+                    }
+                    else
+                    {
+                        reactionHandled = await reactionHandler.HandleReactionRemovedAsync(message, reaction.Emote, user);
+                    }
+
                     if (reactionHandled)
                         break;
                 }

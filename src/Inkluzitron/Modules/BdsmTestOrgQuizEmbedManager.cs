@@ -20,7 +20,7 @@ namespace Inkluzitron.Modules
             Settings = settings;
         }
 
-        public async Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user)
+        public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
         {
             if (message.Embeds.Count != 1)
                 return false;

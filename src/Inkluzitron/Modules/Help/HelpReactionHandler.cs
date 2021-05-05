@@ -29,7 +29,7 @@ namespace Inkluzitron.Modules.Help
             Configuration = configuration;
         }
 
-        public async Task<bool> Handle(IUserMessage message, IEmote reaction, IUser user)
+        public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
         {
             var embed = message.Embeds.FirstOrDefault();
             if (embed == null || embed.Author == null || embed.Footer == null)
