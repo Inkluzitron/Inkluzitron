@@ -35,7 +35,7 @@ namespace Inkluzitron.Modules.Help
             if (embed == null || embed.Author == null || embed.Footer == null)
                 return false; // Embed checks
 
-            if (!ReactionSettings.PaginationReactions.Contains(reaction))
+            if (!ReactionSettings.PaginationReactions.Any(emote => emote.IsEqual(reaction)))
                 return false; // Reaction check.
 
             if (embed.Author.Value.Name != user.ToString() || message.ReferencedMessage == null)
@@ -50,13 +50,13 @@ namespace Inkluzitron.Modules.Help
 
             int maxPages = Math.Min(metadata.PageCount, availableModules.Count); // Maximal count of available pages.
             int newPage = metadata.PageNumber;
-            if (reaction.Equals(ReactionSettings.MoveToFirst))
+            if (reaction.IsEqual(ReactionSettings.MoveToFirst))
                 newPage = 1;
-            else if (reaction.Equals(ReactionSettings.MoveToLast))
+            else if (reaction.IsEqual(ReactionSettings.MoveToLast))
                 newPage = maxPages;
-            else if (reaction.Equals(ReactionSettings.MoveToNext) && newPage < maxPages)
+            else if (reaction.IsEqual(ReactionSettings.MoveToNext) && newPage < maxPages)
                 newPage++;
-            else if (reaction.Equals(ReactionSettings.MoveToPrevious) && newPage > 1)
+            else if (reaction.IsEqual(ReactionSettings.MoveToPrevious) && newPage > 1)
                 newPage--;
 
             if (newPage != metadata.PageNumber)
