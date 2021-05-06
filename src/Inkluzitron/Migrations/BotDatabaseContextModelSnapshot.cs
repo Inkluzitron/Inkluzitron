@@ -16,9 +16,9 @@ namespace Inkluzitron.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "5.0.5");
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.QuizItem", b =>
+            modelBuilder.Entity("Inkluzitron.Data.QuizItem", b =>
                 {
-                    b.Property<long>("ItemId")
+                    b.Property<ulong>("ItemId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -29,7 +29,7 @@ namespace Inkluzitron.Migrations
                     b.Property<string>("Key")
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("ParentResultId")
+                    b.Property<ulong?>("ParentResultId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("ItemId");
@@ -41,9 +41,9 @@ namespace Inkluzitron.Migrations
                     b.HasDiscriminator<string>("Discriminator").HasValue("QuizItem");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.QuizResult", b =>
+            modelBuilder.Entity("Inkluzitron.Data.QuizResult", b =>
                 {
-                    b.Property<long>("ResultId")
+                    b.Property<ulong>("ResultId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -67,9 +67,61 @@ namespace Inkluzitron.Migrations
                     b.HasDiscriminator<string>("Discriminator").HasValue("QuizResult");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.QuizDoubleItem", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessage", b =>
                 {
-                    b.HasBaseType("Inkluzitron.Data.Entities.QuizItem");
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("ChannelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("CanSelectMultiple")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("GuildId", "ChannelId", "MessageId");
+
+                    b.ToTable("UserRoleMessage");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessageRole", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("ChannelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Emote")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Mention")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id", "GuildId", "ChannelId", "MessageId");
+
+                    b.HasIndex("GuildId", "ChannelId", "MessageId");
+
+                    b.ToTable("UserRoleMessageItem");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.QuizDoubleItem", b =>
+                {
+                    b.HasBaseType("Inkluzitron.Data.QuizItem");
 
                     b.Property<double>("Value")
                         .HasColumnType("REAL");
@@ -77,9 +129,9 @@ namespace Inkluzitron.Migrations
                     b.HasDiscriminator().HasValue("QuizDoubleItem");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgQuizResult", b =>
+            modelBuilder.Entity("Inkluzitron.Data.BdsmTestOrgQuizResult", b =>
                 {
-                    b.HasBaseType("Inkluzitron.Data.Entities.QuizResult");
+                    b.HasBaseType("Inkluzitron.Data.QuizResult");
 
                     b.Property<string>("Link")
                         .HasColumnType("TEXT");
@@ -87,18 +139,34 @@ namespace Inkluzitron.Migrations
                     b.HasDiscriminator().HasValue("BdsmTestOrgQuizResult");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.QuizItem", b =>
+            modelBuilder.Entity("Inkluzitron.Data.QuizItem", b =>
                 {
-                    b.HasOne("Inkluzitron.Data.Entities.QuizResult", "Parent")
+                    b.HasOne("Inkluzitron.Data.QuizResult", "Parent")
                         .WithMany("Items")
                         .HasForeignKey("ParentResultId");
 
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.QuizResult", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessageRole", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.RolePickerMessage", "Message")
+                        .WithMany("Roles")
+                        .HasForeignKey("GuildId", "ChannelId", "MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.QuizResult", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessage", b =>
+                {
+                    b.Navigation("Roles");
                 });
 #pragma warning restore 612, 618
         }
