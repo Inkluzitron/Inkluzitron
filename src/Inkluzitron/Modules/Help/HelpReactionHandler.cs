@@ -38,13 +38,13 @@ namespace Inkluzitron.Modules.Help
             if (!ReactionSettings.PaginationReactions.Contains(reaction))
                 return false; // Reaction check.
 
-            if (embed.Author.Value.Name != user.ToString())
+            if (embed.Author.Value.Name != user.ToString() || message.ReferencedMessage == null)
                 return false;
 
             if (!embed.TryParseMetadata<HelpPageEmbedMetadata>(out var metadata))
                 return false; // Not a help embed.
 
-            var context = new CommandContext(Client, message);
+            var context = new CommandContext(Client, message.ReferencedMessage);
             var availableModules = await CommandService.Modules
                 .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(context, Provider)).Count > 0);
 
