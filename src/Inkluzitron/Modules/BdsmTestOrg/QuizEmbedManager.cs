@@ -1,4 +1,6 @@
 ﻿using Discord;
+using Discord.Commands;
+using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
 using Inkluzitron.Extensions;
@@ -15,17 +17,20 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         protected BotDatabaseContext DbContext { get; }
         protected ReactionSettings ReactionSettings { get; }
         protected BdsmTestOrgSettings Settings { get; }
+        protected DiscordSocketClient Client { get; }
 
-        public QuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings settings)
+        public QuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings settings,
+            DiscordSocketClient client)
         {
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
             Settings = settings;
+            Client = client;
         }
 
         public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
         {
-            if (message.Author.Id != botUser.Id)
+            if (message.Author.Id != botUser.Id || message.ReferencedMessage == null)
                 return false;
 
             if (message.Embeds.Count != 1)
@@ -97,7 +102,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 await message.ModifyAsync(p => p.Embed = newEmbed.Build());
             }
 
-            await message.RemoveReactionAsync(reaction, user);
+            var context = new CommandContext(Client, message.ReferencedMessage);
+
+            if (!context.IsPrivate)
+                await message.RemoveReactionAsync(reaction, user);
             return true;
         }
     }
