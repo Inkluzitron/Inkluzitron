@@ -69,7 +69,8 @@ namespace Inkluzitron.Modules.Help
                 await message.ModifyAsync(msg => msg.Embed = newEmbed);
             }
 
-            await message.RemoveReactionAsync(reaction, user);
+            if (!context.IsPrivate) // DMs have blocked removing reactions.
+                await message.RemoveReactionAsync(reaction, user);
             return true;
         }
     }
