@@ -56,7 +56,11 @@ namespace Inkluzitron.Modules
             else if (data.CanSelectMultiple) builder.Append("\n*kliknutím na reakce si přiřadíš role*");
             else builder.Append("\n*kliknutím na reakci si přiřadíš jednu roli*");
 
-            await msg.ModifyAsync(m => m.Content = builder.ToString());
+            await msg.ModifyAsync(m =>
+            {
+                m.Content = builder.ToString();
+                m.AllowedMentions = AllowedMentions.None;
+            });
         }
 
         [Command("list")]
@@ -165,6 +169,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("exclusive")]
+        [Alias("single")]
         [Summary("Změní způsob výběru rolí. Přepíná mezi módem výběru jedné nebo více rolí.")]
         public async Task ToggleExclusivityAsync()
         {
@@ -191,7 +196,8 @@ namespace Inkluzitron.Modules
             await Context.Message.DeleteAsync();
         }
 
-        [Command("purge")]
+        [Command("removemsg")]
+        [Alias("purge", "removeall", "removemessage", "deletemsg", "deleteall", "deletemessage")]
         [Summary("Odstraní zprávu pro výběr rolí. Musí reagovat na cílovou zprávu, kde se přidávají reakce.")]
         public async Task RemoveRoleAsync()
         {
