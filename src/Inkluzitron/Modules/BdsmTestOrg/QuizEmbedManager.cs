@@ -6,7 +6,6 @@ using Inkluzitron.Data;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -28,7 +27,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             Client = client;
         }
 
-        public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
+        public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
         {
             if (message.ReferencedMessage == null || message.Embeds.Count != 1)
                 return false;
@@ -38,11 +37,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (!embed.TryParseMetadata<QuizEmbedMetadata>(out var metadata))
                 return false;
 
-            if (!ReactionSettings.PaginationReactionsWithRemoval.Contains(reaction))
+            if (!ReactionSettings.PaginationReactionsWithRemoval.Any(o => o.IsEqual(reaction)))
                 return false;
 
             var currentPageResultWasRemoved = false;
-            if (metadata.UserId == user.Id && reaction.Equals(ReactionSettings.Remove))
+            if (metadata.UserId == user.Id && reaction.IsEqual(ReactionSettings.Remove))
             {
                 var result = await DbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId);
                 if (result != null)
@@ -56,8 +55,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (!currentPageResultWasRemoved)
                 currentPageResultWasRemoved = (await DbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId)) is null;
 
-            var quizResultsOfUser = DbContext
-                .BdsmTestOrgQuizResults
+            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
                 .Include(x => x.Items)
                 .AsQueryable()
                 .Where(r => r.SubmittedById == metadata.UserId)
@@ -67,13 +65,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var formerPageNumber = metadata.PageNumber;
             int newPageNumber;
-            if (reaction.Equals(ReactionSettings.MoveToFirst))
+            if (reaction.IsEqual(ReactionSettings.MoveToFirst))
                 newPageNumber = 1;
-            else if (reaction.Equals(ReactionSettings.MoveToPrevious))
+            else if (reaction.IsEqual(ReactionSettings.MoveToPrevious))
                 newPageNumber = formerPageNumber - 1;
-            else if (reaction.Equals(ReactionSettings.MoveToNext))
+            else if (reaction.IsEqual(ReactionSettings.MoveToNext))
                 newPageNumber = formerPageNumber + 1;
-            else if (reaction.Equals(ReactionSettings.MoveToLast))
+            else if (reaction.IsEqual(ReactionSettings.MoveToLast))
                 newPageNumber = count;
             else
                 newPageNumber = formerPageNumber;
