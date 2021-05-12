@@ -30,10 +30,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user, IUser botUser)
         {
-            if (message.Author.Id != botUser.Id || message.ReferencedMessage == null)
-                return false;
-
-            if (message.Embeds.Count != 1)
+            if (message.ReferencedMessage == null || message.Embeds.Count != 1)
                 return false;
 
             var embed = message.Embeds.Single();

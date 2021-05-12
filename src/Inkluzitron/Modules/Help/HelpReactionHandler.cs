@@ -38,7 +38,7 @@ namespace Inkluzitron.Modules.Help
             if (!ReactionSettings.PaginationReactions.Any(emote => emote.IsEqual(reaction)))
                 return false; // Reaction check.
 
-            if (embed.Author.Value.Name != user.ToString() || message.ReferencedMessage == null)
+            if (message.ReferencedMessage == null)
                 return false;
 
             if (!embed.TryParseMetadata<HelpPageEmbedMetadata>(out var metadata))
