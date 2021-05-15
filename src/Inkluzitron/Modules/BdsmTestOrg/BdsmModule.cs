@@ -1,13 +1,16 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Models.Settings;
+using Inkluzitron.Resources.Fonts.OpenSans;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -31,15 +34,25 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             RegexOptions.Multiline
         );
 
+        private GraphPainter GraphPainter { get; }
+        private DiscordSocketClient Client { get; }
         private BotDatabaseContext DbContext { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
 
-        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
+        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, DiscordSocketClient client, OpenSansFontManager fontMgr)
         {
+            GraphPainter = new GraphPainter
+            {
+                UsernameFont = new System.Drawing.Font(fontMgr.Light, 20),
+                CategoryBoxHeadingFont = new System.Drawing.Font(fontMgr.Bold, 20),
+                GridLinePercentageFont = new System.Drawing.Font(fontMgr.Light, 20)
+            };
+
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
+            Client = client;
         }
 
         [Command]
@@ -86,6 +99,51 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
         public Task FilteredVerboseSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
            => ProcessQueryAsync(true, categoriesToShow);
+
+        [Command("stats")]
+        [Summary("Sestaví a zobrazí žebříček ze všech kategorií a vykreslí jej do grafu.")]
+        public async Task DrawStatsGraphAsync()
+        {
+            var relevantItems = DbContext.BdsmTestOrgQuizResults.AsQueryable()
+                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
+                .Join(
+                    DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
+                    x => x,
+                    y => y.Parent.ResultId,
+                    (_, r) => r
+                );
+
+            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
+            foreach (var trait in Settings.TraitList)
+            {
+                resultsDict[trait] = relevantItems
+                    .Where(i => i.Key == trait)
+                    .Where(i => i.Value > Settings.TraitReportingThreshold)
+                    .OrderByDescending(row => row.Value)
+                    .ThenByDescending(row => row.Parent.SubmittedAt)
+                    .Take(Settings.MaximumMatchCount)
+                    .ToList();
+            }
+
+            var imgFile = ImagesModule.CreateCachePath(Path.GetRandomFileName() + ".png");
+
+            try
+            {
+                using var img = await GraphPainter.DrawAsync(Client, resultsDict, Convert.ToSingle(Settings.TraitReportingThreshold));
+                img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
+                await ReplyFileAsync(imgFile);
+            }
+            finally
+            {
+                try
+                {
+                    File.Delete(imgFile);
+                }
+                catch {
+                    // *** it's not much but it was honest work ***
+                }
+            }
+        }
 
         private async Task ProcessQueryAsync(bool showAllMode, params string[] query)
         {

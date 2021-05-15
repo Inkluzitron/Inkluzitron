@@ -6,6 +6,7 @@ using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
+using Inkluzitron.Resources.Fonts.OpenSans;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -65,7 +66,8 @@ namespace Inkluzitron
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
-                .AddSingleton<ReactionsModule>();
+                .AddSingleton<ReactionsModule>()
+                .AddSingleton<OpenSansFontManager>();
 
             services.AddLogging(config =>
             {

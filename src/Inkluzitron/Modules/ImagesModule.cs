@@ -436,7 +436,7 @@ namespace Inkluzitron.Modules
 
         #region Common parts
 
-        static private async Task<SysDrawImage> GetProfilePictureAsync(IUser user, ushort discordSize = 128, Size? size = null)
+        static internal async Task<SysDrawImage> GetProfilePictureAsync(IUser user, ushort discordSize = 128, Size? size = null)
         {
             if (size == null) size = new Size(100, 100);
 
@@ -448,7 +448,7 @@ namespace Inkluzitron.Modules
             return roundedProfileImage.ResizeImage(size.Value.Width, size.Value.Height);
         }
 
-        static private string CreateCachePath(string filename) => Path.Combine("ImageCache", filename);
+        static internal string CreateCachePath(string filename) => Path.Combine("ImageCache", filename);
 
         static private List<Bitmap> GetBitmapsFromResources<TResources>()
         {
