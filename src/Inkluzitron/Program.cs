@@ -63,6 +63,7 @@ namespace Inkluzitron
                 .AddSingleton<LoggingService>()
                 .AddSingleton<Random>()
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
+                .AddSingleton<DatabaseFactory>()
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>();

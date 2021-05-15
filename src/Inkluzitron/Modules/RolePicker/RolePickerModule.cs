@@ -21,14 +21,27 @@ namespace Inkluzitron.Modules
     public class RolePickerModule : ModuleBase
     {
         private DiscordSocketClient Client { get; }
-        private BotDatabaseContext DbContext { get; }
+        private DatabaseFactory DatabaseFactory { get; }
+        private BotDatabaseContext DbContext { get; set; }
         private ulong RoleEmoteGuildId { get; }
 
-        public RolePickerModule(DiscordSocketClient client, BotDatabaseContext dbContext, IConfiguration config)
+        public RolePickerModule(DiscordSocketClient client, DatabaseFactory databaseFactory, IConfiguration config)
         {
             Client = client;
-            DbContext = dbContext;
+            DatabaseFactory = databaseFactory;
             RoleEmoteGuildId = config.GetValue<ulong>("RoleEmoteGuildId");
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
         }
 
         private async Task<RolePickerMessage> GetMessageDataAsync(IUserMessage msg)
@@ -77,9 +90,9 @@ namespace Inkluzitron.Modules
             StringBuilder channelBuilder = null;
             foreach (var data in messages)
             {
-                if(channel == null || channel.Id != data.ChannelId || channel.Guild.Id != data.GuildId)
+                if (channel == null || channel.Id != data.ChannelId || channel.Guild.Id != data.GuildId)
                 {
-                    if(channelBuilder != null)
+                    if (channelBuilder != null)
                     {
                         replyBuilder.AddField($"`#{channel.Name}`", channelBuilder.ToString());
                     }
@@ -92,7 +105,7 @@ namespace Inkluzitron.Modules
 
                 var msg = await channel?.GetMessageAsync(data.MessageId);
 
-                if(msg == null)
+                if (msg == null)
                 {
                     // TODO cleanup broken db entries
                     continue;
@@ -267,7 +280,7 @@ namespace Inkluzitron.Modules
                 emote = await emoteGuild.CreateEmoteAsync(name, image);
                 return emote.ToString();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return null;
             }
