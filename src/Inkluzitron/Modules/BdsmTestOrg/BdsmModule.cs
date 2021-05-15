@@ -32,15 +32,28 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             RegexOptions.Multiline
         );
 
-        private BotDatabaseContext DbContext { get; }
+        private BotDatabaseContext DbContext { get; set; }
+        private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
 
-        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
+        public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings)
         {
-            DbContext = dbContext;
+            DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
         }
 
         [Command]
@@ -49,8 +62,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task ShowUserResultsAsync()
         {
             var authorId = Context.Message.Author.Id;
-            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
-                .Include(x => x.Items)
+            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults.Include(x => x.Items)
                 .Where(x => x.SubmittedById == authorId);
 
             var pageCount = await quizResultsOfUser.CountAsync();
