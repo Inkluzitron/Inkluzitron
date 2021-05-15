@@ -34,10 +34,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>BonkResources.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Fonts\OpenSans\OpenSansResources.Designer.cs">
+    <Compile Update="Resources\Fonts\FontsResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>OpenSansResources.resx</DependentUpon>
+      <DependentUpon>FontsResources.resx</DependentUpon>
     </Compile>
     <Compile Update="Resources\Pat\PatResources.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -71,9 +71,9 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>BonkResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Fonts\OpenSans\OpenSansResources.resx">
+    <EmbeddedResource Update="Resources\Fonts\FontsResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>OpenSansResources.Designer.cs</LastGenOutput>
+      <LastGenOutput>FontsResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Pat\PatResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

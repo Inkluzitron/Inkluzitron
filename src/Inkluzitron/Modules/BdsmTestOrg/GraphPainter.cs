@@ -1,44 +1,71 @@
-﻿using DC = Discord;
-using Inkluzitron.Data.Entities;
+﻿using Inkluzitron.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
+using Inkluzitron.Services;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class GraphPainter
+    public class GraphPainter : IDisposable
     {
-        public Color BackgroundColor { get; set; } = Color.Black;
-        public int CategoryBoxPadding { get; set; } = 20;
-        public int CategoryBoxHeight { get; set; } = 300;
+        private ProfilePictureService ProfilePictureService { get; }
 
-        public Font GridLinePercentageFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush GridLinePercentageForegroundMajor { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
-        public Brush GridLinePercentageBackgroundMinor { get; set; } = new SolidBrush(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMinor { get; set; } = new Pen(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMajor { get; set; } = new Pen(Color.FromArgb(0x70AAAAAA));
+        public Color BackgroundColor { get; init; } = Color.Black;
+        public int CategoryBoxPadding { get; init; } = 20;
+        public int CategoryBoxHeight { get; init; } = 300;
 
-        public Font CategoryBoxHeadingFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush CategoryBoxBackground { get; set; } = new SolidBrush(Color.FromArgb(0x7F333333));
-        public Brush CategoryBoxHeadingForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FEEEEEE));
+        public Font GridLinePercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Brush GridLinePercentageForegroundMajor { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
+        public Brush GridLinePercentageBackgroundMinor { get; init; } = new SolidBrush(Color.FromArgb(0x32AAAAAA));
+        public Pen GridLinePenMinor { get; init; } = new Pen(Color.FromArgb(0x32AAAAAA));
+        public Pen GridLinePenMajor { get; init; } = new Pen(Color.FromArgb(0x70AAAAAA));
 
-        public int AvatarSize { get; set; } = 64;
-        public Font UsernameFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush UsernameForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
+        public Font CategoryBoxHeadingFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Brush CategoryBoxBackground { get; init; } = new SolidBrush(Color.FromArgb(0x7F333333));
+        public Brush CategoryBoxHeadingForeground { get; init; } = new SolidBrush(Color.FromArgb(0x7FEEEEEE));
 
-        public int ColumnCount { get; set; } = 5;
+        public int AvatarSize { get; init; } = 64;
+        public Font UsernameFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Brush UsernameForeground { get; init; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
 
-        public async Task<Bitmap> DrawAsync(DC.WebSocket.DiscordSocketClient client, IDictionary<string, List<QuizDoubleItem>> toplistResults, float reportingThreshold)
+        public int ColumnCount { get; init; } = 5;
+
+        protected GraphPainter(ProfilePictureService profilePictureService)
         {
-            async Task<Image> GetAvatarAsync(ulong userId)
-            {
-                var user = await client.Rest.GetUserAsync(userId);
-                return await ImagesModule.GetProfilePictureAsync(user);
-            }
+            ProfilePictureService = profilePictureService;
+        }
 
+        public GraphPainter(ProfilePictureService profilePictureService, FontService fontService) : this(profilePictureService)
+        {
+            CategoryBoxHeadingFont?.Dispose();
+            GridLinePercentageFont?.Dispose();
+            UsernameFont?.Dispose();
+
+            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20);
+            GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
+            UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            GridLinePercentageFont.Dispose();
+            GridLinePercentageForegroundMajor.Dispose();
+            GridLinePercentageBackgroundMinor.Dispose();
+            GridLinePenMinor.Dispose();
+            GridLinePenMajor.Dispose();
+            CategoryBoxHeadingFont.Dispose();
+            CategoryBoxBackground.Dispose();
+            CategoryBoxHeadingForeground.Dispose();
+            UsernameFont.Dispose();
+            UsernameForeground.Dispose();
+        }
+
+        public async Task<Bitmap> DrawAsync(IDictionary<string, List<QuizDoubleItem>> toplistResults, float reportingThreshold)
+        {
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
                 if (toplistResults[k].Count == 0)
@@ -46,13 +73,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Download all needed avatars.
             var avatars = new Dictionary<ulong, Image>();
-            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById))
-            {
-                if (avatars.ContainsKey(userId))
-                    continue;
-
-                avatars[userId] = await GetAvatarAsync(userId);
-            }
+            var userIds = toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct();
+            foreach (var userId in userIds)
+                avatars[userId] = await ProfilePictureService.GetProfilePictureAsync(userId);
 
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -125,6 +148,18 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             return value;
         }
 
+        private void DrawGridLine(Graphics g, RectangleF dst, float y, float value, bool isMajor, float gridLineLabelPadding)
+        {
+            var pen = isMajor ? GridLinePenMajor : GridLinePenMinor;
+            var textForeground = isMajor ? GridLinePercentageForegroundMajor : GridLinePercentageBackgroundMinor;
+
+            g.DrawLine(pen, dst.Left, y, dst.Right, y);
+
+            var str = value.ToString("P0", CultureInfo.InvariantCulture);
+            var strSize = g.MeasureString(str, GridLinePercentageFont);
+            g.DrawString(str, GridLinePercentageFont, textForeground, dst.Right + gridLineLabelPadding, y - (0.5f * strSize.Height));
+        }
+
         private void DrawCategoryGridLines(Graphics g, RectangleF dst, float minValue, float maxValue, out RectangleF avatarsArea)
         {
             (minValue, maxValue) = SmoothenRange(minValue, maxValue);
@@ -141,18 +176,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             // Shrink the area where grid lines so that there's space left for percentage labels.
             dst.Width -= gridLineLabelMaxWidth - gridLineLabelPadding;
 
-            void DrawGridLine(float y, float value, bool isMajor)
-            {
-                var pen = isMajor ? GridLinePenMajor : GridLinePenMinor;
-                var textForeground = isMajor ? GridLinePercentageForegroundMajor : GridLinePercentageBackgroundMinor;
-
-                g.DrawLine(pen, dst.Left, y, dst.Right, y);
-
-                var str = value.ToString("P0", CultureInfo.InvariantCulture);
-                var strSize = g.MeasureString(str, GridLinePercentageFont);
-                g.DrawString(str, GridLinePercentageFont, textForeground, dst.Right + gridLineLabelPadding, y - (0.5f * strSize.Height));
-            }
-
             // Determine the displayed ranged and adjust the number of grid lines so that the percentage values are nice.
             var range = Clamp(maxValue - minValue, 0.1f, 1.0f);
             var tenths = (int) Math.Round(range / 0.1f);
@@ -165,17 +188,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var step = range / (innerGridLineCount + 1);
 
             // Finally, draw the grid lines.
-            DrawGridLine(dst.Bottom, minValue, true);
+            DrawGridLine(g, dst, dst.Bottom, minValue, true, gridLineLabelPadding);
 
             for (var i = 1; i <= innerGridLineCount; i++)
             {
                 float v = minValue + i * step;
                 float y = dst.Bottom - dst.Height * (v - minValue) / (maxValue - minValue);
 
-                DrawGridLine(y, v, false);
+                DrawGridLine(g, dst, y, v, false, gridLineLabelPadding);
             }
 
-            DrawGridLine(dst.Top, maxValue, true);
+            DrawGridLine(g, dst, dst.Top, maxValue, true, gridLineLabelPadding);
 
             // Return the area that has been drawn over with grid lines.
             avatarsArea = dst;

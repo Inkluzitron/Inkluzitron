@@ -1,10 +1,9 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Models.Settings;
-using Inkluzitron.Resources.Fonts.OpenSans;
+using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
@@ -34,25 +33,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             RegexOptions.Multiline
         );
 
-        private GraphPainter GraphPainter { get; }
-        private DiscordSocketClient Client { get; }
         private BotDatabaseContext DbContext { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
+        private GraphPainter GraphPainter { get; }
 
-        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, DiscordSocketClient client, OpenSansFontManager fontMgr)
+        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPainter graphPainter)
         {
-            GraphPainter = new GraphPainter
-            {
-                UsernameFont = new System.Drawing.Font(fontMgr.Light, 20),
-                CategoryBoxHeadingFont = new System.Drawing.Font(fontMgr.Bold, 20),
-                GridLinePercentageFont = new System.Drawing.Font(fontMgr.Light, 20)
-            };
-
             DbContext = dbContext;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
-            Client = client;
+            GraphPainter = graphPainter;
         }
 
         [Command]
@@ -129,7 +120,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             try
             {
-                using var img = await GraphPainter.DrawAsync(Client, resultsDict, Convert.ToSingle(Settings.TraitReportingThreshold));
+                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.TraitReportingThreshold));
                 img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
                 await ReplyFileAsync(imgFile);
             }

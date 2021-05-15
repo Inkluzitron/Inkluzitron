@@ -6,7 +6,7 @@ using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
-using Inkluzitron.Resources.Fonts.OpenSans;
+using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -67,7 +67,9 @@ namespace Inkluzitron
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>()
-                .AddSingleton<OpenSansFontManager>();
+                .AddSingleton<ProfilePictureService>()
+                .AddSingleton<FontService>()
+                .AddSingleton<GraphPainter>();
 
             services.AddLogging(config =>
             {

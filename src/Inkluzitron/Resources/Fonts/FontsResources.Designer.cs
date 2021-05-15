@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Inkluzitron.Resources.Fonts.OpenSans {
+namespace Inkluzitron.Resources.Fonts {
     using System;
     
     
@@ -22,14 +22,14 @@ namespace Inkluzitron.Resources.Fonts.OpenSans {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class OpenSansResources {
+    internal class FontsResources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal OpenSansResources() {
+        internal FontsResources() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace Inkluzitron.Resources.Fonts.OpenSans {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Inkluzitron.Resources.Fonts.OpenSans.OpenSansResources", typeof(OpenSansResources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Inkluzitron.Resources.Fonts.FontsResources", typeof(FontsResources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -63,9 +63,9 @@ namespace Inkluzitron.Resources.Fonts.OpenSans {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] Bold {
+        internal static byte[] OpenSansCondensed {
             get {
-                object obj = ResourceManager.GetObject("Bold", resourceCulture);
+                object obj = ResourceManager.GetObject("OpenSansCondensed", resourceCulture);
                 return ((byte[])(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace Inkluzitron.Resources.Fonts.OpenSans {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] Light {
+        internal static byte[] OpenSansCondensedLight {
             get {
-                object obj = ResourceManager.GetObject("Light", resourceCulture);
+                object obj = ResourceManager.GetObject("OpenSansCondensedLight", resourceCulture);
                 return ((byte[])(obj));
             }
         }
