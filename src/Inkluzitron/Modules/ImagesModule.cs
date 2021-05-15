@@ -224,7 +224,6 @@ namespace Inkluzitron.Modules
             return imageName;
         }
 
-
         [Command("peepoangry")]
         [Alias("angry")]
         public async Task PeepoangryAsync(IUser member = null)

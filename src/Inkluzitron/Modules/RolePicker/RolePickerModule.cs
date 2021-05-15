@@ -21,14 +21,27 @@ namespace Inkluzitron.Modules
     public class RolePickerModule : ModuleBase
     {
         private DiscordSocketClient Client { get; }
-        private BotDatabaseContext DbContext { get; }
+        private DatabaseFactory DatabaseFactory { get; }
+        private BotDatabaseContext DbContext { get; set; }
         private ulong RoleEmoteGuildId { get; }
 
-        public RolePickerModule(DiscordSocketClient client, BotDatabaseContext dbContext, IConfiguration config)
+        public RolePickerModule(DiscordSocketClient client, DatabaseFactory databaseFactory, IConfiguration config)
         {
             Client = client;
-            DbContext = dbContext;
+            DatabaseFactory = databaseFactory;
             RoleEmoteGuildId = config.GetValue<ulong>("RoleEmoteGuildId");
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
         }
 
         private async Task<RolePickerMessage> GetMessageDataAsync(IUserMessage msg)
@@ -41,7 +54,7 @@ namespace Inkluzitron.Modules
                 m.MessageId == msg.Id);
         }
 
-        private async Task UpdateMessageAsync(RolePickerMessage data, IUserMessage msg)
+        static private async Task UpdateMessageAsync(RolePickerMessage data, IUserMessage msg)
         {
             var builder = new StringBuilder($"**\n ~ ~\u2003{data.Title}\u2003~ ~**\n");
 
@@ -49,7 +62,7 @@ namespace Inkluzitron.Modules
             foreach (var role in data.Roles)
             {
                 hasRoles = true;
-                builder.Append($"\n{role.Emote}\u2003{role.Description ?? role.Mention}\n");
+                builder.Append('\n').Append(role.Emote).Append(' ').Append(role.Description ?? role.Mention).Append('\n');
             }
 
             if (!hasRoles) builder.Append("\n*Zpráva neobsahuje žádné role k nakliknutí.*");
@@ -77,9 +90,9 @@ namespace Inkluzitron.Modules
             StringBuilder channelBuilder = null;
             foreach (var data in messages)
             {
-                if(channel == null || channel.Id != data.ChannelId || channel.Guild.Id != data.GuildId)
+                if (channel == null || channel.Id != data.ChannelId || channel.Guild.Id != data.GuildId)
                 {
-                    if(channelBuilder != null)
+                    if (channelBuilder != null)
                     {
                         replyBuilder.AddField($"`#{channel.Name}`", channelBuilder.ToString());
                     }
@@ -92,7 +105,7 @@ namespace Inkluzitron.Modules
 
                 var msg = await channel?.GetMessageAsync(data.MessageId);
 
-                if(msg == null)
+                if (msg == null)
                 {
                     // TODO cleanup broken db entries
                     continue;
@@ -222,7 +235,6 @@ namespace Inkluzitron.Modules
             await Context.Message.ReferencedMessage.DeleteAsync();
             await Context.Message.DeleteAsync();
 
-
             var emoteRolesInUse = await DbContext.UserRoleMessageItem.AsQueryable()
                 .Select(i => i.Emote)
                 .Where(e => e.Contains("<:role_"))
@@ -249,7 +261,6 @@ namespace Inkluzitron.Modules
             var emote = emoteGuild.Emotes.FirstOrDefault(e => e.Name == name);
             if (emote != null) return emote.ToString();
 
-            var memoryStream = new MemoryStream();
             var bitmap = new Bitmap(64, 64, PixelFormat.Format32bppArgb);
             var graphics = Graphics.FromImage(bitmap);
             graphics.FillEllipse(
@@ -267,7 +278,7 @@ namespace Inkluzitron.Modules
                 emote = await emoteGuild.CreateEmoteAsync(name, image);
                 return emote.ToString();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return null;
             }
@@ -356,7 +367,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var dbRole = data.Roles.FirstOrDefault(r => r.Id == role.Id && r.Message == data);
+            var dbRole = data.Roles.Find(r => r.Id == role.Id && r.Message == data);
             if (role == null)
             {
                 await ReplyAsync($"Tato zpráva neobsahuje roli {role.Mention}");
@@ -371,14 +382,11 @@ namespace Inkluzitron.Modules
                 emote[0].Equals('<') ? Emote.Parse(emote) : new Emoji(emote));
 
             // remove special role emote if it's not used elsewhere
-            if (emote.Contains($"role_{role.Id}"))
+            if (emote.Contains($"role_{role.Id}") && !DbContext.UserRoleMessageItem.Any(r => r.Emote == emote))
             {
-                if (!DbContext.UserRoleMessageItem.Any(r => r.Emote == emote))
-                {
-                    var emoteGuild = Client.GetGuild(RoleEmoteGuildId);
-                    var deleted = emoteGuild.Emotes.FirstOrDefault(e => e.ToString() == emote && e.CreatorId == Client.CurrentUser.Id);
-                    if (deleted != null) await emoteGuild.DeleteEmoteAsync(deleted);
-                }
+                var emoteGuild = Client.GetGuild(RoleEmoteGuildId);
+                var deleted = emoteGuild.Emotes.FirstOrDefault(e => e.ToString() == emote && e.CreatorId == Client.CurrentUser.Id);
+                if (deleted != null) await emoteGuild.DeleteEmoteAsync(deleted);
             }
 
             await UpdateMessageAsync(data, msg);

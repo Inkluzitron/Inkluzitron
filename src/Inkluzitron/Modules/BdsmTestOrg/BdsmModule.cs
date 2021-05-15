@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
@@ -33,17 +34,30 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             RegexOptions.Multiline
         );
 
-        private BotDatabaseContext DbContext { get; }
+        private BotDatabaseContext DbContext { get; set; }
+        private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
         private GraphPainter GraphPainter { get; }
 
-        public BdsmModule(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPainter graphPainter)
+        public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPainter graphPainter)
         {
-            DbContext = dbContext;
+            DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
             GraphPainter = graphPainter;
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
         }
 
         [Command]
@@ -52,8 +66,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task ShowUserResultsAsync()
         {
             var authorId = Context.Message.Author.Id;
-            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
-                .Include(x => x.Items)
+            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults.Include(x => x.Items)
                 .Where(x => x.SubmittedById == authorId);
 
             var pageCount = await quizResultsOfUser.CountAsync();
@@ -201,7 +214,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (results.Length == 0)
                 results.Append(Settings.NoMatchesMessage);
 
-            await ReplyAsync(results.ToString(), allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
+            var parts = results.SplitToParts(DiscordConfig.MaxMessageSize);
+            await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
         [Command("add")]

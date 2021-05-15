@@ -20,7 +20,7 @@ namespace Inkluzitron.Modules
             DiscordClient.MessageReceived += OnMessageReceivedAsync;
         }
 
-        private static bool ContainsPhrase(string message, string regex, bool matchOnlyWord=true)
+        static private bool ContainsPhrase(string message, string regex, bool matchOnlyWord=true)
         {
             if (matchOnlyWord) regex = $"(?<!\\w){regex}(?!\\w)";
 

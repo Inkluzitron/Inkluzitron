@@ -13,15 +13,15 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 {
     public class QuizEmbedManager : IReactionHandler
     {
-        protected BotDatabaseContext DbContext { get; }
+        protected DatabaseFactory DatabaseFactory { get; }
         protected ReactionSettings ReactionSettings { get; }
         protected BdsmTestOrgSettings Settings { get; }
         protected DiscordSocketClient Client { get; }
 
-        public QuizEmbedManager(BotDatabaseContext dbContext, ReactionSettings reactionSettings, BdsmTestOrgSettings settings,
+        public QuizEmbedManager(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings settings,
             DiscordSocketClient client)
         {
-            DbContext = dbContext;
+            DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = settings;
             Client = client;
@@ -40,22 +40,23 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (!ReactionSettings.PaginationReactionsWithRemoval.Any(o => o.IsEqual(reaction)))
                 return false;
 
+            using var dbContext = DatabaseFactory.Create();
             var currentPageResultWasRemoved = false;
             if (metadata.UserId == user.Id && reaction.IsEqual(ReactionSettings.Remove))
             {
-                var result = await DbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId);
+                var result = await dbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId);
                 if (result != null)
                 {
-                    DbContext.BdsmTestOrgQuizResults.Remove(result);
-                    await DbContext.SaveChangesAsync();
+                    dbContext.BdsmTestOrgQuizResults.Remove(result);
+                    await dbContext.SaveChangesAsync();
                     currentPageResultWasRemoved = true;
                 }
             }
 
             if (!currentPageResultWasRemoved)
-                currentPageResultWasRemoved = (await DbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId)) is null;
+                currentPageResultWasRemoved = (await dbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId)) is null;
 
-            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults
+            var quizResultsOfUser = dbContext.BdsmTestOrgQuizResults
                 .Include(x => x.Items)
                 .AsQueryable()
                 .Where(r => r.SubmittedById == metadata.UserId)
