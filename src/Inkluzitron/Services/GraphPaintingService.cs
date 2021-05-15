@@ -9,7 +9,7 @@ using Inkluzitron.Services;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class GraphPainter : IDisposable
+    public class GraphPaintingService : IDisposable
     {
         private ProfilePictureService ProfilePictureService { get; }
 
@@ -33,12 +33,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         public int ColumnCount { get; init; } = 5;
 
-        protected GraphPainter(ProfilePictureService profilePictureService)
+        protected GraphPaintingService(ProfilePictureService profilePictureService)
         {
             ProfilePictureService = profilePictureService;
         }
 
-        public GraphPainter(ProfilePictureService profilePictureService, FontService fontService) : this(profilePictureService)
+        public GraphPaintingService(ProfilePictureService profilePictureService, FontService fontService) : this(profilePictureService)
         {
             CategoryBoxHeadingFont?.Dispose();
             GridLinePercentageFont?.Dispose();

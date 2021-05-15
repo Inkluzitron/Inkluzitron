@@ -38,9 +38,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
-        private GraphPainter GraphPainter { get; }
+        private GraphPaintingService GraphPainter { get; }
 
-        public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPainter graphPainter)
+        public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPaintingService graphPainter)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
