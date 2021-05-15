@@ -8,6 +8,7 @@ using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
+using Inkluzitron.Services;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -22,8 +23,12 @@ namespace Inkluzitron.Modules
     [Name("Generování obrázků")]
     public class ImagesModule : ModuleBase
     {
-        public ImagesModule()
+        private ProfilePictureService ProfilePictureService { get; }
+
+        public ImagesModule(ProfilePictureService profilePictureService)
         {
+            ProfilePictureService = profilePictureService;
+
             if (!Directory.Exists("ImageCache"))
                 Directory.CreateDirectory("ImageCache");
         }
@@ -46,7 +51,7 @@ namespace Inkluzitron.Modules
 
             if (!File.Exists(gifName))
             {
-                var profilePicture = await GetProfilePictureAsync(member);
+                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(member);
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
@@ -260,7 +265,7 @@ namespace Inkluzitron.Modules
 
             if (!File.Exists(gifName))
             {
-                var profilePicture = await GetProfilePictureAsync(member);
+                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(member);
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
@@ -333,7 +338,7 @@ namespace Inkluzitron.Modules
 
             if (!File.Exists(gifName))
             {
-                var profilePicture = await GetProfilePictureAsync(member);
+                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(member);
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
@@ -387,7 +392,7 @@ namespace Inkluzitron.Modules
 
             if (!File.Exists(gifName))
             {
-                var profilePicture = await GetProfilePictureAsync(member);
+                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(member);
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
@@ -435,19 +440,7 @@ namespace Inkluzitron.Modules
 
         #region Common parts
 
-        static private async Task<SysDrawImage> GetProfilePictureAsync(IUser user, ushort discordSize = 128, Size? size = null)
-        {
-            if (size == null) size = new Size(100, 100);
-
-            var profilePictureData = await user.DownloadProfilePictureAsync(size: discordSize);
-            using var memStream = new MemoryStream(profilePictureData);
-            using var rawProfileImage = SysDrawImage.FromStream(memStream);
-            using var roundedProfileImage = rawProfileImage.RoundImage();
-
-            return roundedProfileImage.ResizeImage(size.Value.Width, size.Value.Height);
-        }
-
-        static private string CreateCachePath(string filename) => Path.Combine("ImageCache", filename);
+        static internal string CreateCachePath(string filename) => Path.Combine("ImageCache", filename);
 
         static private List<Bitmap> GetBitmapsFromResources<TResources>()
         {

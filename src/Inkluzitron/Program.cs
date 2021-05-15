@@ -6,6 +6,7 @@ using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
+using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -66,7 +67,10 @@ namespace Inkluzitron
                 .AddSingleton<DatabaseFactory>()
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
-                .AddSingleton<ReactionsModule>();
+                .AddSingleton<ReactionsModule>()
+                .AddSingleton<ProfilePictureService>()
+                .AddSingleton<FontService>()
+                .AddSingleton<GraphPaintingService>();
 
             services.AddLogging(config =>
             {
