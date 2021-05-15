@@ -13,7 +13,6 @@ namespace Inkluzitron.Modules
         private IConfiguration Config { get; }
         private Random Random { get; }
 
-
         public MockingModule(IConfiguration config, Random random)
         {
             Config = config;
@@ -91,7 +90,9 @@ namespace Inkluzitron.Modules
                 );
             }
             else
+            {
                 await ReplyAsync(mockedMessage);
+            }
 
             return null;
         }

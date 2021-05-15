@@ -88,7 +88,7 @@ namespace Inkluzitron.Modules
 
         #region Private or Closed
 
-        private void ProcessPrivateOrClosed(StringBuilder titleBuilder, DuckCurrentState currentState, EmbedBuilder embedBuilder)
+        static private void ProcessPrivateOrClosed(StringBuilder titleBuilder, DuckCurrentState currentState, EmbedBuilder embedBuilder)
         {
             titleBuilder.Append("Kachna je zavřená.");
 
@@ -100,7 +100,7 @@ namespace Inkluzitron.Modules
 
             if (currentState.NextOpeningDateTime.HasValue && currentState.State != DuckState.Private)
             {
-                FormatWithNextOpeningNoPrivate(titleBuilder, currentState, embedBuilder);
+                FormatWithNextOpeningNoPrivate(currentState, embedBuilder);
                 return;
             }
 
@@ -120,7 +120,7 @@ namespace Inkluzitron.Modules
             AddNoteToEmbed(embedBuilder, currentState.Note);
         }
 
-        private void FormatWithNextOpeningNoPrivate(StringBuilder titleBuilder, DuckCurrentState currentState, EmbedBuilder embed)
+        static private void FormatWithNextOpeningNoPrivate(DuckCurrentState currentState, EmbedBuilder embed)
         {
             if (string.IsNullOrEmpty(currentState.Note))
             {
