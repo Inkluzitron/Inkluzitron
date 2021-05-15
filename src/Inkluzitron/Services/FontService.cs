@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Inkluzitron.Resources.Fonts;
+using Microsoft.Extensions.Logging;
 
 namespace Inkluzitron.Services
 {
@@ -16,11 +17,13 @@ namespace Inkluzitron.Services
 
         public FontFamily OpenSansCondensedLight { get; }
         public FontFamily OpenSansCondensed { get; }
+        public ILogger<FontService> Logger { get; }
 
-        public FontService()
+        public FontService(ILogger<FontService> logger)
         {
+            Logger = logger;
             OpenSansCondensed = LoadFontCollectionFromResource(FontsResources.OpenSansCondensed);
-            OpenSansCondensedLight = LoadFontCollectionFromResource(FontsResources.OpenSansCondensedLight);
+            OpenSansCondensedLight = LoadFontCollectionFromResource(FontsResources.OpenSansCondensedLight);            
         }
 
         public void Dispose()
@@ -40,6 +43,10 @@ namespace Inkluzitron.Services
             {
                 var fontCollection = new PrivateFontCollection();
                 fontCollection.AddMemoryFont(fontData, fontBytes.Length);
+
+                Logger.LogInformation("TTF loading yielded {0} items in the private font collection", fontCollection.Families.Length);
+                foreach (var x in fontCollection.Families)
+                    Logger.LogInformation("PrivateFontCollection item: {0}", x.Name);
 
                 _fontCollections.Add(fontCollection);
                 _fontMemories.Add(fontData);
