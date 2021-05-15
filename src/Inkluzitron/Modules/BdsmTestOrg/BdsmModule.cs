@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -152,7 +153,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (results.Length == 0)
                 results.Append(Settings.NoMatchesMessage);
 
-            await ReplyAsync(results.ToString(), allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
+            var parts = results.SplitToParts(DiscordConfig.MaxMessageSize);
+            await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
         [Command("add")]
