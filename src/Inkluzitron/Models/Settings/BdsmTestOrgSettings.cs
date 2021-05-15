@@ -22,6 +22,9 @@ namespace Inkluzitron.Models.Settings
         public IReadOnlySet<string> TraitList { get; }
         public string TestLinkUrl { get; }
 
+        public string SwitchTraitName { get; }
+        public IReadOnlySet<string> SwitchFilterTraitNames { get; }
+
         public BdsmTestOrgSettings(IConfiguration config)
         {
             var cfg = config.GetSection("BdsmTestOrgQuizModule");

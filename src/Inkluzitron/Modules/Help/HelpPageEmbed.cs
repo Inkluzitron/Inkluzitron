@@ -18,6 +18,9 @@ namespace Inkluzitron.Modules.Help
             this.WithFooter($"Nápověda | {page}/{pagesCount}");
             this.WithMetadata(new HelpPageEmbedMetadata { PageNumber = page, PageCount = pagesCount });
 
+            if (!string.IsNullOrEmpty(module.Summary))
+                this.WithDescription(module.Summary);
+
             var executableCommands = await module.GetExecutableCommandsAsync(context, provider);
             foreach (var command in executableCommands.Take(MaxFieldCount))
             {

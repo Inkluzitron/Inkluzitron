@@ -82,15 +82,16 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var categoryWidth = (3 + topList.Max(kvp => kvp.Value.Count)) * AvatarSize;
             var categoryHeight = CategoryBoxHeight;
-            var rowCount = (int)Math.Ceiling(topList.Count / (1f * ColumnCount));
-            var imageWidth = 2f * CategoryBoxPadding + (ColumnCount - 1) * CategoryBoxPadding + ColumnCount * categoryWidth;
+            var columnCount = Math.Min(ColumnCount, toplistResults.Count);
+            var rowCount = (int)Math.Ceiling(topList.Count / (1f * columnCount));
+            var imageWidth = 2f * CategoryBoxPadding + (columnCount - 1) * CategoryBoxPadding + columnCount * categoryWidth;
             var imageHeight = 2f * CategoryBoxPadding + (rowCount - 1) * CategoryBoxPadding + rowCount * categoryHeight;
             var image = new Bitmap((int)Math.Ceiling(imageWidth), (int)Math.Ceiling(imageHeight));
 
             using var g = Graphics.FromImage(image);
             g.Clear(BackgroundColor);
 
-            for (var columnIndex = 0; columnIndex < ColumnCount; columnIndex++)
+            for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
                 var x = CategoryBoxPadding + columnIndex * (categoryWidth + CategoryBoxPadding);
 
@@ -98,7 +99,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 {
                     var y = CategoryBoxPadding + rowIndex * (categoryHeight + CategoryBoxPadding);
 
-                    var i = rowIndex * ColumnCount + columnIndex;
+                    var i = rowIndex * columnCount + columnIndex;
                     if (i >= topList.Count)
                         continue;
 

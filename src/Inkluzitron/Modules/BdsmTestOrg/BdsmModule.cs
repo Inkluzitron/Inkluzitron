@@ -20,6 +20,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 {
     [Name("BDSMTest.org")]
     [Group("bdsm")]
+    [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
     public class BdsmModule : ModuleBase
     {
         static private readonly Regex TestResultRegex = new(
@@ -87,48 +88,33 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         [Command("gdo")]
         [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru.")]
         public Task SearchAsync()
-            => ProcessQueryAsync(false);
+            => SearchAndTextAnswerAsync(false);
 
         [Command("gdo")]
         [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru.")]
-        public Task FilteredSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
-            => ProcessQueryAsync(false, categoriesToShow);
+        public Task FilteredSearchAsync([Name("dotazNaKategorie")] params string[] categoriesToShow)
+            => SearchAndTextAnswerAsync(false, categoriesToShow);
 
         [Command("GDO")]
         [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
         public Task VerboseSearchAsync()
-           => ProcessQueryAsync(true);
+           => SearchAndTextAnswerAsync(true);
 
         [Command("GDO")]
         [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
-        public Task FilteredVerboseSearchAsync([Name("názvyKategorií")] params string[] categoriesToShow)
-           => ProcessQueryAsync(true, categoriesToShow);
+        public Task FilteredVerboseSearchAsync([Name("dotazNaKategorie")] params string[] categoriesToShow)
+           => SearchAndTextAnswerAsync(true, categoriesToShow);
 
         [Command("stats")]
         [Summary("Sestaví a zobrazí žebříček ze všech kategorií a vykreslí jej do grafu.")]
-        public async Task DrawStatsGraphAsync()
+        public Task DrawStatsGraphAsync()
+            => DrawStatsGraphAsync(Array.Empty<string>());
+
+        [Command("stats")]
+        [Summary("Sestaví a zobrazí žebříček z výsledků odpovídajících dotazu a vykreslí jej do grafu.")]
+        public async Task DrawStatsGraphAsync([Name("dotazNaKategorie")] params string[] categoriesQuery)
         {
-            var relevantItems = DbContext.BdsmTestOrgQuizResults.AsQueryable()
-                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
-                .Join(
-                    DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
-                    x => x,
-                    y => y.Parent.ResultId,
-                    (_, r) => r
-                );
-
-            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
-            foreach (var trait in Settings.TraitList)
-            {
-                resultsDict[trait] = relevantItems
-                    .Where(i => i.Key == trait)
-                    .Where(i => i.Value > Settings.TraitReportingThreshold)
-                    .OrderByDescending(row => row.Value)
-                    .ThenByDescending(row => row.Parent.SubmittedAt)
-                    .Take(Settings.MaximumMatchCount)
-                    .ToList();
-            }
-
+            var resultsDict = await ProcessQueryAsync(categoriesQuery);
             var imgFile = ImagesModule.CreateCachePath(Path.GetRandomFileName() + ".png");
 
             try
@@ -149,53 +135,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
         }
 
-        private async Task ProcessQueryAsync(bool showAllMode, params string[] query)
+        private async Task SearchAndTextAnswerAsync(bool showAllMode, params string[] query)
         {
-            var traitsToSearchFor = new HashSet<string>();
-
-            foreach (var queryItem in query)
-            {
-                var matchFound = false;
-
-                foreach (var trait in Settings.TraitList)
-                {
-                    if (trait.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
-                        matchFound |= traitsToSearchFor.Add(trait);
-                }
-
-                if (!matchFound)
-                {
-                    await ReplyAsync($"{Settings.BadFilterQueryMessage}: {queryItem}");
-                    return;
-                }
-            }
-
-            if (traitsToSearchFor.Count == 0)
-                traitsToSearchFor.UnionWith(Settings.TraitList);
-
-            var relevantItems = DbContext.BdsmTestOrgQuizResults.AsQueryable()
-                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
-                .Join(
-                    DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
-                    x => x,
-                    y => y.Parent.ResultId,
-                    (_, r) => r
-                );
-
-            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
-            foreach (var trait in traitsToSearchFor)
-            {
-                resultsDict[trait] = relevantItems
-                    .Where(i => i.Key == trait)
-                    .Where(i => i.Value > Settings.TraitReportingThreshold)
-                    .OrderByDescending(row => row.Value)
-                    .ThenByDescending(row => row.Parent.SubmittedAt)
-                    .Take(Settings.MaximumMatchCount)
-                    .ToList();
-            }
-
+            var resultsDict = await ProcessQueryAsync(query);
             var results = new StringBuilder();
-            foreach (var trait in traitsToSearchFor.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+
+            foreach (var trait in resultsDict.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
             {
                 string resultsLine;
 
@@ -216,6 +161,94 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var parts = results.SplitToParts(DiscordConfig.MaxMessageSize);
             await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
+        }
+
+        private static readonly Regex ComparisonRegex = new Regex(@"^([^<>]+)([<>])(\d+)$");
+
+        private async Task<IDictionary<string, List<QuizDoubleItem>>> ProcessQueryAsync(params string[] query)
+        {
+            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
+            var positiveFilters = new ConcurrentDictionary<string, double>();
+            var negativeFilters = new ConcurrentDictionary<string, double>();
+
+            foreach (var rawQueryItem in query)
+            {
+                var isNegativeQuery = false;
+                var threshold = Settings.TraitReportingThreshold;
+                var queryItem = rawQueryItem;
+
+                if (queryItem.StartsWith('+') || queryItem.StartsWith('-'))
+                {
+                    isNegativeQuery = queryItem.StartsWith('-');
+                    queryItem = queryItem.Substring(1);
+                }
+                else if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
+                {
+                    queryItem = m.Groups[1].Value;
+                    isNegativeQuery = m.Groups[2].Value == "<";
+                    threshold = int.Parse(m.Groups[3].Value) / 100.0;
+                    if (threshold < 0)
+                        threshold = 0;
+                    else if (threshold > 1)
+                        threshold = 1;
+                }
+
+                var matchFound = false;
+                foreach (var trait in Settings.TraitList)
+                {
+                    if (!trait.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    if (isNegativeQuery)
+                        matchFound |= negativeFilters.TryAdd(trait, threshold);
+                    else
+                        matchFound |= positiveFilters.TryAdd(trait, threshold);
+                }
+
+                if (!matchFound)
+                {
+                    await ReplyAsync($"{Settings.BadFilterQueryMessage}: {rawQueryItem}");
+                    return resultsDict;
+                }
+            }
+
+            if (positiveFilters.Count == 0)
+            {
+                foreach (var trait in Settings.TraitList)
+                    positiveFilters.TryAdd(trait, Settings.TraitReportingThreshold);
+            }
+
+            var relevantResults = DbContext.BdsmTestOrgQuizResults.AsQueryable()
+                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
+                .Join(
+                    DbContext.BdsmTestOrgQuizResults.Include(i => i.Items).AsQueryable(),
+                    id => id,
+                    result => result.ResultId,
+                    (_, result) => result
+                );
+
+            foreach (var (trait, threshold) in negativeFilters)
+                relevantResults = relevantResults.Where(r => r.Items.OfType<QuizDoubleItem>().All(i => i.Key != trait || i.Value < threshold));
+
+            var relevantItems = relevantResults.Join(
+                    DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
+                    x => x.ResultId,
+                    y => y.Parent.ResultId,
+                    (_, r) => r
+                );
+
+            foreach (var (trait, threshold) in positiveFilters)
+            {
+                resultsDict[trait] = await relevantItems
+                    .Where(i => i.Key == trait)
+                    .Where(i => i.Value > threshold)
+                    .OrderByDescending(row => row.Value)
+                    .ThenByDescending(row => row.Parent.SubmittedAt)
+                    .Take(Settings.MaximumMatchCount)
+                    .ToListAsync();
+            }
+
+            return resultsDict;
         }
 
         [Command("add")]
