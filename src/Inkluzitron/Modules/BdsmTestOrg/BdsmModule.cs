@@ -270,10 +270,14 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             {
                 if (!Settings.Traits.Any(t => t.Id == trait.Id)) continue;
 
+                var percentage = trait.Score / 100.0;
+                if (percentage > 1) percentage = 1;
+                else if (percentage < 0) percentage = 0;
+
                 testResultDb.Items.Add(new QuizDoubleItem
                 {
                     Key = trait.Name,
-                    Value = trait.Score / 100.0
+                    Value = percentage
                 });
             }
 
