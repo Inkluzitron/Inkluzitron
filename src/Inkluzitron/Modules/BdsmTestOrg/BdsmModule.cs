@@ -12,9 +12,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Net.Http;
+using Newtonsoft.Json;
+using Inkluzitron.Models.BdsmTestOrgApi;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -23,23 +27,14 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
     public class BdsmModule : ModuleBase
     {
-        static private readonly Regex TestResultRegex = new(
-            @"==\sResults\sfrom\sbdsmtest.org\s==\s+
-    (?<results>.+)
-    (?<link>https?://bdsmtest\.org/r/[\d\w]+)",
-            RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline
-        );
-
-        static private readonly Regex TestResultItemRegex = new(
-            @"^(?<pctg>\d+)%\s+(?<trait>[^\n]+?)\s*$",
-            RegexOptions.Multiline
-        );
+        static private readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
 
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
+        private HttpClient HttpClient { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPaintingService graphPainter)
         {
@@ -47,6 +42,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
             GraphPainter = graphPainter;
+            HttpClient = new();
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -61,8 +57,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             base.AfterExecute(command);
         }
 
-        [Command]
-        [Name("")]
+        [Command("")]
         [Summary("Zobrazí výsledky uživatele.")]
         public async Task ShowUserResultsAsync()
         {
@@ -85,34 +80,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await message.AddReactionsAsync(ReactionSettings.PaginationReactionsWithRemoval);
         }
 
-        [Command("gdo")]
-        [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru.")]
-        public Task SearchAsync()
-            => SearchAndTextAnswerAsync(false);
-
-        [Command("gdo")]
-        [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru.")]
-        public Task FilteredSearchAsync([Name("dotazNaKategorie")] params string[] categoriesToShow)
-            => SearchAndTextAnswerAsync(false, categoriesToShow);
-
-        [Command("GDO")]
-        [Summary("Sestaví a zobrazí žebříček z výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
-        public Task VerboseSearchAsync()
-           => SearchAndTextAnswerAsync(true);
-
-        [Command("GDO")]
-        [Summary("Sestaví a zobrazí žebříček z uvedených kategorií výsledků zadaných ostatními uživateli serveru. Zobrazí i kategorie, ve kterých nejsou relevantní výsledky.")]
-        public Task FilteredVerboseSearchAsync([Name("dotazNaKategorie")] params string[] categoriesToShow)
-           => SearchAndTextAnswerAsync(true, categoriesToShow);
-
         [Command("stats")]
-        [Summary("Sestaví a zobrazí žebříček ze všech kategorií a vykreslí jej do grafu.")]
-        public Task DrawStatsGraphAsync()
-            => DrawStatsGraphAsync(Array.Empty<string>());
-
-        [Command("stats")]
-        [Summary("Sestaví a zobrazí žebříček z výsledků odpovídajících dotazu a vykreslí jej do grafu.")]
-        public async Task DrawStatsGraphAsync([Name("dotazNaKategorie")] params string[] categoriesQuery)
+        [Alias("graph")]
+        [Summary("Sestaví a zobrazí žebříček výsledků a vykreslí jej do grafu. Volitelně je možné výsledky filtrovat.")]
+        public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
             var imgFile = ImagesModule.CreateCachePath(Path.GetRandomFileName() + ".png");
@@ -135,7 +106,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
         }
 
-        private async Task SearchAndTextAnswerAsync(bool showAllMode, params string[] query)
+        [Command("list")]
+        [Alias("gdo", "kdo")]
+        [Summary("Sestaví a zobrazí seznam z výsledků. Volitelně je možné výsledky filtrovat.")]
+        public async Task SearchAndTextAnswerAsync([Name("kritéria...")][Optional] params string[] query)
         {
             var resultsDict = await ProcessQueryAsync(query);
             var results = new StringBuilder();
@@ -145,12 +119,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 string resultsLine;
 
                 var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
-                if (resultsGot)
-                    resultsLine = string.Join(", ", items.Select(i => $"<@{i.Parent.SubmittedById}> ({i.Value:P0})"));
-                else if (showAllMode)
-                    resultsLine = Settings.NoMatchesMessage;
-                else
-                    continue;
+                if (!resultsGot) continue;
+
+                resultsLine = string.Join(", ", items.Select(i => $"<@{i.Parent.SubmittedById}> ({i.Value:P0})"));
 
                 results.AppendFormat("**{0}**: ", trait);
                 results.AppendLine(resultsLine);
@@ -163,7 +134,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
-        private static readonly Regex ComparisonRegex = new Regex(@"^([^<>]+)([<>])(\d+)$");
+        static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
         private async Task<IDictionary<string, List<QuizDoubleItem>>> ProcessQueryAsync(params string[] query)
         {
@@ -180,7 +151,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 if (queryItem.StartsWith('+') || queryItem.StartsWith('-'))
                 {
                     isNegativeQuery = queryItem.StartsWith('-');
-                    queryItem = queryItem.Substring(1);
+                    queryItem = queryItem[1..];
                 }
                 else if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
                 {
@@ -194,15 +165,15 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
 
                 var matchFound = false;
-                foreach (var trait in Settings.TraitList)
+                foreach (var trait in Settings.Traits)
                 {
-                    if (!trait.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
+                    if (!trait.Name.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (isNegativeQuery)
-                        matchFound |= negativeFilters.TryAdd(trait, threshold);
+                        matchFound |= negativeFilters.TryAdd(trait.Name, threshold);
                     else
-                        matchFound |= positiveFilters.TryAdd(trait, threshold);
+                        matchFound |= positiveFilters.TryAdd(trait.Name, threshold);
                 }
 
                 if (!matchFound)
@@ -212,10 +183,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
             }
 
-            if (positiveFilters.Count == 0)
+            if (positiveFilters.IsEmpty)
             {
-                foreach (var trait in Settings.TraitList)
-                    positiveFilters.TryAdd(trait, Settings.TraitReportingThreshold);
+                foreach (var trait in Settings.Traits)
+                    positiveFilters.TryAdd(trait.Name, Settings.TraitReportingThreshold);
             }
 
             var relevantResults = DbContext.BdsmTestOrgQuizResults.AsQueryable()
@@ -253,83 +224,64 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         [Command("add")]
         [Summary("Přidá do databáze výsledek testu.")]
-        public async Task ProcessQuizResultSubmissionAsync([Name("<textová forma výsledků>")] params string[] textResults)
+        public async Task ProcessQuizResultSubmissionAsync([Name("odkaz")] string link)
         {
-            var reconstructedMessage = Context.Message.ToString();
-            var testResultMatches = TestResultRegex.Matches(reconstructedMessage);
-            if (testResultMatches.Count == 0)
+            var testResultMatch = TestResultLinkRegex.Match(link);
+            if (!testResultMatch.Success)
             {
                 await ReplyAsync(Settings.InvalidFormatMessage);
                 return;
             }
 
-            var testResultMatch = testResultMatches.Single();
-            var testResultItems = testResultMatch.Groups["results"].Value;
-            var testResultLink = testResultMatch.Groups["link"].Value;
+            link = testResultMatch.Value;
 
-            if (await DbContext.BdsmTestOrgQuizResults.AsQueryable().AnyAsync(r => r.Link == testResultLink))
+            if (await DbContext.BdsmTestOrgQuizResults.AsQueryable().AnyAsync(r => r.Link == link))
             {
                 await ReplyAsync(Settings.LinkAlreadyPresentMessage);
                 return;
             }
 
-            var itemsMatch = TestResultItemRegex.Matches(testResultItems);
+            var testid = testResultMatch.Groups[1].Value;
 
-            var testResult = new BdsmTestOrgQuizResult
+            var requestData = new Dictionary<string, string>
             {
-                SubmittedAt = DateTime.UtcNow,
-                SubmittedByName = Context.Message.Author.Username,
-                SubmittedById = Context.Message.Author.Id,
-                Link = testResultLink
+                { "uauth[uid]", Settings.ApiKey.Uid },
+                { "uauth[salt]", Settings.ApiKey.Salt },
+                { "uauth[authsig]", Settings.ApiKey.AuthSig },
+                { "rauth[rid]", testid }
             };
 
-            foreach (Match match in itemsMatch)
+            var content = new FormUrlEncodedContent(requestData);
+
+            var response = await HttpClient.PostAsync("https://bdsmtest.org/ajax/getresult", content);
+
+            var responseData = await response.Content.ReadAsStringAsync();
+            var testResult = JsonConvert.DeserializeObject<Result>(responseData);
+
+            var testResultDb = new BdsmTestOrgQuizResult
             {
-                var traitName = match.Groups["trait"].Value;
-                if (!Settings.TraitList.Contains(traitName))
-                {
-                    await ReplyAsync(Settings.InvalidTraitMessage);
-                    return;
-                }
+                SubmittedAt = testResult.Date,
+                SubmittedByName = Context.Message.Author.Username,
+                SubmittedById = Context.Message.Author.Id,
+                Link = link
+            };
 
-                if (!TryParseTraitPercentage(match.Groups["pctg"].Value, out var traitPercentage))
-                {
-                    await ReplyAsync(Settings.InvalidPercentageMessage);
-                    return;
-                }
+            foreach (var trait in testResult.Traits)
+            {
+                if (!Settings.Traits.Any(t => t.Id == trait.Id)) continue;
 
-                testResult.Items.Add(new QuizDoubleItem
+                testResultDb.Items.Add(new QuizDoubleItem
                 {
-                    Key = traitName,
-                    Value = traitPercentage
+                    Key = trait.Name,
+                    Value = trait.Score / 100.0
                 });
             }
 
-            if (testResult.Items.Count != Settings.TraitList.Count)
-            {
-                await ReplyAsync(Settings.InvalidTraitCountMessage);
-                return;
-            }
-
-            await DbContext.BdsmTestOrgQuizResults.AddAsync(testResult);
+            await DbContext.BdsmTestOrgQuizResults.AddAsync(testResultDb);
             await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
-        }
 
-        static private bool TryParseTraitPercentage(string traitPercentage, out double percentage)
-        {
-            var inputIsValid = int.TryParse(traitPercentage, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integralPercentage)
-                && integralPercentage >= 0
-                && integralPercentage <= 100;
-
-            if (!inputIsValid)
-            {
-                percentage = 0;
-                return false;
-            }
-
-            percentage = integralPercentage / 100.0;
-            return true;
+            await ShowUserResultsAsync();
         }
     }
 }
