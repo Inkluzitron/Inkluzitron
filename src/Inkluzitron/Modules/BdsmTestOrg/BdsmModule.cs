@@ -121,7 +121,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
                 if (!resultsGot) continue;
 
-                resultsLine = string.Join(", ", items.Select(i => $"<@{i.Parent.SubmittedById}> ({i.Value:P0})"));
+                resultsLine = string.Join(", ", items.Select(i => $"**`{i.Parent.SubmittedByName}`** ({i.Value:P0})"));
 
                 results.AppendFormat("**{0}**: ", trait);
                 results.AppendLine(resultsLine);
