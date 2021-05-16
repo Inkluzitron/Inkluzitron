@@ -26,6 +26,8 @@ namespace Inkluzitron.Data
                 .WithOne(i => i.Parent)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<BdsmTestOrgQuizResult>().HasIndex(r => r.Link).IsUnique();
+
             modelBuilder.Entity<QuizItem>().HasKey(i => i.ItemId);
             modelBuilder.Entity<QuizItem>().HasOne(i => i.Parent);
             modelBuilder.Entity<QuizItem>().HasDiscriminator<string>("Discriminator");
