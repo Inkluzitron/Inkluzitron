@@ -22,7 +22,9 @@ namespace Inkluzitron.Data
         {
             modelBuilder.Entity<QuizResult>().HasKey(r => r.ResultId);
             modelBuilder.Entity<QuizResult>().HasDiscriminator<string>("Discriminator");
-            modelBuilder.Entity<QuizResult>().HasMany(r => r.Items);
+            modelBuilder.Entity<QuizResult>().HasMany(r => r.Items)
+                .WithOne(i => i.Parent)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<QuizItem>().HasKey(i => i.ItemId);
             modelBuilder.Entity<QuizItem>().HasOne(i => i.Parent);
