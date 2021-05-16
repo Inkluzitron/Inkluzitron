@@ -1,12 +1,13 @@
 ﻿using Inkluzitron.Extensions;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 
 namespace Inkluzitron.Models.Settings
 {
     public class BdsmTestOrgSettings
     {
+        public BdsmTestOrgApiKey ApiKey { get; }
         public string NoResultsOnRecordMessage { get; }
         public string InvalidFormatMessage { get; }
         public string LinkAlreadyPresentMessage { get; }
@@ -19,7 +20,7 @@ namespace Inkluzitron.Models.Settings
         public string NoTraitsToReportMessage { get; }
         public string InvalidVerboseModeUsage { get; }
         public string BadFilterQueryMessage { get; }
-        public IReadOnlySet<string> TraitList { get; }
+        public ReadOnlyCollection<BdsmTestOrgTrait> Traits { get; }
         public string TestLinkUrl { get; }
 
         public BdsmTestOrgSettings(IConfiguration config)
@@ -27,6 +28,7 @@ namespace Inkluzitron.Models.Settings
             var cfg = config.GetSection("BdsmTestOrgQuizModule");
             cfg.AssertExists();
 
+            ApiKey = cfg.GetRequired<BdsmTestOrgApiKey>(nameof(ApiKey));
             NoResultsOnRecordMessage = cfg.GetRequired<string>(nameof(NoResultsOnRecordMessage));
             InvalidFormatMessage = cfg.GetRequired<string>(nameof(InvalidFormatMessage));
             LinkAlreadyPresentMessage = cfg.GetRequired<string>(nameof(LinkAlreadyPresentMessage));
@@ -39,10 +41,7 @@ namespace Inkluzitron.Models.Settings
             NoTraitsToReportMessage = cfg.GetRequired<string>(nameof(NoTraitsToReportMessage));
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
-
-            var traitsSection = cfg.GetSection("Traits");
-            traitsSection.AssertExists();
-            TraitList = new HashSet<string>(traitsSection.GetChildren().Select(c => c.Value));
+            Traits = cfg.GetRequired<List<BdsmTestOrgTrait>>(nameof(Traits)).AsReadOnly();
         }
     }
 }
