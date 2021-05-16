@@ -17,7 +17,8 @@ namespace Inkluzitron.Modules
 {
     [RequireUserPermission(GuildPermission.ManageRoles)]
     [Name("Uživatelsky volitelné role")]
-    [Group("rolepicker")]
+    [Group("rolemenu")]
+    [Alias("rolepicker")]
     public class RolePickerModule : ModuleBase
     {
         private DiscordSocketClient Client { get; }
@@ -83,12 +84,12 @@ namespace Inkluzitron.Modules
             var replyBuilder = new EmbedBuilder();
             replyBuilder.WithTitle("Seznam zpráv pro výběr rolí");
 
-            var messages = DbContext.UserRoleMessage.AsEnumerable()
-                .OrderBy(m => new { m.GuildId, m.ChannelId });
+            var messages = DbContext.UserRoleMessage.AsAsyncEnumerable()
+                .OrderBy(m => m.GuildId).ThenBy(m => m.ChannelId);
 
             SocketTextChannel channel = null;
             StringBuilder channelBuilder = null;
-            foreach (var data in messages)
+            await foreach (var data in messages)
             {
                 if (channel == null || channel.Id != data.ChannelId || channel.Guild.Id != data.GuildId)
                 {
