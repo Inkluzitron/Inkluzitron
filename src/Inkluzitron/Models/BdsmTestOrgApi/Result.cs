@@ -7,8 +7,11 @@ namespace Inkluzitron.Models.BdsmTestOrgApi
     public class Result
     {
         [JsonConverter(typeof(Newtonsoft.Json.Converters.IsoDateTimeConverter))]
-        [JsonProperty("date")]
+        [JsonProperty("date", Required = Required.Always)]
         public DateTime Date { get; set; }
+
+        [JsonProperty("scores", Required = Required.Always)]
+        public List<ResultItem> Traits { get; set; }
 
         [JsonProperty("version")]
         public string Version { get; set; }
@@ -19,7 +22,5 @@ namespace Inkluzitron.Models.BdsmTestOrgApi
         [JsonProperty("auth")]
         public bool RegisteredUser { get; set; }
 
-        [JsonProperty("scores")]
-        public List<ResultItem> Traits { get; set; }
     }
 }
