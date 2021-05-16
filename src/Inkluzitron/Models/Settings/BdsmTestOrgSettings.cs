@@ -20,7 +20,7 @@ namespace Inkluzitron.Models.Settings
         public string NoTraitsToReportMessage { get; }
         public string InvalidVerboseModeUsage { get; }
         public string BadFilterQueryMessage { get; }
-        public ReadOnlyCollection<BdsmTestOrgTrait> Traits { get; }
+        public IReadOnlyCollection<BdsmTestOrgTrait> Traits { get; }
         public string TestLinkUrl { get; }
 
         public BdsmTestOrgSettings(IConfiguration config)
@@ -41,7 +41,7 @@ namespace Inkluzitron.Models.Settings
             NoTraitsToReportMessage = cfg.GetRequired<string>(nameof(NoTraitsToReportMessage));
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
-            Traits = cfg.GetRequired<List<BdsmTestOrgTrait>>(nameof(Traits)).AsReadOnly();
+            Traits = cfg.GetRequired<IReadOnlyCollection<BdsmTestOrgTrait>>(nameof(Traits));
         }
     }
 }
