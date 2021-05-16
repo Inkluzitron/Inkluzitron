@@ -4,12 +4,10 @@ using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
-using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -34,15 +32,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
-        private HttpClient HttpClient { get; }
+        private IHttpClientFactory HttpClientFactory { get; }
 
-        public BdsmModule(DatabaseFactory databaseFactory, ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings, GraphPaintingService graphPainter)
+        public BdsmModule(DatabaseFactory databaseFactory,
+            ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
+            GraphPaintingService graphPainter, IHttpClientFactory factory)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
             GraphPainter = graphPainter;
-            HttpClient = new();
+            HttpClientFactory = factory;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -251,9 +251,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 { "rauth[rid]", testid }
             };
 
-            var content = new FormUrlEncodedContent(requestData);
-
-            var response = await HttpClient.PostAsync("https://bdsmtest.org/ajax/getresult", content);
+            var response = await HttpClientFactory.CreateClient().PostAsync(
+                "https://bdsmtest.org/ajax/getresult",
+                new FormUrlEncodedContent(requestData));
 
             var responseData = await response.Content.ReadAsStringAsync();
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);

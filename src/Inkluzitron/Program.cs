@@ -70,7 +70,8 @@ namespace Inkluzitron
                 .AddSingleton<ReactionsModule>()
                 .AddSingleton<ProfilePictureService>()
                 .AddSingleton<FontService>()
-                .AddSingleton<GraphPaintingService>();
+                .AddSingleton<GraphPaintingService>()
+                .AddHttpClient();
 
             services.AddLogging(config =>
             {
