@@ -4,7 +4,6 @@ using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
@@ -30,7 +29,7 @@ namespace Inkluzitron.Services
             using var dbContext = DatabaseFactory.Create();
 
             return await dbContext.BdsmTestOrgQuizResults
-                .AsAsyncEnumerable()
+                .AsQueryable()
                 .AnyAsync(r => r.SubmittedById == user.Id);
         }
 
