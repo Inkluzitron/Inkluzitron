@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using GrapeCity.Documents.Imaging;
+using Inkluzitron.Data;
+using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
 using Inkluzitron.Resources.Pat;
@@ -9,6 +11,7 @@ using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
 using Inkluzitron.Services;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -24,13 +27,80 @@ namespace Inkluzitron.Modules
     public class ImagesModule : ModuleBase
     {
         private ProfilePictureService ProfilePictureService { get; }
+        private BotDatabaseContext DbContext { get; set; }
+        private DatabaseFactory DatabaseFactory { get; }
 
-        public ImagesModule(ProfilePictureService profilePictureService)
+
+        public ImagesModule(ProfilePictureService profilePictureService, DatabaseFactory databaseFactory)
         {
+            DatabaseFactory = databaseFactory;
             ProfilePictureService = profilePictureService;
 
             if (!Directory.Exists("ImageCache"))
                 Directory.CreateDirectory("ImageCache");
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
+        }
+
+        private static readonly double WhipBdsmTreshold = 0.5; // TODO config maybe?
+
+        /// <summary>
+        /// Validation based on BDSM results.
+        /// This check prevents sub users from whipping dom users
+        /// </summary>
+        /// <param name="source">Initiator (whipping user)</param>
+        /// <param name="target">Target (user to be whipped)</param>
+        /// <returns>If source user can whip target user</returns>
+        private async Task<bool> CanWhipUser(IUser source, IUser target)
+        {
+            // Users can always whip themselves
+            if (source.Id == target.Id) return true;
+
+            var tests = DbContext.BdsmTestOrgQuizResults
+                .Include(r => r.Items)
+                .OrderByDescending(r => r.SubmittedAt);
+
+            // Both users must have at least one BDSM test record
+            // Most recent test is used
+            var sourceTest = await tests.FirstOrDefaultAsync(r => r.SubmittedById == source.Id);
+            if (sourceTest == null) return true;
+
+            var targetTest = await tests.FirstOrDefaultAsync(r => r.SubmittedById == target.Id);
+            if (targetTest == null) return true;
+
+            var sourceTraits = sourceTest.Items.OfType<QuizDoubleItem>()
+                .Where(i => i.Value >= WhipBdsmTreshold);
+
+            var targetTraits = targetTest.Items.OfType<QuizDoubleItem>()
+                .Where(i => i.Value >= WhipBdsmTreshold);
+
+            var sourceIsDom = sourceTraits.Any(i => i.Key == "Dominant" || i.Key == "Master/Mistress");
+            if (sourceIsDom) return true;
+
+            var sourceIsSub = sourceTraits.Any(i => i.Key == "Submissive" || i.Key == "Slave");
+            if (!sourceIsSub) return true;
+
+            // Source user has strong sub trait, check if target is dominant
+
+            var targetIsSub = targetTraits.Any(i => i.Key == "Submissive" || i.Key == "Slave");
+            if (targetIsSub) return true;
+
+            var targetIsDom = targetTraits.Any(i => i.Key == "Dominant" || i.Key == "Master/Mistress");
+            if (!targetIsDom) return true;
+
+            // Source user is sub and target is dom
+
+            return false;
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
@@ -261,6 +331,9 @@ namespace Inkluzitron.Modules
                 return;
             }
 
+            // BDSM test check
+            if(!await CanWhipUser(Context.User, member)) member = Context.User;
+
             var gifName = CreateCachePath($"Whip_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
@@ -332,6 +405,9 @@ namespace Inkluzitron.Modules
                 await PeepoangryAsync(Context.User);
                 return;
             }
+
+            // BDSM test check
+            if (!await CanWhipUser(Context.User, member)) member = Context.User;
 
             int delayTime = harder ? 3 : 5;
             var gifName = CreateCachePath($"Spank_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
