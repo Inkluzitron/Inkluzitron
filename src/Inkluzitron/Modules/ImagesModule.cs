@@ -3,6 +3,7 @@ using Discord.Commands;
 using GrapeCity.Documents.Imaging;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
 using Inkluzitron.Resources.Pat;
@@ -44,17 +45,32 @@ namespace Inkluzitron.Modules
         /// Validation based on BDSM results.
         /// This check prevents sub users from whipping dom users
         /// </summary>
-        /// <param name="source">Initiator (whipping user)</param>
+        /// <param name="user">Initiator (whipping user)</param>
         /// <param name="target">Target (user to be whipped)</param>
         /// <returns>If source user can whip target user</returns>
-        private async Task<bool> CanWhipUser(IUser source, IUser target)
+        private async Task<bool> CanWhipUser(IUser user, IUser target)
         {
-            // Sub cannot whip dom
-            var isSubDom =
-                (await UserBdsmTraits.IsSubmissiveOnly(source)) &&
-                (await UserBdsmTraits.IsDominantOnly(target));
+            // Check if both users have completed the test
+            if (!await UserBdsmTraits.TestExists(user)) return true;
+            if (!await UserBdsmTraits.TestExists(target)) return true;
 
-            return !isSubDom;
+            var traitThreshold = UserBdsmTraits.StrongTraitThreshold;
+            var userDom = await UserBdsmTraits.GetTraitScore(user, BdsmTraits.Dominant);
+            var userSub = await UserBdsmTraits.GetTraitScore(user, BdsmTraits.Submissive);
+            var targetDom = await UserBdsmTraits.GetTraitScore(target, BdsmTraits.Dominant);
+            var targetSub = await UserBdsmTraits.GetTraitScore(target, BdsmTraits.Submissive);
+
+            var score = 0;
+
+            if (targetDom > traitThreshold && targetDom > userDom) score--;
+            else if (userDom > traitThreshold && userDom > targetDom) score++;
+
+            if (targetSub > traitThreshold && targetSub > userSub) score++;
+            else if (userSub > traitThreshold && userSub > targetSub) score--;
+
+
+            return score >= 0;
+            
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
@@ -71,7 +87,9 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var gifName = CreateCachePath($"bonk_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+            var self = member == Context.User;
+
+            var gifName = CreateCachePath($"bonk{(self ? "_self" : "")}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
             {
@@ -79,11 +97,15 @@ namespace Inkluzitron.Modules
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
+                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
                 var frames = GetBitmapsFromResources<BonkResources>();
                 for (int i = 0; i < frames.Count; i++)
                 {
                     var frame = frames[i];
                     using var bonkFrame = RenderBonkFrame(profilePicture, frame, i);
+
+                    if (self) bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
                     using var ms = new MemoryStream();
                     bonkFrame.Save(ms, SysImgFormat.Png);
@@ -288,7 +310,9 @@ namespace Inkluzitron.Modules
             // BDSM test check
             if(!await CanWhipUser(Context.User, member)) member = Context.User;
 
-            var gifName = CreateCachePath($"Whip_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+            var self = member == Context.User;
+
+            var gifName = CreateCachePath($"Whip{(self ? "_self" : "")}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
             {
@@ -296,11 +320,15 @@ namespace Inkluzitron.Modules
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
+                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
                 var frames = GetBitmapsFromResources<WhipResources>();
                 for (int i = 0; i < frames.Count; i++)
                 {
                     var frame = frames[i];
                     var whipFrame = RenderWhipFrame(profilePicture, frame, i);
+
+                    if (self) whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
                     using var ms = new MemoryStream();
                     whipFrame.Save(ms, SysImgFormat.Png);
@@ -363,8 +391,10 @@ namespace Inkluzitron.Modules
             // BDSM test check
             if (!await CanWhipUser(Context.User, member)) member = Context.User;
 
+            var self = member == Context.User;
+
             int delayTime = harder ? 3 : 5;
-            var gifName = CreateCachePath($"Spank_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+            var gifName = CreateCachePath($"Spank{(self ? "_self" : "")}_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
             {
@@ -372,11 +402,15 @@ namespace Inkluzitron.Modules
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
+                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
                 var frames = GetBitmapsFromResources<SpankResources>();
                 for (int i = 0; i < frames.Count; i++)
                 {
                     var frame = frames[i];
                     var whipFrame = RenderSpankFrame(profilePicture, frame, i, harder);
+
+                    if (self) whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
                     using var ms = new MemoryStream();
                     whipFrame.Save(ms, SysImgFormat.Png);
@@ -418,7 +452,10 @@ namespace Inkluzitron.Modules
         public async Task PatAsync(IUser member = null)
         {
             if (member == null) member = Context.User;
-            var gifName = CreateCachePath($"Pat_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
+
+            var self = member == Context.User;
+
+            var gifName = CreateCachePath($"Pat{(self ? "_self" : "")}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
             if (!File.Exists(gifName))
             {
@@ -426,11 +463,15 @@ namespace Inkluzitron.Modules
                 using var gifWriter = new GcGifWriter(gifName);
                 using var gcBitmap = new GcBitmap();
 
+                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
                 var frames = GetBitmapsFromResources<PatResources>();
                 for (int i = 0; i < frames.Count; i++)
                 {
                     var frame = frames[i];
                     using var bonkFrame = RenderPatFrame(profilePicture, frame, i);
+
+                    if (self) bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
                     using var ms = new MemoryStream();
                     bonkFrame.Save(ms, SysImgFormat.Png);

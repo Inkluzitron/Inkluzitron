@@ -17,10 +17,21 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private BdsmTestOrgSettings Settings { get; }
 
+        public double StrongTraitThreshold => Settings.StrongTraitThreshold;
+
         public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings)
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
+        }
+
+        public async Task<bool> TestExists(IUser user)
+        {
+            using var dbContext = DatabaseFactory.Create();
+
+            return await dbContext.BdsmTestOrgQuizResults
+                .AsAsyncEnumerable()
+                .AnyAsync(r => r.SubmittedById == user.Id);
         }
 
         public async Task<double> GetTraitScore(IUser user, BdsmTraits trait)
@@ -44,7 +55,7 @@ namespace Inkluzitron.Services
         }
 
         public async Task<bool> HasStrongTrait(IUser user, BdsmTraits trait)
-            => (await GetTraitScore(user, trait)) >= Settings.StrongTraitThreshold;
+            => (await GetTraitScore(user, trait)) >= StrongTraitThreshold;
 
         public async Task<bool> IsDominant(IUser user)
             => (await HasStrongTrait(user, BdsmTraits.Dominant)) ||
