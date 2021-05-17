@@ -11,9 +11,8 @@ using System.Reflection;
 
 namespace Inkluzitron.Services
 {
-    public class UserBdsmTraitsService : IDisposable
+    public class UserBdsmTraitsService
     {
-        private BotDatabaseContext DbContext { get; }
         private DatabaseFactory DatabaseFactory { get; }
         private BdsmTestOrgSettings Settings { get; }
 
@@ -21,13 +20,6 @@ namespace Inkluzitron.Services
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
-
-            DbContext = DatabaseFactory.Create();
-        }
-
-        public void Dispose()
-        {
-            DbContext?.Dispose();
         }
 
         public double GetTraitScore(IUser user, BdsmTraits trait)
@@ -38,7 +30,9 @@ namespace Inkluzitron.Services
                 .GetCustomAttribute<DisplayAttribute>()
                 .GetName();
 
-            var userTrait = DbContext.BdsmTestOrgQuizResults
+            using var dbContext = DatabaseFactory.Create();
+
+            var userTrait = dbContext.BdsmTestOrgQuizResults
                 .Include(r => r.Items)
                 .OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefault(r => r.SubmittedById == user.Id)?.Items
