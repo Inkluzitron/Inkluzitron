@@ -16,11 +16,10 @@ namespace Inkluzitron.Models.Settings
         public string InvalidTraitCountMessage { get; }
         public string NoMatchesMessage { get; }
         public int MaximumMatchCount { get; }
-        public double TraitReportingThreshold { get; }
+        public double StrongTraitThreshold { get; }
         public string NoTraitsToReportMessage { get; }
         public string InvalidVerboseModeUsage { get; }
         public string BadFilterQueryMessage { get; }
-        public IReadOnlyCollection<BdsmTestOrgTrait> Traits { get; }
         public string TestLinkUrl { get; }
 
         public BdsmTestOrgSettings(IConfiguration config)
@@ -37,11 +36,10 @@ namespace Inkluzitron.Models.Settings
             InvalidTraitCountMessage = cfg.GetRequired<string>(nameof(InvalidTraitCountMessage));
             NoMatchesMessage = cfg.GetRequired<string>(nameof(NoMatchesMessage));
             MaximumMatchCount = cfg.GetRequired<int>(nameof(MaximumMatchCount));
-            TraitReportingThreshold = cfg.GetRequired<double>(nameof(TraitReportingThreshold));
+            StrongTraitThreshold = cfg.GetRequired<double>(nameof(StrongTraitThreshold));
             NoTraitsToReportMessage = cfg.GetRequired<string>(nameof(NoTraitsToReportMessage));
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
-            Traits = cfg.GetRequired<IReadOnlyCollection<BdsmTestOrgTrait>>(nameof(Traits));
         }
     }
 }
