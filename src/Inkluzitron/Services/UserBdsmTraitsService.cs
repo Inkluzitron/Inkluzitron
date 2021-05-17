@@ -8,6 +8,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
@@ -22,7 +23,7 @@ namespace Inkluzitron.Services
             Settings = settings;
         }
 
-        public double GetTraitScore(IUser user, BdsmTraits trait)
+        public async Task<double> GetTraitScore(IUser user, BdsmTraits trait)
         {
             var traitName = trait.GetType()
                 .GetMember(trait.ToString())
@@ -32,31 +33,31 @@ namespace Inkluzitron.Services
 
             using var dbContext = DatabaseFactory.Create();
 
-            var userTrait = dbContext.BdsmTestOrgQuizResults
+            var userTrait = (await dbContext.BdsmTestOrgQuizResults
                 .Include(r => r.Items)
                 .OrderByDescending(r => r.SubmittedAt)
-                .FirstOrDefault(r => r.SubmittedById == user.Id)?.Items
-                .OfType<QuizDoubleItem>()
+                .FirstOrDefaultAsync(r => r.SubmittedById == user.Id))?
+                .Items.OfType<QuizDoubleItem>()
                 .FirstOrDefault(i => i.Key == traitName);
 
             return userTrait?.Value ?? 0;
         }
 
-        public bool HasStrongTrait(IUser user, BdsmTraits trait)
-            => GetTraitScore(user, trait) >= Settings.StrongTraitThreshold;
+        public async Task<bool> HasStrongTrait(IUser user, BdsmTraits trait)
+            => (await GetTraitScore(user, trait)) >= Settings.StrongTraitThreshold;
 
-        public bool IsDominant(IUser user)
-            => HasStrongTrait(user, BdsmTraits.Dominant) ||
-                HasStrongTrait(user, BdsmTraits.MasterOrMistress);
+        public async Task<bool> IsDominant(IUser user)
+            => (await HasStrongTrait(user, BdsmTraits.Dominant)) ||
+                (await HasStrongTrait(user, BdsmTraits.MasterOrMistress));
 
-        public bool IsSubmissive(IUser user)
-            => HasStrongTrait(user, BdsmTraits.Submissive) ||
-                HasStrongTrait(user, BdsmTraits.Slave);
+        public async Task<bool> IsSubmissive(IUser user)
+            => (await HasStrongTrait (user, BdsmTraits.Submissive)) ||
+                (await HasStrongTrait (user, BdsmTraits.Slave));
 
-        public bool IsDominantOnly(IUser user)
-            => IsDominant(user) && !IsSubmissive(user);
+        public async Task<bool> IsDominantOnly(IUser user)
+            => (await IsDominant(user)) && !(await IsSubmissive(user));
 
-        public bool IsSubmissiveOnly(IUser user)
-            => IsSubmissive(user) && !IsDominant(user);
+        public async Task<bool> IsSubmissiveOnly(IUser user)
+            => (await IsSubmissive(user)) && !(await IsDominant(user));
     }
 }

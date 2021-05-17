@@ -47,12 +47,12 @@ namespace Inkluzitron.Modules
         /// <param name="source">Initiator (whipping user)</param>
         /// <param name="target">Target (user to be whipped)</param>
         /// <returns>If source user can whip target user</returns>
-        private bool CanWhipUser(IUser source, IUser target)
+        private async Task<bool> CanWhipUser(IUser source, IUser target)
         {
             // Sub cannot whip dom
             var isSubDom =
-                UserBdsmTraits.IsSubmissiveOnly(source) &&
-                UserBdsmTraits.IsDominantOnly(target);
+                (await UserBdsmTraits.IsSubmissiveOnly(source)) &&
+                (await UserBdsmTraits.IsDominantOnly(target));
 
             return !isSubDom;
         }
@@ -286,7 +286,7 @@ namespace Inkluzitron.Modules
             }
 
             // BDSM test check
-            if(!CanWhipUser(Context.User, member)) member = Context.User;
+            if(!await CanWhipUser(Context.User, member)) member = Context.User;
 
             var gifName = CreateCachePath($"Whip_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
 
@@ -361,7 +361,7 @@ namespace Inkluzitron.Modules
             }
 
             // BDSM test check
-            if (!CanWhipUser(Context.User, member)) member = Context.User;
+            if (!await CanWhipUser(Context.User, member)) member = Context.User;
 
             int delayTime = harder ? 3 : 5;
             var gifName = CreateCachePath($"Spank_{delayTime}_{member.Id}_{member.AvatarId ?? member.Discriminator}.gif");
