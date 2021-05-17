@@ -10,7 +10,7 @@ namespace Inkluzitron.Enums
         [Display(Name = "Brat")]
         Brat = 3,
 
-        [Display(Name = "Brat Tamer")]
+        [Display(Name = "Brat tamer")]
         BratTamer = 4,
 
         [Display(Name = "Daddy/Mommy")]
