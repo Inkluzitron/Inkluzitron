@@ -17,6 +17,9 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
 using Inkluzitron.Models.BdsmTestOrgApi;
+using Inkluzitron.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -90,7 +93,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             try
             {
-                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.TraitReportingThreshold));
+                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.StrongTraitThreshold));
                 img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
                 await ReplyFileAsync(imgFile);
             }
@@ -142,10 +145,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var positiveFilters = new ConcurrentDictionary<string, double>();
             var negativeFilters = new ConcurrentDictionary<string, double>();
 
+            var namedTraits = Enum.GetValues<BdsmTraits>()
+                .Select(t => t.GetType()
+                    .GetMember(t.ToString())
+                    .First()
+                    .GetCustomAttribute<DisplayAttribute>()
+                    .GetName());
+
             foreach (var rawQueryItem in query)
             {
                 var isNegativeQuery = false;
-                var threshold = Settings.TraitReportingThreshold;
+                var threshold = Settings.StrongTraitThreshold;
                 var queryItem = rawQueryItem;
 
                 if (queryItem.StartsWith('+') || queryItem.StartsWith('-'))
@@ -165,15 +175,15 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
 
                 var matchFound = false;
-                foreach (var trait in Settings.Traits)
+                foreach (var traitName in namedTraits)
                 {
-                    if (!trait.Name.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
+                    if (!traitName.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (isNegativeQuery)
-                        matchFound |= negativeFilters.TryAdd(trait.Name, threshold);
+                        matchFound |= negativeFilters.TryAdd(traitName, threshold);
                     else
-                        matchFound |= positiveFilters.TryAdd(trait.Name, threshold);
+                        matchFound |= positiveFilters.TryAdd(traitName, threshold);
                 }
 
                 if (!matchFound)
@@ -185,8 +195,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             if (positiveFilters.IsEmpty)
             {
-                foreach (var trait in Settings.Traits)
-                    positiveFilters.TryAdd(trait.Name, Settings.TraitReportingThreshold);
+                foreach (var traitName in namedTraits)
+                    positiveFilters.TryAdd(traitName, Settings.StrongTraitThreshold);
             }
 
             var relevantResults = DbContext.BdsmTestOrgQuizResults.AsQueryable()
@@ -268,7 +278,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             foreach (var trait in testResult.Traits)
             {
-                if (!Settings.Traits.Any(t => t.Id == trait.Id)) continue;
+                if (!Enum.IsDefined(typeof(BdsmTraits), trait.Id)) continue;
 
                 var percentage = trait.Score / 100.0;
                 if (percentage > 1) percentage = 1;

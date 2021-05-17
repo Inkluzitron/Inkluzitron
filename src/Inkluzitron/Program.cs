@@ -71,6 +71,7 @@ namespace Inkluzitron
                 .AddSingleton<ProfilePictureService>()
                 .AddSingleton<FontService>()
                 .AddSingleton<GraphPaintingService>()
+                .AddSingleton<UserBdsmTraitsService>()
                 .AddHttpClient();
 
             services.AddLogging(config =>

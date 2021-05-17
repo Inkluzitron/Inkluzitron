@@ -42,7 +42,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             });
 
             var relevantItems = quizResult.Items.OfType<QuizDoubleItem>()
-                .Where(i => i.Value >= settings.TraitReportingThreshold)
+                .Where(i => i.Value >= settings.StrongTraitThreshold)
                 .OrderByDescending(i => i.Value)
                 .ToList();
 
