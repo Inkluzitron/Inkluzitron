@@ -30,24 +30,31 @@ namespace Inkluzitron.Services
             {
                 var logger = LoggerFactory.CreateLogger(message.Source);
 
-                var anonymousMessage = Regex.Replace(message.Message, "^(Executed \\\"send\\\") .*?#\\d{4} (in .*)$", "$1 $2");
+                var messageText = message.Message;
+                if(messageText != null)
+                {
+                    messageText = Regex.Replace(
+                        messageText,
+                        @"^(Executed \""send\"") .*?#\d{4} (in .*)$",
+                        "$1 $2");
+                }
 
                 switch (message.Severity)
                 {
                     case LogSeverity.Warning when message.Exception == null:
-                        logger.LogWarning(anonymousMessage);
+                        logger.LogWarning(messageText);
                         break;
                     case LogSeverity.Warning when message.Exception != null:
-                        logger.LogWarning(message.Exception, anonymousMessage);
+                        logger.LogWarning(message.Exception, messageText);
                         break;
                     case LogSeverity.Critical:
-                        logger.LogCritical(message.Exception, anonymousMessage);
+                        logger.LogCritical(message.Exception, messageText);
                         break;
                     case LogSeverity.Error:
-                        logger.LogError(message.Exception, anonymousMessage);
+                        logger.LogError(message.Exception, messageText);
                         break;
                     default:
-                        logger.LogInformation(anonymousMessage);
+                        logger.LogInformation(messageText);
                         break;
                 }
             }
