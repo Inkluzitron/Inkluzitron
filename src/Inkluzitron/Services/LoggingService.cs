@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
@@ -29,22 +30,24 @@ namespace Inkluzitron.Services
             {
                 var logger = LoggerFactory.CreateLogger(message.Source);
 
+                var anonymousMessage = Regex.Replace(message.Message, "^(Executed \\\"send\\\") .*?#\\d{4} (in .*)$", "$1 $2");
+
                 switch (message.Severity)
                 {
                     case LogSeverity.Warning when message.Exception == null:
-                        logger.LogWarning(message.Message);
+                        logger.LogWarning(anonymousMessage);
                         break;
                     case LogSeverity.Warning when message.Exception != null:
-                        logger.LogWarning(message.Exception, message.Message);
+                        logger.LogWarning(message.Exception, anonymousMessage);
                         break;
                     case LogSeverity.Critical:
-                        logger.LogCritical(message.Exception, message.Message);
+                        logger.LogCritical(message.Exception, anonymousMessage);
                         break;
                     case LogSeverity.Error:
-                        logger.LogError(message.Exception, message.Message);
+                        logger.LogError(message.Exception, anonymousMessage);
                         break;
                     default:
-                        logger.LogInformation(message.Message);
+                        logger.LogInformation(anonymousMessage);
                         break;
                 }
             }
