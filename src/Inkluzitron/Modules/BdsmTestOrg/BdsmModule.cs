@@ -84,7 +84,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("stats")]
-        [Alias("graph")]
+        [Alias("gdo", "kdo", "graph")]
         [Summary("Sestaví a zobrazí žebříček výsledků a vykreslí jej do grafu. Volitelně je možné výsledky filtrovat.")]
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
@@ -110,7 +110,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("list")]
-        [Alias("gdo", "kdo")]
         [Summary("Sestaví a zobrazí seznam z výsledků. Volitelně je možné výsledky filtrovat.")]
         public async Task SearchAndTextAnswerAsync([Name("kritéria...")][Optional] params string[] query)
         {
