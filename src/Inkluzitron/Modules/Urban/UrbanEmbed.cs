@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Inkluzitron.Extensions;
-using Inkluzitron.Models;
+using Inkluzitron.Models.UrbanApi;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
