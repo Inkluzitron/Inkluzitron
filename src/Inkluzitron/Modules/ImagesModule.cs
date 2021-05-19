@@ -24,6 +24,7 @@ using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 namespace Inkluzitron.Modules
 {
     [Name("Obrázkové příkazy")]
+    [Summary("Některé příkazy mohou být závisle na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
     public class ImagesModule : ModuleBase
     {
         private ProfilePictureService ProfilePictureService { get; }
@@ -76,7 +77,8 @@ namespace Inkluzitron.Modules
         #region Bonk
 
         [Command("bonk")]
-        public async Task BonkAsync(IUser member = null)
+        [Summary("Bonkne autora nebo zadaného uživatele.")]
+        public async Task BonkAsync([Name("uživatel")]IUser member = null)
         {
             if (member == null) member = Context.User;
 
@@ -141,7 +143,8 @@ namespace Inkluzitron.Modules
 
         [Command("peepolove")]
         [Alias("love")]
-        public async Task PeepoloveAsync(IUser member = null)
+        [Summary("Vytvoří peepa objímajícího autora nebo zadaného uživatele.")]
+        public async Task PeepoloveAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
             var imageName = CreateCachePath($"Peepolove_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
@@ -271,7 +274,8 @@ namespace Inkluzitron.Modules
 
         [Command("peepoangry")]
         [Alias("angry")]
-        public async Task PeepoangryAsync(IUser member = null)
+        [Summary("Vytvoří peepa, který je naštavený na autora nebo zadaného uživatele.")]
+        public async Task PeepoangryAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
             var imageName = await GetPeepoangryImagePath(member);
@@ -296,7 +300,8 @@ namespace Inkluzitron.Modules
         #region Whip
 
         [Command("whip")]
-        public async Task WhipAsync(IUser member = null)
+        [Summary("Použije bič na autora nebo zadaného uživatele.")]
+        public async Task WhipAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
 
@@ -365,14 +370,16 @@ namespace Inkluzitron.Modules
         #region Spank
 
         [Command("spank")]
-        public async Task SpankAsync(IUser member = null)
+        [Summary("Naplácá autorovi nebo zadanému uživateli.")]
+        public async Task SpankAsync([Name("uživatel")] IUser member = null)
         {
             await SpankAsync(member, false);
         }
 
         [Command("spank-harder")]
         [Alias("harder-daddy")]
-        public async Task SpankHarderAsync(IUser member = null)
+        [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
+        public async Task SpankHarderAsync([Name("uživatel")] IUser member = null)
         {
             await SpankAsync(member, true);
         }
@@ -448,7 +455,8 @@ namespace Inkluzitron.Modules
 
         [Command("pat")]
         [Alias("pet")]
-        public async Task PatAsync(IUser member = null)
+        [Summary("Pohladí autora nebo zadaného uživatele.")]
+        public async Task PatAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
 
