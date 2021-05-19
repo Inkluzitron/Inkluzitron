@@ -37,6 +37,7 @@ namespace Inkluzitron.Modules.Urban
             });
 
             WithTimestamp(definition.WrittenOn);
+            WithColor(new Color(221, 92, 46));
             WithFooter($"{page}/{pagesCount} | {definition.Author}");
             this.WithMetadata(new UrbanEmbedMetadata { PageNumber = page, SearchQuery = query });
 

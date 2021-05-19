@@ -12,6 +12,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         static public EmbedBuilder WithBdsmTestOrgQuizInvitation(this EmbedBuilder builder, BdsmTestOrgSettings settings, IUser user)
         {
             builder.WithTitle(settings.TestLinkUrl);
+            builder.WithColor(new Color(0, 0, 0));
             builder.WithUrl(settings.TestLinkUrl);
             builder.WithDescription(settings.NoResultsOnRecordMessage);
             builder.WithFooter("0/0");
@@ -31,6 +32,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 throw new ArgumentNullException(nameof(quizResult));
 
             builder.WithTitle(quizResult.Link);
+            builder.WithColor(new Color(0, 0, 0));
             builder.WithUrl(quizResult.Link);
             builder.WithTimestamp(quizResult.SubmittedAt);
             builder.WithFooter($"{pageNumber}/{pageCount}");
