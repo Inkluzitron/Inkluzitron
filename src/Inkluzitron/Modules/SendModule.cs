@@ -9,8 +9,8 @@ namespace Inkluzitron.Modules
     public class SendModule : ModuleBase
     {
         [Command("send")]
-        [Summary("Odešle zprávu popř. přílohu místo uživetele do channelu a uživatelovu zprávu smaže")]
-        public async Task SendAsync([Remainder] string message = null)
+        [Summary("Odešle anonymně zprávu (i včetně přílohy) do stejné roomky. Původní příkaz smaže.")]
+        public async Task SendAsync([Remainder][Name("zpráva")] string message = null)
         {
             // get collection of message attachements
             var attachments = Context.Message.Attachments;
@@ -18,7 +18,7 @@ namespace Inkluzitron.Modules
             // send user to hell if no msg/attachemnt is present
             if (message == null && attachments.Count == 0)
             {
-                await ReplyAsync("Tak hele de:b:ílku, tahle by to teda nešlo...\n Dej mi aspoň message nebo file!");
+                await ReplyAsync("Tak hele de:b:ílku, tahle by to teda nešlo...\n Dej mi aspoň zprávu nebo přílohu!");
                 return;
             }
 

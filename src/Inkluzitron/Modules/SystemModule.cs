@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
-    [Name("System")]
+    [Name("Systémové příkazy")]
     public class SystemModule : ModuleBase
     {
         [Command("uptime")]
-        [Summary("Zjištění, jak dlouho bot běží.")]
+        [Summary("Vypíše dobu od spuštění bota.")]
         public async Task UptimeAsync()
         {
             var process = Process.GetCurrentProcess();

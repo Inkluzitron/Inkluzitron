@@ -21,14 +21,14 @@ namespace Inkluzitron.Modules
         }
 
         [Command("svatek")]
-        [Summary("Svátky v česku")]
+        [Summary("Vypíše jména, kdo dnes slaví v Česku svátek")]
         public async Task GetCzechHolidaysAsync()
         {
             await GetHolidayAsync(false);
         }
 
         [Command("meniny")]
-        [Summary("Svátky na slovensku")]
+        [Summary("Vypíše jména, kdo dnes slaví na Slovensku svátek")]
         public async Task GetSlovakHolidaysAsync()
         {
             await GetHolidayAsync(true);
