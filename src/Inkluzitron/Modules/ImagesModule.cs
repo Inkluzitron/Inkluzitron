@@ -1,8 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
 using GrapeCity.Documents.Imaging;
-using Inkluzitron.Data;
-using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Resources.Bonk;
@@ -24,7 +22,7 @@ using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 namespace Inkluzitron.Modules
 {
     [Name("Obrázkové příkazy")]
-    [Summary("Některé příkazy mohou být závisle na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
+    [Summary("Některé příkazy mohou být závislé na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
     public class ImagesModule : ModuleBase
     {
         private ProfilePictureService ProfilePictureService { get; }
@@ -142,8 +140,8 @@ namespace Inkluzitron.Modules
         #region Peepolove
 
         [Command("peepolove")]
-        [Alias("love")]
-        [Summary("Vytvoří peepa objímajícího autora nebo zadaného uživatele.")]
+        [Alias("peepo love", "love")]
+        [Summary("Vytvoří obrázek peepa objímajícího autora nebo zadaného uživatele.")]
         public async Task PeepoloveAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
@@ -273,8 +271,8 @@ namespace Inkluzitron.Modules
         }
 
         [Command("peepoangry")]
-        [Alias("angry")]
-        [Summary("Vytvoří peepa, který je naštavený na autora nebo zadaného uživatele.")]
+        [Alias("peepo angry", "angry")]
+        [Summary("Vytvoří obrázek peepa, který je naštvaný na autora nebo zadaného uživatele.")]
         public async Task PeepoangryAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null) member = Context.User;
@@ -376,8 +374,8 @@ namespace Inkluzitron.Modules
             await SpankAsync(member, false);
         }
 
-        [Command("spank-harder")]
-        [Alias("harder-daddy")]
+        [Command("spank harder")]
+        [Alias("harder daddy", "spank-harder", "harder-daddy")]
         [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
         public async Task SpankHarderAsync([Name("uživatel")] IUser member = null)
         {
