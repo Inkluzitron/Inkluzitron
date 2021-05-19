@@ -48,7 +48,7 @@ namespace Inkluzitron.Modules
 
         static protected AllowedMentions CheckAndFixAllowedMentions(AllowedMentions allowedMentions)
         {
-            // Override default behaviour. Mention only replied user
+            // Override default behaviour. Do not mention replied user
             return allowedMentions ?? new AllowedMentions() { MentionRepliedUser = false };
         }
     }
