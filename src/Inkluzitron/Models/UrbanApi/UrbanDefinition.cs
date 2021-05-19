@@ -1,17 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 
-namespace Inkluzitron.Models
+namespace Inkluzitron.Models.UrbanApi
 {
-    public class UrbanQueryResult
-    {
-        public string Query { get; set; }
-
-        [JsonProperty("list", Required = Required.Always)]
-        public List<UrbanDefinition> Definitions { get; set; }
-    }
-
     public class UrbanDefinition
     {
         [JsonProperty("defid", Required = Required.Always)]

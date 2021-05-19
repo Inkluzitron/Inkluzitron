@@ -3,11 +3,11 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Extensions;
-using Inkluzitron.Models;
+using Inkluzitron.Models.UrbanApi;
 using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -18,7 +18,7 @@ namespace Inkluzitron.Modules.Urban
     [Name("Urban Dictionary")]
     public class UrbanModule : ModuleBase, IReactionHandler
     {
-        private static List<UrbanQueryResult> UrbanResultsCache = new ();
+        private static ConcurrentDictionary<string, UrbanQueryResult> UrbanResultsCache = new ();
 
         private string ApiUrl { get; }
         private string UrbanEmbedLogo { get; }
@@ -40,8 +40,11 @@ namespace Inkluzitron.Modules.Urban
 
         private async Task<UrbanQueryResult> GetDefinitions(string query)
         {
-            var cachedResult = UrbanResultsCache.FirstOrDefault(r => r.Query == query);
-            if (cachedResult != null) return cachedResult;
+            query = query.Trim();
+
+            UrbanQueryResult cachedResult;
+            if(UrbanResultsCache.TryGetValue(query, out cachedResult))
+                return cachedResult;
 
             var response = await HttpClientFactory.CreateClient()
                 .GetAsync(string.Format(ApiUrl, HttpUtility.UrlEncode(query)));
@@ -51,7 +54,7 @@ namespace Inkluzitron.Modules.Urban
 
             result.Query = query;
 
-            UrbanResultsCache.Add(result);
+            UrbanResultsCache[query] = result;
             return result;
         }
 
