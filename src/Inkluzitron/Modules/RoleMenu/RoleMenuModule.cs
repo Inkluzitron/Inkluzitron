@@ -13,20 +13,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Inkluzitron.Modules
+namespace Inkluzitron.Modules.RoleMenu
 {
     [RequireUserPermission(GuildPermission.ManageRoles)]
     [Name("Uživatelsky volitelné role")]
     [Group("rolemenu")]
-    [Alias("rolepicker")]
-    public class RolePickerModule : ModuleBase
+    public class RoleMenuModule : ModuleBase
     {
         private DiscordSocketClient Client { get; }
         private DatabaseFactory DatabaseFactory { get; }
         private BotDatabaseContext DbContext { get; set; }
         private ulong RoleEmoteGuildId { get; }
 
-        public RolePickerModule(DiscordSocketClient client, DatabaseFactory databaseFactory, IConfiguration config)
+        public RoleMenuModule(DiscordSocketClient client, DatabaseFactory databaseFactory, IConfiguration config)
         {
             Client = client;
             DatabaseFactory = databaseFactory;
@@ -208,49 +207,6 @@ namespace Inkluzitron.Modules
             await UpdateMessageAsync(data, msg);
 
             await Context.Message.DeleteAsync();
-        }
-
-        [Command("removemsg")]
-        [Alias("purge", "removeall", "removemessage", "deletemsg", "deleteall", "deletemessage")]
-        [Summary("Odstraní zprávu pro výběr rolí. Musí reagovat na cílovou zprávu, kde se přidávají reakce.")]
-        public async Task RemoveRoleAsync()
-        {
-            var msg = Context.Message.ReferencedMessage;
-            if (msg == null)
-            {
-                await ReplyAsync("Příkaz musí reagovat na cílovou zprávu, kde se přidávají reakce.");
-                return;
-            }
-
-            var data = await GetMessageDataAsync(msg);
-            if (data == null)
-            {
-                await ReplyAsync("Tato zpráva není pro nastavování reakcí.");
-                return;
-            }
-
-            DbContext.UserRoleMessage.Remove(data);
-
-            await DbContext.SaveChangesAsync();
-
-            await Context.Message.ReferencedMessage.DeleteAsync();
-            await Context.Message.DeleteAsync();
-
-            var emoteRolesInUse = await DbContext.UserRoleMessageItem.AsQueryable()
-                .Select(i => i.Emote)
-                .Where(e => e.Contains("<:role_"))
-                .ToArrayAsync();
-
-            var emoteGuild = Client.GetGuild(RoleEmoteGuildId);
-            foreach (var emote in emoteGuild.Emotes)
-            {
-                if (emote.CreatorId == Client.CurrentUser.Id
-                    && emote.Name.StartsWith("role_")
-                    && !emoteRolesInUse.Contains(emote.ToString()))
-                {
-                    await emoteGuild.DeleteEmoteAsync(emote);
-                }
-            }
         }
 
         private async Task<string> CreateEmoteAsync(IRole role)
