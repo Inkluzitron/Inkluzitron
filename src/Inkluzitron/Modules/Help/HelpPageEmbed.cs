@@ -35,9 +35,9 @@ namespace Inkluzitron.Modules.Help
 
                 var aliases = command.GetAliasesFormat(prefix);
                 if (!string.IsNullOrEmpty(aliases))
-                    aliases = $"\n**Alias:** *{aliases}*";
+                    aliases = $"**Alias:** *{aliases}*\n";
 
-                AddField($"{command.GetCommandFormat(prefix)}", $"{summary}{aliases}");
+                AddField($"{command.GetCommandFormat(prefix)}", $"{aliases}{summary}");
             }
 
             return this;

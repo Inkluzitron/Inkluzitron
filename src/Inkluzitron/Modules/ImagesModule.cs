@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using SysDrawImage = System.Drawing.Image;
 using SysImgFormat = System.Drawing.Imaging.ImageFormat;
@@ -22,7 +23,7 @@ using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 namespace Inkluzitron.Modules
 {
     [Name("Obrázkové příkazy")]
-    [Summary("Některé příkazy mohou být závislé na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
+    [Summary("Za každý příkaz v této kategorii je možné napsat libovolnou zprávu.\nTaké pozor, na koho tyto příkazy používáte. Některé spicy příkazy jsou závislé na výsledku BDSM testu.")]
     public class ImagesModule : ModuleBase
     {
         private ProfilePictureService ProfilePictureService { get; }
@@ -76,7 +77,7 @@ namespace Inkluzitron.Modules
 
         [Command("bonk")]
         [Summary("Bonkne autora nebo zadaného uživatele.")]
-        public async Task BonkAsync([Name("uživatel")]IUser member = null)
+        public async Task BonkAsync([Name("uživatel")]IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null) member = Context.User;
 
@@ -142,7 +143,7 @@ namespace Inkluzitron.Modules
         [Command("peepolove")]
         [Alias("peepo love", "love")]
         [Summary("Vytvoří obrázek peepa objímajícího autora nebo zadaného uživatele.")]
-        public async Task PeepoloveAsync([Name("uživatel")] IUser member = null)
+        public async Task PeepoloveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null) member = Context.User;
             var imageName = CreateCachePath($"Peepolove_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
@@ -273,7 +274,7 @@ namespace Inkluzitron.Modules
         [Command("peepoangry")]
         [Alias("peepo angry", "angry")]
         [Summary("Vytvoří obrázek peepa, který je naštvaný na autora nebo zadaného uživatele.")]
-        public async Task PeepoangryAsync([Name("uživatel")] IUser member = null)
+        public async Task PeepoangryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null) member = Context.User;
             var imageName = await GetPeepoangryImagePath(member);
@@ -299,7 +300,7 @@ namespace Inkluzitron.Modules
 
         [Command("whip")]
         [Summary("Použije bič na autora nebo zadaného uživatele.")]
-        public async Task WhipAsync([Name("uživatel")] IUser member = null)
+        public async Task WhipAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null) member = Context.User;
 
@@ -369,7 +370,7 @@ namespace Inkluzitron.Modules
 
         [Command("spank")]
         [Summary("Naplácá autorovi nebo zadanému uživateli.")]
-        public async Task SpankAsync([Name("uživatel")] IUser member = null)
+        public async Task SpankAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             await SpankAsync(member, false);
         }
@@ -377,7 +378,7 @@ namespace Inkluzitron.Modules
         [Command("spank harder")]
         [Alias("harder daddy", "spank-harder", "harder-daddy")]
         [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
-        public async Task SpankHarderAsync([Name("uživatel")] IUser member = null)
+        public async Task SpankHarderAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             await SpankAsync(member, true);
         }
@@ -454,7 +455,7 @@ namespace Inkluzitron.Modules
         [Command("pat")]
         [Alias("pet")]
         [Summary("Pohladí autora nebo zadaného uživatele.")]
-        public async Task PatAsync([Name("uživatel")] IUser member = null)
+        public async Task PatAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null) member = Context.User;
 

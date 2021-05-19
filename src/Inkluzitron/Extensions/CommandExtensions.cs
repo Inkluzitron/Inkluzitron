@@ -1,5 +1,4 @@
 ﻿using Discord.Commands;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -20,10 +19,12 @@ namespace Inkluzitron.Extensions
 
             foreach (var param in command.Parameters)
             {
+                if (string.IsNullOrEmpty(param.Name)) continue;
+
                 builder.Append(' ');
                 if (param == highlightArg) builder.Append("**__");
                 builder.Append('`');
-                builder.Append(param.IsOptional ? "[" : "").Append(param.Summary ?? param.Name).Append(param.IsOptional ? "]" : "");
+                builder.Append(param.IsOptional ? "[" : "").Append(param.Name).Append(param.IsOptional ? "]" : "");
                 builder.Append('`');
                 if (param == highlightArg) builder.Append("__**");
             }
