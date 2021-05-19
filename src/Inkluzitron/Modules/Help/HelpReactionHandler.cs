@@ -63,7 +63,7 @@ namespace Inkluzitron.Modules.Help
             {
                 var module = availableModules[newPage - 1];
                 var newEmbed = (await new HelpPageEmbed()
-                    .WithModuleAsync(module, user, context, Provider, maxPages, Configuration["Prefix"], newPage))
+                    .WithModuleAsync(module, context, Provider, maxPages, Configuration["Prefix"], newPage))
                     .Build();
 
                 await message.ModifyAsync(msg => msg.Embed = newEmbed);
