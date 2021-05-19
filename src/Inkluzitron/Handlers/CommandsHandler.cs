@@ -80,7 +80,7 @@ namespace Inkluzitron.Handlers
                         break;
                 }
 
-                // Reply to command message and mention only replied user
+                // Reply to command message without mentioning any user
                 if (!string.IsNullOrEmpty(reply))
                     await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions { MentionRepliedUser = false });
             }
