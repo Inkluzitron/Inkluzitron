@@ -60,7 +60,11 @@ namespace Inkluzitron.Modules
         private Embed GetDuckStateEmbed(DuckCurrentState state)
         {
             var embed = new EmbedBuilder()
-                .WithThumbnailUrl(Context.User.GetUserAvatar())
+                .WithAuthor(new EmbedAuthorBuilder()
+                {
+                    Name = "U Kachničky",
+                    IconUrl = Configuration["IsKachnaOpen:EmbedImage"]
+                })
                 .WithColor(Color.Gold)
                 .WithCurrentTimestamp();
 
@@ -90,7 +94,7 @@ namespace Inkluzitron.Modules
 
         static private void ProcessPrivateOrClosed(StringBuilder titleBuilder, DuckCurrentState currentState, EmbedBuilder embedBuilder)
         {
-            titleBuilder.Append("Kachna je zavřená.");
+            titleBuilder.AppendLine("Kachna je zavřená.");
 
             if (currentState.NextOpeningDateTime.HasValue)
             {
@@ -104,7 +108,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            titleBuilder.Append(" Další otvíračka není naplánovaná.");
+            titleBuilder.Append("Další otvíračka není naplánovaná.");
             AddNoteToEmbed(embedBuilder, currentState.Note);
         }
 
@@ -113,7 +117,7 @@ namespace Inkluzitron.Modules
             var left = currentState.NextOpeningDateTime.Value - DateTime.Now;
 
             titleBuilder
-                .Append(" Do další otvíračky zbývá ")
+                .Append("Do další otvíračky zbývá ")
                 .Append(left.FullTextFormat())
                 .Append('.');
 
