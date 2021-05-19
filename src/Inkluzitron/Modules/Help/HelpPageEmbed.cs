@@ -24,8 +24,8 @@ namespace Inkluzitron.Modules.Help
             var executableCommands = await module.GetExecutableCommandsAsync(context, provider);
             foreach (var command in executableCommands.Take(MaxFieldCount))
             {
-                var summary = string.IsNullOrEmpty(command.Summary) ? "---" : command.Summary;
-                this.AddField($"`{command.GetCommandFormat(prefix)}`", summary);
+                var summary = string.IsNullOrEmpty(command.Summary) ? "*Tento příkaz nemá popis.*" : command.Summary;
+                this.AddField($"{command.GetCommandFormat(prefix)}", summary);
             }
 
             return this;

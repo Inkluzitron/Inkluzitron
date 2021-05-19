@@ -29,7 +29,9 @@ namespace Inkluzitron.Extensions
             {
                 builder.Append(' ');
                 if (param == highlightArg) builder.Append("**__");
+                builder.Append('`');
                 builder.Append(param.IsOptional ? "[" : "").Append(param.Summary ?? param.Name).Append(param.IsOptional ? "]" : "");
+                builder.Append('`');
                 if (param == highlightArg) builder.Append("__**");
             }
 
