@@ -16,8 +16,8 @@ namespace Inkluzitron.Modules
         }
 
         [Command("hug")]
-        [Summary("Hugne uživatele, který vyvolal command, nebo uživatele, kterého specifikuje ve své zprávě.")]
-        public async Task HuggingAsync([Remainder] string message = null)
+        [Summary("Hugne sebe nebo všechny uživatele, kteří jsou označení ve zprávě.")]
+        public async Task HuggingAsync([Remainder][Name("zpráva")] string message = null)
         {
             var taggedList = Context.Message.MentionedUsers;
             string userName;

@@ -9,10 +9,10 @@ namespace Inkluzitron.Modules
     public class RandomModule : ModuleBase
     {
         [Command("pick")]
-        [Summary("Vybere náhodnou možnost z možností.")]
+        [Summary("Vybere náhodně jednu ze zadaných možností.")]
         public async Task PickAsync(
-            [Summary("možnost")] string option,
-            [Summary("možnost ...")] params string[] options)
+            [Name("možnost1")] string option,
+            [Name("možnost2 ...")] params string[] options)
         {
             options = options.Append(option).ToArray();
 
@@ -21,11 +21,15 @@ namespace Inkluzitron.Modules
         }
 
         [Command("roll")]
+        [Summary("Vrátí náhodné číslo od 0 do zadaného čísla.")]
+        public Task RollAsync([Name("do")] int to)
+            => RollAsync(0, to);
+
+        [Command("roll")]
         [Summary("Vrátí náhodné číslo ze zadaného rozsahu.")]
         public async Task RollAsync(
-            [Summary("od")] int from,
-            [Summary("do")] int to = 0
-        )
+            [Name("od")] int from,
+            [Name("do")] int to)
         {
             if (from > to)
             {

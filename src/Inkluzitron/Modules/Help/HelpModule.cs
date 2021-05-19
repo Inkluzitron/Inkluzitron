@@ -26,7 +26,7 @@ namespace Inkluzitron.Modules.Help
         }
 
         [Command("help")]
-        [Summary("Zobrazení nápovědy.")]
+        [Summary("Zobrazí nápovědu.")]
         public async Task HelpAsync()
         {
             var availableModules = await CommandService.Modules
@@ -39,7 +39,7 @@ namespace Inkluzitron.Modules.Help
             }
 
             var prefix = Configuration["Prefix"];
-            var embed = await new HelpPageEmbed().WithModuleAsync(availableModules.FirstOrDefault(), Context.User, Context, Provider, availableModules.Count, prefix);
+            var embed = await new HelpPageEmbed().WithModuleAsync(availableModules.FirstOrDefault(), Context, Provider, availableModules.Count, prefix);
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
         }

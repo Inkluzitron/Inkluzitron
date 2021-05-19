@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
 {
-    [Name("Mock")]
+    [Name("Mockování zpráv")]
     public class MockingModule : ModuleBase
     {
         private IConfiguration Config { get; }
@@ -26,44 +26,25 @@ namespace Inkluzitron.Modules
         // even the second char is not uppercased, the next valid char has 100% chance.
         private readonly int[] MockRandomCoefficient = { 1, 2, 5 };
 
-        [Command("mock")]
-        [Summary("Mockuje zadanou zprávu, nebo zprávu na kterou uživatel reaguje.")]
-        public async Task<RuntimeResult> MockAsync(params string[] strings)
+        private string CreateMockingString(string original)
         {
-            var message = string.Join(" ", strings).ToLower();
-            var hasReferencedMsg = false;
-            if (message.Length == 0)
-            {
-                if (Context.Message.ReferencedMessage == null)
-                {
-                    await ReplyAsync("Chybí zpráva k mockování.");
-                    return null;
-                }
+            original = original.ToLower();
 
-                hasReferencedMsg = true;
-
-                // Easter egg. If user is mocking bot, send peepoangry instead
-                if (Context.Message.ReferencedMessage.Author == Context.Guild.CurrentUser)
-                    return new CommandRedirectResult($"angry {Context.User.Id}");
-
-                message = Context.Message.ReferencedMessage.ToString().ToLower();
-            }
-
-            var mockedMessage = "";
+            var result = "";
             var coeffIndex = 0;
 
-            foreach (var c in message)
+            foreach (var c in original)
             {
                 // Letter 'i' cannot be uppercased and letter 'l' should be always uppercased.
                 // This feature is here to prevent confusion of lowercase 'l' and uppercase 'i'
                 if (char.IsLetter(c) && c != 'i' && (c == 'l' || ThreadSafeRandom.Next(MockRandomCoefficient[coeffIndex]) == 0))
                 {
-                    mockedMessage += char.ToUpperInvariant(c);
+                    result += char.ToUpperInvariant(c);
                     coeffIndex = MockRandomCoefficient.Length - 1;
                     continue;
                 }
 
-                mockedMessage += c;
+                result += c;
 
                 if (coeffIndex > 0)
                 {
@@ -71,28 +52,47 @@ namespace Inkluzitron.Modules
                 }
             }
 
-            mockedMessage = $"{Config["Spongebob"]} {mockedMessage} {Config["Spongebob"]}";
-            // if mocking of referenced message don't use prepared ReplyFileAsync function because we want to reply to
-            // author of referenced message instead of replying to mocker
-            if (hasReferencedMsg)
-            {
-                var am = new AllowedMentions() { MentionRepliedUser = true };
-                var mr = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id,
-                    Context.Guild.Id);
+            return $"{Config["Spongebob"]} {result} {Config["Spongebob"]}";
+        }
 
-                await Context.Channel.SendMessageAsync(
-                    mockedMessage,
-                    options: RequestOptions.Default,
-                    allowedMentions: am,
-                    messageReference: mr
-                );
-            }
-            else
+        [Command("mock")]
+        [Summary("Mockuje existující zprávu (pro použití je třeba na cílovou zprávu tímto příkazem odpovědět).")]
+        public async Task<RuntimeResult> MockAsync()
+        {
+            var referencedMsg = Context.Message.ReferencedMessage;
+
+            if(referencedMsg == null)
             {
-                await ReplyAsync(mockedMessage);
+                await ReplyAsync("Chybí zpráva k mockování nebo odpověď na mockovanou zprávu.");
+                return null;
             }
+
+            // Easter egg. If user is mocking bot, send peepoangry instead
+            if (Context.Message.ReferencedMessage.Author == Context.Guild.CurrentUser)
+                return new CommandRedirectResult($"angry {Context.User.Id}");
+
+            var message = referencedMsg.ToString();
+
+            // We are mocking referenced message. Reply to the author
+            // of the original referenced message instead of replying to mocker
+            var reference = new MessageReference(Context.Message.ReferencedMessage.Id, Context.Channel.Id,
+                Context.Guild.Id);
+
+            await Context.Channel.SendMessageAsync(
+                CreateMockingString(message),
+                options: RequestOptions.Default,
+                allowedMentions: new AllowedMentions() { MentionRepliedUser = true },
+                messageReference: reference
+            );
 
             return null;
+        }
+
+        [Command("mock")]
+        [Summary("Mockuje zadanou zprávu.")]
+        public async Task MockAsync([Remainder][Name("zpráva")] string message)
+        {
+            await ReplyAsync(CreateMockingString(message));
         }
     }
 }

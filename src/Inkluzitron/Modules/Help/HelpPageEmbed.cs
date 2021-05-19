@@ -9,13 +9,19 @@ namespace Inkluzitron.Modules.Help
 {
     public class HelpPageEmbed : EmbedBuilder
     {
-        public async Task<HelpPageEmbed> WithModuleAsync(ModuleInfo module, IUser author, ICommandContext context, IServiceProvider provider, int pagesCount, string prefix,
+        public async Task<HelpPageEmbed> WithModuleAsync(ModuleInfo module, ICommandContext context, IServiceProvider provider, int pagesCount, string prefix,
             int page = 1)
         {
+            var bot = context.Client.CurrentUser;
+
             this.WithTitle(module.Name);
             this.WithCurrentTimestamp();
-            this.WithAuthor(author);
-            this.WithFooter($"Nápověda | {page}/{pagesCount}");
+            this.WithAuthor(new EmbedAuthorBuilder()
+            {
+                Name = "Nápověda",
+                IconUrl = bot.GetAvatarUrl()
+            });
+            this.WithFooter($"{page}/{pagesCount}");
             this.WithMetadata(new HelpPageEmbedMetadata { PageNumber = page, PageCount = pagesCount });
 
             if (!string.IsNullOrEmpty(module.Summary))
@@ -24,8 +30,13 @@ namespace Inkluzitron.Modules.Help
             var executableCommands = await module.GetExecutableCommandsAsync(context, provider);
             foreach (var command in executableCommands.Take(MaxFieldCount))
             {
-                var summary = string.IsNullOrEmpty(command.Summary) ? "---" : command.Summary;
-                this.AddField($"`{command.GetCommandFormat(prefix)}`", summary);
+                var summary = string.IsNullOrEmpty(command.Summary) ? "*Tento příkaz nemá popis.*" : command.Summary;
+
+                var aliases = command.GetAliasesFormat(prefix);
+                if (!string.IsNullOrEmpty(aliases))
+                    aliases = $"**Alias:** *{aliases}*\n";
+
+                this.AddField($"{command.GetCommandFormat(prefix)}", $"{aliases}{summary}");
             }
 
             return this;

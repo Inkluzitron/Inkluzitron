@@ -21,14 +21,14 @@ namespace Inkluzitron.Modules
         }
 
         [Command("svatek")]
-        [Summary("Svátky v česku")]
+        [Summary("Vypíše jména, kdo dnes slaví v Česku svátek")]
         public async Task GetCzechHolidaysAsync()
         {
             await GetHolidayAsync(false);
         }
 
         [Command("meniny")]
-        [Summary("Svátky na slovensku")]
+        [Summary("Vypíše jména, kdo dnes slaví na Slovensku svátek")]
         public async Task GetSlovakHolidaysAsync()
         {
             await GetHolidayAsync(true);
@@ -50,7 +50,7 @@ namespace Inkluzitron.Modules
             var content = await response.Content.ReadAsStringAsync();
             var names = JArray.Parse(content).Select(o => o["name"]).ToList();
             var formatedNames = names.Count == 1 ? names[0] : string.Join(", ", names.Take(names.Count - 1)) + " a " + names[^1];
-            var formatedHave = names.Count == 1 ? "má" : (slovak ? "majú" : "mají");
+            var formatedHave = names.Count == 1 ? "má" : slovak ? "majú" : "mají";
 
             await ReplyAsync(string.Format(Configuration[$"HolidayOkTexts:{(slovak ? "SK" : "CZ")}"], formatedHave, formatedNames));
         }
