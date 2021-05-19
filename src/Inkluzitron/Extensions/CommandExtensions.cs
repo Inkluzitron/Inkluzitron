@@ -1,29 +1,22 @@
 ﻿using Discord.Commands;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Inkluzitron.Extensions
 {
     static public class CommandExtensions
     {
+        static public string GetAliasesFormat(this CommandInfo command, string prefix)
+        {
+            var aliases = command.Aliases.Select(a => $"{prefix}{a}").Skip(1);
+            return string.Join(", ", aliases);
+        }
+
         static public string GetCommandFormat(this CommandInfo command, string prefix, ParameterInfo highlightArg = null)
         {
             var builder = new StringBuilder(prefix);
-
-            var groups = new Stack<string>();
-            var module = command.Module;
-            while (module != null)
-            {
-                if (module.Group != null)
-                    groups.Push(module.Group);
-
-                module = module.Parent;
-            }
-
-            while (groups.TryPop(out var groupName))
-                builder.Append(groupName).Append(' ');
-
-            builder.Append(command.Name);
+            builder.Append(command.Aliases.FirstOrDefault());
 
             foreach (var param in command.Parameters)
             {
@@ -35,7 +28,7 @@ namespace Inkluzitron.Extensions
                 if (param == highlightArg) builder.Append("__**");
             }
 
-            return builder.ToString().Trim();
+            return builder.ToString();
         }
     }
 }
