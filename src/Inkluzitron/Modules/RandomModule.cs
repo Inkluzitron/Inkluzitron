@@ -29,8 +29,7 @@ namespace Inkluzitron.Modules
 
         [Command("roll")]
         [Summary("Vrátí náhodné číslo od 0 do zadaného čísla.")]
-        public async Task RollAsync(
-            [Name("do")] int to)
+        public Task RollAsync([Name("do")] int to)
             => RollAsync(0, to);
 
         [Command("roll")]
