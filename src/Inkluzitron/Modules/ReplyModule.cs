@@ -10,13 +10,10 @@ namespace Inkluzitron.Modules
     public class ReplyModule : ModuleBase
     {
         private DiscordSocketClient DiscordClient { get; }
-        private Random Random { get; }
 
-        public ReplyModule(DiscordSocketClient discordClient, Random random)
+        public ReplyModule(DiscordSocketClient discordClient)
         {
             DiscordClient = discordClient;
-            Random = random;
-
             DiscordClient.MessageReceived += OnMessageReceivedAsync;
         }
 
@@ -41,7 +38,7 @@ namespace Inkluzitron.Modules
             }
             else if (ContainsPhrase(message.Content, "m[aá]m pravdu.*\\?", false))
             {
-                await userMessage.ReplyAsync(Random.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.", allowedMentions: CheckAndFixAllowedMentions(null));
+                await userMessage.ReplyAsync(ThreadSafeRandom.Next(0, 2) == 1 ? "Ano, máš pravdu." : "Ne, nemáš pravdu.", allowedMentions: CheckAndFixAllowedMentions(null));
             }
             else if (ContainsPhrase(message.Content, "^je [cč]erstv[aá]"))
             {

@@ -62,7 +62,6 @@ namespace Inkluzitron
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
                 .AddSingleton<LoggingService>()
-                .AddSingleton<Random>()
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<DatabaseFactory>()
                 .AddSingleton<ReactionSettings>()
@@ -72,6 +71,8 @@ namespace Inkluzitron
                 .AddSingleton<FontService>()
                 .AddSingleton<GraphPaintingService>()
                 .AddSingleton<UserBdsmTraitsService>()
+                .AddSingleton<BdsmTraitOperationCheckTranslations>()
+                .AddSingleton<ImagesService>()
                 .AddHttpClient();
 
             services.AddLogging(config =>

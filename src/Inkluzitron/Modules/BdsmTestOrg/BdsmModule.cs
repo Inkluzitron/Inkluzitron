@@ -20,6 +20,7 @@ using Inkluzitron.Models.BdsmTestOrgApi;
 using Inkluzitron.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using Inkluzitron.Services;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -89,7 +90,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
-            var imgFile = ImagesModule.CreateCachePath(Path.GetRandomFileName() + ".png");
+            var imgFile = ImagesService.CreateCachePath(Path.GetRandomFileName() + ".png");
 
             try
             {

@@ -30,7 +30,7 @@ namespace Inkluzitron.Modules.Help
         public async Task HelpAsync()
         {
             var availableModules = await CommandService.Modules
-                .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(Context, Provider)).Count > 0);
+                .FindAllAsync(async mod => mod.HasStandaloneHelpPage() && (await mod.GetExecutableCommandsAsync(Context, Provider)).Count > 0);
 
             if (availableModules.Count == 0)
             {
