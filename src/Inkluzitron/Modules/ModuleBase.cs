@@ -9,7 +9,7 @@ namespace Inkluzitron.Modules
 {
     public class ModuleBase : ModuleBase<SocketCommandContext>
     {
-        private MessageReference ReplyReference => new MessageReference(Context.Message.Id, Context.Channel.Id, Context.Guild?.Id);
+        private MessageReference ReplyReference => new(Context.Message.Id, Context.Channel.Id, Context.Guild?.Id);
 
         protected async Task<List<IUserMessage>> ReplyAsync(IEnumerable<string> messages, bool isTTS = false, AllowedMentions allowedMentions = null)
         {

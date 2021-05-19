@@ -9,7 +9,7 @@ namespace Inkluzitron.Modules.Urban
 {
     public class UrbanEmbed : EmbedBuilder
     {
-        private static string CreateLinks(string text)
+        static private string CreateLinks(string text)
         {
             return Regex.Replace(text,
                 @"\[(.*?)\]",

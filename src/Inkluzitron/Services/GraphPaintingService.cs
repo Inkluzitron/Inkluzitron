@@ -275,7 +275,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var un = username;
                 var pctgStrSize = g.MeasureString(un, UsernameFont);
                 while (un.Length >= 5 && pctgStrSize.Width > maxUsernameWidth) {
-                    un = un.Substring(0, un.Length - 1);
+                    un = un[0..^1];
                     pctgStrSize = g.MeasureString(un, UsernameFont);
                 }
 

@@ -11,9 +11,9 @@ namespace Inkluzitron.Services
 {
     public class FontService : IDisposable
     {
-        private readonly object _lock = new object();
-        private readonly List<PrivateFontCollection> _fontCollections = new List<PrivateFontCollection>();
-        private readonly List<IntPtr> _fontMemories = new List<IntPtr>();
+        private readonly object _lock = new();
+        private readonly List<PrivateFontCollection> _fontCollections = new();
+        private readonly List<IntPtr> _fontMemories = new();
 
         public FontFamily OpenSansCondensedLight { get; }
         public FontFamily OpenSansCondensed { get; }

@@ -18,7 +18,7 @@ namespace Inkluzitron.Modules.Urban
     [Name("Urban Dictionary")]
     public class UrbanModule : ModuleBase, IReactionHandler
     {
-        private static ConcurrentDictionary<string, UrbanQueryResult> UrbanResultsCache = new ();
+        static private readonly ConcurrentDictionary<string, UrbanQueryResult> UrbanResultsCache = new ();
 
         private string ApiUrl { get; }
         private string UrbanEmbedLogo { get; }
@@ -42,8 +42,7 @@ namespace Inkluzitron.Modules.Urban
         {
             query = query.Trim();
 
-            UrbanQueryResult cachedResult;
-            if(UrbanResultsCache.TryGetValue(query, out cachedResult))
+            if (UrbanResultsCache.TryGetValue(query, out UrbanQueryResult cachedResult))
                 return cachedResult;
 
             var response = await HttpClientFactory.CreateClient()
