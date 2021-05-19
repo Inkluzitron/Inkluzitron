@@ -7,13 +7,13 @@ using Inkluzitron.Data;
 using Inkluzitron.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Inkluzitron.Modules.UserRolePicker
+namespace Inkluzitron.Modules.RoleMenu
 {
-    public class RolePickerReactionHandler : IReactionHandler
+    public class RoleMenuReactionHandler : IReactionHandler
     {
         private DatabaseFactory DatabaseFactory { get; }
 
-        public RolePickerReactionHandler(DatabaseFactory databaseFactory)
+        public RoleMenuReactionHandler(DatabaseFactory databaseFactory)
         {
             DatabaseFactory = databaseFactory;
         }
