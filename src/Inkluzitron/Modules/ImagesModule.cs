@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
+    // TODO: roll help summaries
+    // TODO: aliased commands show up twice in help
+    // TODO: help embed metadata bugged w/o image
+
     [Name("Obrázkové příkazy")]
     [Summary("Některé příkazy mohou být závisle na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
     public class ImagesModule : ModuleBase
@@ -75,7 +79,6 @@ namespace Inkluzitron.Modules
         }
 
         [Group("whip")]
-        [Summary("Použije bič na autora nebo zadaného uživatele.")]
         [DisableStandaloneHelpPage]
         public class WhipImageModule : ModuleBase
         {
@@ -118,6 +121,7 @@ namespace Inkluzitron.Modules
             }
 
             [Command("")]
+            [Summary("Použije bič na autora nebo zadaného uživatele.")]
             public Task WhipAsync([Name("uživatel")] IUser user = null)
                 => WhipImplAsync(user, false);
 
@@ -127,13 +131,11 @@ namespace Inkluzitron.Modules
         }
 
         [Group("spank")]
-        [Summary("Naplácá autorovi nebo zadanému uživateli.")]
         [DisableStandaloneHelpPage]
         public class SpankImageModule : ModuleBase
         {
             private ImagesService ImagesService { get; }
             private UserBdsmTraitsService UserBdsmTraits { get; }
-            protected virtual bool Harder => false;
 
             public SpankImageModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
             {
@@ -141,7 +143,7 @@ namespace Inkluzitron.Modules
                 UserBdsmTraits = userBdsmTraits;
             }
 
-            private async Task SpankImplAsync(IUser member, bool showRollInfo)
+            protected async Task SpankImplAsync(IUser member, bool showRollInfo, bool harder)
             {
                 if (member == null)
                     member = Context.User;
@@ -164,33 +166,40 @@ namespace Inkluzitron.Modules
                     if (showRollInfo)
                         messageText = check.ToString();
 
-                    imagePath = await ImagesService.SpankAsync(member, Context.User, Harder);
+                    imagePath = await ImagesService.SpankAsync(member, Context.User, harder);
                 }
 
                 await ReplyFileAsync(imagePath, messageText);
             }
 
             [Command("")]
+            [Summary("Naplácá autorovi nebo zadanému uživateli.")]
             public Task SpankAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, false);
+                => SpankImplAsync(user, false, false);
 
             [Command("roll")]
             public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, true);
+                => SpankImplAsync(user, true, false);
         }
 
         [Group("spank-harder")]
         [Alias("harder-daddy")]
-        [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
         [DisableStandaloneHelpPage]
         public class SpankHarderImageModule : SpankImageModule
         {
-            protected override bool Harder => true;
-
             public SpankHarderImageModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
                 : base(imagesService, userBdsmTraits)
             {
             }
+
+            [Command("")]
+            [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
+            public Task SpankAsync([Name("uživatel")] IUser user = null)
+                => SpankImplAsync(user, false, true);
+
+            [Command("roll")]
+            public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
+                => SpankImplAsync(user, true, true);
         }
     }
 }
