@@ -102,10 +102,15 @@ namespace Inkluzitron.Modules.Urban
                 newPage = 1;
             else if (reaction.IsEqual(ReactionSettings.MoveToLast))
                 newPage = definitions.Count;
-            else if (reaction.IsEqual(ReactionSettings.MoveToNext) && newPage < definitions.Count)
+            else if (reaction.IsEqual(ReactionSettings.MoveToNext))
                 newPage++;
-            else if (reaction.IsEqual(ReactionSettings.MoveToPrevious) && newPage > 1)
+            else if (reaction.IsEqual(ReactionSettings.MoveToPrevious))
                 newPage--;
+
+            if (newPage > definitions.Count)
+                newPage = definitions.Count;
+            else if (newPage < 1)
+                newPage = 1;
 
             if (newPage != metadata.PageNumber)
             {
