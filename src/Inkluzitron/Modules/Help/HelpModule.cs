@@ -27,19 +27,41 @@ namespace Inkluzitron.Modules.Help
 
         [Command("help")]
         [Summary("Zobrazí nápovědu.")]
-        public async Task HelpAsync()
+        public Task HelpAsync()
+            => SearchHelpAsync(null);
+
+        [Command("help")]
+        [Summary("Zobrazí nápovědu pro zadaný příkaz.")]
+        public async Task SearchHelpAsync([Remainder][Name("příkaz")]string query)
         {
             var availableModules = await CommandService.Modules
                 .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(Context, Provider)).Count > 0);
 
-            if (availableModules.Count == 0)
+            var module = availableModules.FirstOrDefault();
+
+            if (module == null)
             {
                 await ReplyAsync("Je mi to líto, ale nemáš k dispozici žádné příkazy.");
                 return;
             }
 
+            if (!string.IsNullOrEmpty(query))
+            {
+                var found = availableModules.FirstOrDefault(
+                    m => m.Commands.Any(
+                        c => c.Aliases.Any(
+                            a => a.Contains(query))));
+
+                if(found != null)
+                    module = found;
+            }
+
+
             var prefix = Configuration["Prefix"];
-            var embed = await new HelpPageEmbed().WithModuleAsync(availableModules.FirstOrDefault(), Context, Provider, availableModules.Count, prefix);
+            var embed = await new HelpPageEmbed().WithModuleAsync(
+                module, Context, Provider, availableModules.Count, prefix, availableModules.IndexOf(module)+1);
+
+
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
         }
