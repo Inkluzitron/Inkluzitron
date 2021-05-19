@@ -15,7 +15,7 @@ using System.Web;
 
 namespace Inkluzitron.Modules.Urban
 {
-    [Name("Urban")]
+    [Name("Urban Dictionary")]
     public class UrbanModule : ModuleBase, IReactionHandler
     {
         private static List<UrbanQueryResult> UrbanResultsCache = new ();
@@ -57,7 +57,7 @@ namespace Inkluzitron.Modules.Urban
 
         [Command("urban")]
         [Alias("define", "wtf")]
-        [Summary("Vyhledá definici zadaného výrazu v Urban Dictionary")]
+        [Summary("Vyhledá definici zadaného výrazu v Urban Dictionary.")]
         public async Task QueryUrban([Remainder][Name("výraz")] string query)
         {
             var definitions = (await GetDefinitions(query)).Definitions;

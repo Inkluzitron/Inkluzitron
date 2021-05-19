@@ -12,7 +12,6 @@ using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
 using Inkluzitron.Services;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -24,7 +23,7 @@ using SysImgFormat = System.Drawing.Imaging.ImageFormat;
 
 namespace Inkluzitron.Modules
 {
-    [Name("Generování obrázků")]
+    [Name("Obrázkové příkazy")]
     public class ImagesModule : ModuleBase
     {
         private ProfilePictureService ProfilePictureService { get; }

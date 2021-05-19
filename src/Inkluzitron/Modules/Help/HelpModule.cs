@@ -26,7 +26,7 @@ namespace Inkluzitron.Modules.Help
         }
 
         [Command("help")]
-        [Summary("Zobrazení nápovědy.")]
+        [Summary("Zobrazí nápovědu.")]
         public async Task HelpAsync()
         {
             var availableModules = await CommandService.Modules
