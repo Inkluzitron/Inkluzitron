@@ -31,7 +31,12 @@ namespace Inkluzitron.Modules.Help
             foreach (var command in executableCommands.Take(MaxFieldCount))
             {
                 var summary = string.IsNullOrEmpty(command.Summary) ? "*Tento příkaz nemá popis.*" : command.Summary;
-                this.AddField($"{command.GetCommandFormat(prefix)}", summary);
+
+                var aliases = command.GetAliasesFormat(prefix);
+                if (!string.IsNullOrEmpty(aliases))
+                    aliases = $"**Alias:** *{aliases}*\n";
+
+                this.AddField($"{command.GetCommandFormat(prefix)}", $"{aliases}{summary}");
             }
 
             return this;
