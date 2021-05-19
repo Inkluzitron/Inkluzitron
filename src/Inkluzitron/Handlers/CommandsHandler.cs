@@ -82,7 +82,7 @@ namespace Inkluzitron.Handlers
 
                 // Reply to command message and mention only replied user
                 if (!string.IsNullOrEmpty(reply))
-                    await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions { MentionRepliedUser = true });
+                    await context.Message.ReplyAsync(reply, allowedMentions: new AllowedMentions { MentionRepliedUser = false });
             }
         }
     }
