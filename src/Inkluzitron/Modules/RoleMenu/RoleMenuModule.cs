@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Data;
+using Inkluzitron.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -44,7 +45,7 @@ namespace Inkluzitron.Modules.RoleMenu
             base.AfterExecute(command);
         }
 
-        private async Task<RolePickerMessage> GetMessageDataAsync(IUserMessage msg)
+        private async Task<RoleMenuMessage> GetMessageDataAsync(IUserMessage msg)
         {
             var channel = msg.Channel as ITextChannel;
 
@@ -54,7 +55,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 m.MessageId == msg.Id);
         }
 
-        static private async Task UpdateMessageAsync(RolePickerMessage data, IUserMessage msg)
+        static private async Task UpdateMessageAsync(RoleMenuMessage data, IUserMessage msg)
         {
             var builder = new StringBuilder($"**\n ~ ~\u2003{data.Title}\u2003~ ~**\n");
 
@@ -134,13 +135,13 @@ namespace Inkluzitron.Modules.RoleMenu
         {
             var message = await Context.Channel.SendMessageAsync(title);
 
-            var data = new RolePickerMessage()
+            var data = new RoleMenuMessage()
             {
                 Title = title,
                 MessageId = message.Id,
                 ChannelId = Context.Channel.Id,
                 GuildId = Context.Guild.Id,
-                Roles = new List<RolePickerMessageRole>(),
+                Roles = new List<RoleMenuMessageRole>(),
                 CanSelectMultiple = true
             };
 
@@ -286,7 +287,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 return;
             }
 
-            data.Roles.Add(new RolePickerMessageRole()
+            data.Roles.Add(new RoleMenuMessageRole()
             {
                 Id = role.Id,
                 Mention = role.Mention,
