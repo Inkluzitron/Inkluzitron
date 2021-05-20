@@ -20,24 +20,6 @@ namespace Inkluzitron.Modules
             UserBdsmTraits = userBdsmTraits;
         }
 
-        [Command("bonk")]
-        [Summary("Bonkne autora nebo zadaného uživatele.")]
-        public async Task BonkAsync([Name("uživatel")] IUser member = null)
-        {
-            if (member == null)
-                member = Context.User;
-
-            if (member.Id == Context.Client.CurrentUser.Id)
-            {
-                await PeepoAngryAsync(Context.User);
-                return;
-            }
-
-            var gifName = await ImagesService.BonkAsync(member, Context.User);
-            await ReplyFileAsync(gifName);
-        }
-
-
         [Command("peepolove")]
         [Alias("love")]
         [Summary("Vytvoří peepa objímajícího autora nebo zadaného uživatele.")]
@@ -49,7 +31,6 @@ namespace Inkluzitron.Modules
             var imageName = await ImagesService.PeepoLoveAsync(member, Context.Guild.CalculateFileUploadLimit());
             await ReplyFileAsync(imageName);
         }
-
 
         [Command("peepoangry")]
         [Alias("angry")]
@@ -63,7 +44,6 @@ namespace Inkluzitron.Modules
             await ReplyFileAsync(imageName);
         }
 
-
         [Command("pat")]
         [Alias("pet")]
         [Summary("Pohladí autora nebo zadaného uživatele.")]
@@ -75,6 +55,16 @@ namespace Inkluzitron.Modules
             var gifName = await ImagesService.PatAsync(member, Context.User);
             await ReplyFileAsync(gifName);
         }
+
+        [Command("bonk")]
+        [Summary("Bonkne autora nebo zadaného uživatele.")]
+        public Task BonkAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, false, ImagesService.BonkAsync);
+
+        [Command("bonk roll")]
+        [Summary("Bonkne autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
+        public Task BonkWithRollInfoAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, true, ImagesService.BonkAsync);
 
         [Command("whip")]
         [Summary("Použije bič na autora nebo zadaného uživatele.")]
@@ -108,7 +98,9 @@ namespace Inkluzitron.Modules
         public Task SpankHarderWithRollInfoAsync([Name("uživatel")] IUser user = null)
             => DomSubRolledImageAsync(user, true, ImagesService.SpankHarderAsync);
 
-        private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, Func<IUser, IUser, Task<string>> imageFactory)
+        private delegate Task<string> AsyncImageGenerator(IUser target, IUser caller);
+
+        private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, AsyncImageGenerator asyncImageGenerator)
         {
             if (target == null)
                 target = Context.User;
@@ -130,7 +122,7 @@ namespace Inkluzitron.Modules
                 if (showRollInfo)
                     messageText = check.ToString();
 
-                imagePath = await imageFactory(target, Context.User);
+                imagePath = await asyncImageGenerator(target, Context.User);
             }
 
             await ReplyFileAsync(imagePath, messageText);
