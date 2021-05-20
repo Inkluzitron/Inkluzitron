@@ -18,13 +18,11 @@ namespace Inkluzitron.Handlers
         private IServiceProvider Provider { get; }
         private IConfiguration Configuration { get; }
 
-        private Random Random { get; }
 
-        public CommandsHandler(Random random, CommandService commandService, IConfiguration configuration, IServiceProvider provider)
+        public CommandsHandler(CommandService commandService, IConfiguration configuration, IServiceProvider provider)
         {
             CommandService = commandService;
             Configuration = configuration;
-            Random = random;
             Provider = provider;
 
             CommandService.CommandExecuted += CommandExecutedAsync;
@@ -72,7 +70,7 @@ namespace Inkluzitron.Handlers
                     case CommandError.BadArgCount:
                         var firstLine = Configuration.GetSection("BadArgumentFirstLine").AsEnumerable().Where(o => o.Value != null).ToArray();
 
-                        reply = $"{firstLine[Random.Next(firstLine.Length)].Value}\n> {command.Value.GetCommandFormat(Configuration["Prefix"])}";
+                        reply = $"{firstLine[ThreadSafeRandom.Next(firstLine.Length)].Value}\n> {command.Value.GetCommandFormat(Configuration["Prefix"])}";
                         break;
 
                     case CommandError.Exception:

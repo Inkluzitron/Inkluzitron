@@ -1,0 +1,18 @@
+﻿using Microsoft.Extensions.Configuration;
+
+namespace Inkluzitron.Models.Settings
+{
+    public class BdsmTraitOperationCheckTranslations
+    {
+        public BdsmTraitOperationCheckTranslations(IConfiguration config)
+        {
+            config.GetSection(nameof(BdsmTraitOperationCheckTranslations)).Bind(this);
+        }
+
+        public string MissingTest { get; set; }
+        public string InCompliance { get; set; }
+        public string RollSucceeded { get; set; }
+        public string RollFailed { get; set; }
+        public string Self { get; set; }
+    }
+}

@@ -8,13 +8,6 @@ namespace Inkluzitron.Modules
     [Name("Random")]
     public class RandomModule : ModuleBase
     {
-        private Random Random { get; }
-
-        public RandomModule(Random random)
-        {
-            Random = random;
-        }
-
         [Command("pick")]
         [Summary("Vybere náhodně jednu ze zadaných možností.")]
         public async Task PickAsync(
@@ -23,7 +16,7 @@ namespace Inkluzitron.Modules
         {
             options = options.Append(option).ToArray();
 
-            var selectedValue = options[Random.Next(options.Length)];
+            var selectedValue = options[ThreadSafeRandom.Next(options.Length)];
             await ReplyAsync(selectedValue);
         }
 
@@ -45,7 +38,7 @@ namespace Inkluzitron.Modules
                 to = temp;
             }
 
-            var selectedValue = Random.Next(from, to + 1);
+            var selectedValue = ThreadSafeRandom.Next(from, to + 1);
             await ReplyAsync(selectedValue.ToString());
         }
     }

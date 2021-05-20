@@ -88,10 +88,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .Skip(newPageNumber - 1)
                     .FirstOrDefaultAsync();
 
-                var newEmbed = new EmbedBuilder().WithAuthor(user);
+                var author = await Client.Rest.GetUserAsync(metadata.UserId);
+                var newEmbed = new EmbedBuilder().WithAuthor(author);
 
                 if (newResultToDisplay is null)
-                    newEmbed = newEmbed.WithBdsmTestOrgQuizInvitation(Settings, user);
+                    newEmbed = newEmbed.WithBdsmTestOrgQuizInvitation(Settings, author);
                 else
                     newEmbed = newEmbed.WithBdsmTestOrgQuizResult(Settings, newResultToDisplay, newPageNumber, count);
 
@@ -99,9 +100,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             var context = new CommandContext(Client, message.ReferencedMessage);
-
             if (!context.IsPrivate)
                 await message.RemoveReactionAsync(reaction, user);
+
             return true;
         }
     }
