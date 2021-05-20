@@ -1,30 +1,28 @@
 ﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
-using Inkluzitron.Modules.Help;
 using Inkluzitron.Services;
+using System;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
-    // TODO: roll help summaries
-    // TODO: aliased commands show up twice in help
-    // TODO: help embed metadata bugged w/o image
-
     [Name("Obrázkové příkazy")]
     [Summary("Některé příkazy mohou být závisle na výsledku BDSM testu. Proto pozor, na koho tyto příkazy používáte.")]
     public class ImagesModule : ModuleBase
     {
         private ImagesService ImagesService { get; }
+        private UserBdsmTraitsService UserBdsmTraits { get; }
 
-        public ImagesModule(ImagesService imagesService)
+        public ImagesModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
         {
             ImagesService = imagesService;
+            UserBdsmTraits = userBdsmTraits;
         }
 
         [Command("bonk")]
         [Summary("Bonkne autora nebo zadaného uživatele.")]
-        public async Task BonkAsync([Name("uživatel")]IUser member = null)
+        public async Task BonkAsync([Name("uživatel")] IUser member = null)
         {
             if (member == null)
                 member = Context.User;
@@ -52,7 +50,7 @@ namespace Inkluzitron.Modules
             await ReplyFileAsync(imageName);
         }
 
-        
+
         [Command("peepoangry")]
         [Alias("angry")]
         [Summary("Vytvoří peepa, který je naštavený na autora nebo zadaného uživatele.")]
@@ -78,128 +76,64 @@ namespace Inkluzitron.Modules
             await ReplyFileAsync(gifName);
         }
 
-        [Group("whip")]
-        [DisableStandaloneHelpPage]
-        public class WhipImageModule : ModuleBase
+        [Command("whip")]
+        [Summary("Použije bič na autora nebo zadaného uživatele.")]
+        public Task WhipAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, false, ImagesService.WhipAsync);
+
+        [Command("whip roll")]
+        [Summary("Použije bič na autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
+        public Task WhipWithRollInfoAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, true, ImagesService.WhipAsync);
+
+        [Command("spank")]
+        [Summary("Naplácá autorovi nebo zadanému uživateli.")]
+        public Task SpankAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, false, ImagesService.SpankGentleAsync);
+
+        [Command("spank roll")]
+        [Summary("Naplácá autorovi nebo zadanému uživateli a vypíše vliv výsledků BDSM testu.")]
+        public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, true, ImagesService.SpankGentleAsync);
+
+        [Command("spank-harder")]
+        [Alias("harder-daddy")]
+        [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
+        public Task SpankHarderAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, false, ImagesService.SpankHarderAsync);
+
+        [Command("spank-harder roll")]
+        [Alias("harder-daddy roll")]
+        [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli avypíše vliv výsledků BDSM testu.")]
+        public Task SpankHarderWithRollInfoAsync([Name("uživatel")] IUser user = null)
+            => DomSubRolledImageAsync(user, true, ImagesService.SpankHarderAsync);
+
+        private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, Func<IUser, IUser, Task<string>> imageFactory)
         {
-            private ImagesService ImagesService { get; }
-            private UserBdsmTraitsService UserBdsmTraits { get; }
+            if (target == null)
+                target = Context.User;
 
-            public WhipImageModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
+            string imagePath;
+            string messageText = null;
+
+            if (target.Id == Context.Client.CurrentUser.Id)
             {
-                ImagesService = imagesService;
-                UserBdsmTraits = userBdsmTraits;
+                imagePath = await ImagesService.PeepoAngryAsync(Context.User, Context.Guild.CalculateFileUploadLimit());
             }
-
-            private async Task WhipImplAsync(IUser target, bool showRollInfo)
+            else
             {
-                if (target == null)
+                var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
+
+                if (!check.IsSuccessful)
                     target = Context.User;
 
-                string imagePath;
-                string messageText = null;
+                if (showRollInfo)
+                    messageText = check.ToString();
 
-                if (target.Id == Context.Client.CurrentUser.Id)
-                {
-                    imagePath = await ImagesService.PeepoAngryAsync(Context.User, Context.Guild.CalculateFileUploadLimit());
-                }
-                else
-                {
-                    // BDSM test check
-                    var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
-
-                    if (!check.IsSuccessful)
-                        target = Context.User;
-
-                    if (showRollInfo)
-                        messageText = check.ToString();
-
-                    imagePath = await ImagesService.WhipAsync(target, Context.User);
-                }
-
-                await ReplyFileAsync(imagePath, messageText);
+                imagePath = await imageFactory(target, Context.User);
             }
 
-            [Command("")]
-            [Summary("Použije bič na autora nebo zadaného uživatele.")]
-            public Task WhipAsync([Name("uživatel")] IUser user = null)
-                => WhipImplAsync(user, false);
-
-            [Command("roll")]
-            public Task WhipWithRollInfoAsync([Name("uživatel")] IUser user = null)
-                => WhipImplAsync(user, true);
-        }
-
-        [Group("spank")]
-        [DisableStandaloneHelpPage]
-        public class SpankImageModule : ModuleBase
-        {
-            private ImagesService ImagesService { get; }
-            private UserBdsmTraitsService UserBdsmTraits { get; }
-
-            public SpankImageModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
-            {
-                ImagesService = imagesService;
-                UserBdsmTraits = userBdsmTraits;
-            }
-
-            protected async Task SpankImplAsync(IUser member, bool showRollInfo, bool harder)
-            {
-                if (member == null)
-                    member = Context.User;
-
-                string messageText = null;
-                string imagePath;
-
-                if (member.Id == Context.Client.CurrentUser.Id)
-                {
-                    imagePath = await ImagesService.PeepoAngryAsync(Context.User, Context.Guild.CalculateFileUploadLimit());
-                }
-                else
-                {
-                    // BDSM test check
-                    var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, member);
-
-                    if (!check.IsSuccessful)
-                        member = Context.User;
-
-                    if (showRollInfo)
-                        messageText = check.ToString();
-
-                    imagePath = await ImagesService.SpankAsync(member, Context.User, harder);
-                }
-
-                await ReplyFileAsync(imagePath, messageText);
-            }
-
-            [Command("")]
-            [Summary("Naplácá autorovi nebo zadanému uživateli.")]
-            public Task SpankAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, false, false);
-
-            [Command("roll")]
-            public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, true, false);
-        }
-
-        [Group("spank-harder")]
-        [Alias("harder-daddy")]
-        [DisableStandaloneHelpPage]
-        public class SpankHarderImageModule : SpankImageModule
-        {
-            public SpankHarderImageModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
-                : base(imagesService, userBdsmTraits)
-            {
-            }
-
-            [Command("")]
-            [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
-            public Task SpankAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, false, true);
-
-            [Command("roll")]
-            public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
-                => SpankImplAsync(user, true, true);
+            await ReplyFileAsync(imagePath, messageText);
         }
     }
 }

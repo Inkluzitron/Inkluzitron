@@ -319,6 +319,12 @@ namespace Inkluzitron.Services
             return gifName;
         }
 
+        public Task<string> SpankGentleAsync(IUser target, IUser caller)
+            => SpankAsync(target, caller, false);
+
+        public Task<string> SpankHarderAsync(IUser target, IUser caller)
+            => SpankAsync(target, caller, true);
+
         static private Bitmap RenderSpankFrame(SysDrawImage profilePicture, Bitmap frame, int index, bool harder)
         {
             var deformation = new[] { 4, 2, 1, 0, 0, 0, 0, 3 };

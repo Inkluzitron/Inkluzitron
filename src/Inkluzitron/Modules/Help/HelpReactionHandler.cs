@@ -46,7 +46,7 @@ namespace Inkluzitron.Modules.Help
 
             var context = new CommandContext(Client, message.ReferencedMessage);
             var availableModules = await CommandService.Modules
-                .FindAllAsync(async mod => mod.HasStandaloneHelpPage() && (await mod.GetExecutableCommandsAsync(context, Provider)).Count > 0);
+                .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(context, Provider)).Count > 0);
 
             int maxPages = Math.Min(metadata.PageCount, availableModules.Count); // Maximal count of available pages.
             int newPage = metadata.PageNumber;

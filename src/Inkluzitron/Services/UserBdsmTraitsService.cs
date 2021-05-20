@@ -94,19 +94,19 @@ namespace Inkluzitron.Services
 
             if (user.Equals(target))
             {
-                check.Result = BdsmOperationCheckResult.Self;
+                check.Result = BdsmTraitOperationCheckResult.Self;
                 return check;
             }
 
             if (!await TestExists(user))
             {
-                check.Result = BdsmOperationCheckResult.UserHasNoTest;
+                check.Result = BdsmTraitOperationCheckResult.UserHasNoTest;
                 return check;
             }
 
             if (!await TestExists(target))
             {
-                check.Result = BdsmOperationCheckResult.TargetHasNoTest;
+                check.Result = BdsmTraitOperationCheckResult.TargetHasNoTest;
                 return check;
             }
 
@@ -134,7 +134,7 @@ namespace Inkluzitron.Services
 
             if (score >= 0)
             {
-                check.Result = BdsmOperationCheckResult.InCompliance;
+                check.Result = BdsmTraitOperationCheckResult.InCompliance;
             }
             else
             {
@@ -146,9 +146,9 @@ namespace Inkluzitron.Services
                 check.RollMaximum = rollMaximum;
 
                 if (check.RolledValue >= check.RequiredValue)
-                    check.Result = BdsmOperationCheckResult.RollSucceeded;
+                    check.Result = BdsmTraitOperationCheckResult.RollSucceeded;
                 else
-                    check.Result = BdsmOperationCheckResult.RollFailed;
+                    check.Result = BdsmTraitOperationCheckResult.RollFailed;
             }
 
             return check;

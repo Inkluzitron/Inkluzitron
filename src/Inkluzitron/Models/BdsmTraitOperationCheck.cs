@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Inkluzitron.Enums;
 using Inkluzitron.Models.Settings;
 using System;
 
@@ -15,8 +16,8 @@ namespace Inkluzitron.Models
 
         public IUser User { get; set; }
         public IUser Target { get; set; }
-        public BdsmOperationCheckResult Result { get; set; }
-        public bool IsSuccessful => Result != BdsmOperationCheckResult.RollFailed;
+        public BdsmTraitOperationCheckResult Result { get; set; }
+        public bool IsSuccessful => Result != BdsmTraitOperationCheckResult.RollFailed;
 
         public int UserSubmissiveness { get; set; }
         public int UserDominance { get; set; }
@@ -33,27 +34,27 @@ namespace Inkluzitron.Models
 
             switch (Result)
             {
-                case BdsmOperationCheckResult.UserHasNoTest:
+                case BdsmTraitOperationCheckResult.UserHasNoTest:
                     return string.Format(_translations.MissingTest, User.Username);
 
-                case BdsmOperationCheckResult.TargetHasNoTest:
+                case BdsmTraitOperationCheckResult.TargetHasNoTest:
                     return string.Format(_translations.MissingTest, Target.Username);
 
-                case BdsmOperationCheckResult.Self:
+                case BdsmTraitOperationCheckResult.Self:
                     return string.Format(_translations.Self, User.Username);
 
-                case BdsmOperationCheckResult.InCompliance:
+                case BdsmTraitOperationCheckResult.InCompliance:
                     return string.Format(
                         _translations.InCompliance,
                         User.Username, UserSubmissiveness, UserDominance,
                         Target.Username, TargetSubmissiveness, TargetDominance
                     );
 
-                case BdsmOperationCheckResult.RollSucceeded:
+                case BdsmTraitOperationCheckResult.RollSucceeded:
                     format = _translations.RollSucceeded;
                     break;
 
-                case BdsmOperationCheckResult.RollFailed:
+                case BdsmTraitOperationCheckResult.RollFailed:
                     format = _translations.RollFailed;
                     break;
 

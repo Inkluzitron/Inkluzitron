@@ -1,6 +1,6 @@
-﻿namespace Inkluzitron.Models
+﻿namespace Inkluzitron.Enums
 {
-    public enum BdsmOperationCheckResult
+    public enum BdsmTraitOperationCheckResult
     {
         UserHasNoTest,
         TargetHasNoTest,
