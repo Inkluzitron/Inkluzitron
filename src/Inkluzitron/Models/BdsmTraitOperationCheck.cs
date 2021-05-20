@@ -64,7 +64,6 @@ namespace Inkluzitron.Models
 
             return string.Format(
                 format,
-
                 User.Username, UserSubmissiveness, UserDominance,
                 Target.Username, TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue

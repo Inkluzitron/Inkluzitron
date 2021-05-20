@@ -2,6 +2,7 @@
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -78,9 +79,6 @@ namespace Inkluzitron.Services
         public async Task<bool> IsSubmissiveOnly(IUser user)
             => (await IsSubmissive(user)) && !(await IsDominant(user));
 
-        static private int ToIntPercentage(double x)
-            => (int)Math.Round(100 * x);
-
         static private string ToLastOperationCheckKey(IUser user)
             => $"{nameof(BdsmTraitOperationCheck)}_{user.Id}";
 
@@ -130,10 +128,10 @@ namespace Inkluzitron.Services
             var targetDominance = await GetTraitScore(target, BdsmTraits.Dominant);
             var targetSubmissiveness = await GetTraitScore(target, BdsmTraits.Submissive);
 
-            check.UserDominance = ToIntPercentage(userDominance);
-            check.UserSubmissiveness = ToIntPercentage(userSubmissiveness);
-            check.TargetDominance = ToIntPercentage(targetDominance);
-            check.TargetSubmissiveness = ToIntPercentage(targetSubmissiveness);
+            check.UserDominance = userDominance.ToIntPercentage();
+            check.UserSubmissiveness = userSubmissiveness.ToIntPercentage();
+            check.TargetDominance = targetDominance.ToIntPercentage();
+            check.TargetSubmissiveness = targetSubmissiveness.ToIntPercentage();
 
             var score = 0.0;
 
