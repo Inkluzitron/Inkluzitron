@@ -233,6 +233,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .ToListAsync();
             }
 
+            foreach (var testResult in resultsDict.Values.SelectMany(x => x).Select(x => x.Parent))
+            {
+                var guildMember = await Context.Guild.GetUserAsync(testResult.SubmittedById);
+                if (guildMember == null)
+                    continue;
+
+                testResult.SubmittedByName = guildMember.Nickname
+                    ?? guildMember.Username
+                    ?? testResult.SubmittedByName;
+            }
+
             return resultsDict;
         }
 
