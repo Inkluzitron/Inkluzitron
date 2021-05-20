@@ -37,16 +37,19 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
+        public UserBdsmTraitsService BdsmTraitsService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
-            GraphPaintingService graphPainter, IHttpClientFactory factory)
+            GraphPaintingService graphPainter, IHttpClientFactory factory,
+            UserBdsmTraitsService bdsmTraitsService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
             GraphPainter = graphPainter;
             HttpClientFactory = factory;
+            BdsmTraitsService = bdsmTraitsService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -104,7 +107,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 {
                     File.Delete(imgFile);
                 }
-                catch {
+                catch
+                {
                     // *** it's not much but it was honest work ***
                 }
             }
@@ -296,6 +300,19 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
 
             await ShowUserResultsAsync();
+        }
+
+        [Command("last roll")]
+        [Summary("Vypíše poslední započítaný vliv výsledků BDSM testu, např. vůči použitému příkazu whip.")]
+        public async Task ShowLastOperationCheckAsync()
+        {
+            if (!BdsmTraitsService.TryGetLastOperationCheck(Context.User, out var lastCheck))
+            {
+                await Context.Message.AddReactionAsync(ReactionSettings.Shrunk);
+                return;
+            }
+
+            await ReplyAsync(lastCheck.ToString());
         }
     }
 }

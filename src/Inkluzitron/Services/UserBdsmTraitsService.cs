@@ -5,6 +5,7 @@ using Inkluzitron.Enums;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -21,11 +22,14 @@ namespace Inkluzitron.Services
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
 
-        public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings, BdsmTraitOperationCheckTranslations checkTranslations)
+        public IMemoryCache Cache { get; }
+
+        public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings, BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache)
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
             CheckTranslations = checkTranslations;
+            Cache = cache;
         }
 
         public async Task<bool> TestExists(IUser user)
@@ -74,7 +78,17 @@ namespace Inkluzitron.Services
         public async Task<bool> IsSubmissiveOnly(IUser user)
             => (await IsSubmissive(user)) && !(await IsDominant(user));
 
-        static private int ToIntPercentage(double x) => (int)Math.Round(100 * x);
+        static private int ToIntPercentage(double x)
+            => (int)Math.Round(100 * x);
+
+        static private string ToLastOperationCheckKey(IUser user)
+            => $"{nameof(BdsmTraitOperationCheck)}_{user.Id}";
+
+        public bool TryGetLastOperationCheck(IUser user, out BdsmTraitOperationCheck lastCheck)
+            => Cache.TryGetValue(ToLastOperationCheckKey(user), out lastCheck);
+
+        private void SetLastOperationCheck(IUser user, BdsmTraitOperationCheck lastCheck)
+            => Cache.Set(ToLastOperationCheckKey(user), lastCheck);
 
         /// <summary>
         /// Check based on BDSM results.
@@ -91,6 +105,7 @@ namespace Inkluzitron.Services
                 throw new ArgumentNullException(nameof(target));
 
             var check = new BdsmTraitOperationCheck(CheckTranslations) { User = user, Target = target };
+            SetLastOperationCheck(user, check);
 
             if (user.Equals(target))
             {

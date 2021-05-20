@@ -73,7 +73,8 @@ namespace Inkluzitron
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
-                .AddHttpClient();
+                .AddHttpClient()
+                .AddMemoryCache();
 
             services.AddLogging(config =>
             {
