@@ -30,6 +30,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public int AvatarSize { get; init; } = 64;
         public Font UsernameFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
         public Brush UsernameForeground { get; init; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
+        public Font AvatarPercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 15);
+        public Brush AvatarPercentageForeground { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
 
         public int ColumnCount { get; init; } = 5;
 
@@ -43,10 +45,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             CategoryBoxHeadingFont?.Dispose();
             GridLinePercentageFont?.Dispose();
             UsernameFont?.Dispose();
+            AvatarPercentageFont?.Dispose();
 
             CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20);
             GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
             UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
+            AvatarPercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
         }
 
         public void Dispose()
@@ -62,6 +66,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             CategoryBoxHeadingForeground.Dispose();
             UsernameFont.Dispose();
             UsernameForeground.Dispose();
+            AvatarPercentageFont.Dispose();
+            AvatarPercentageForeground.Dispose();
         }
 
         public async Task<Bitmap> DrawAsync(IDictionary<string, List<QuizDoubleItem>> toplistResults, float reportingThreshold)
@@ -251,9 +257,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             if (datas.Length == 1)
                 x = avatarsArea.Left; // .. and override it to the left if it does not have any friends.
 
-
             // We will be drawing the avatars from right to left. In case of overlaps, higher-ranked results will be drawn on top.
-
 
             var isAbove = datas.Length % 2 == 1; // Determine the initial username location (above/below) so that 1st result has username on top.
             var i = datas.Length;
@@ -273,18 +277,29 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
-                var pctgStrSize = g.MeasureString(un, UsernameFont);
-                while (un.Length >= 5 && pctgStrSize.Width > maxUsernameWidth) {
+                var unStrSize = g.MeasureString(un, UsernameFont);
+                while (un.Length >= 5 && unStrSize.Width > maxUsernameWidth) {
                     un = un[0..^1];
-                    pctgStrSize = g.MeasureString(un, UsernameFont);
+                    unStrSize = g.MeasureString(un, UsernameFont);
                 }
 
                 g.DrawString(
                     un, UsernameFont, UsernameForeground,
+                    x - 0.5f * unStrSize.Width,
+                    isAbove
+                      ? y - 0.5f * avatarSize.Height - 1.1f * unStrSize.Height
+                      : y + 0.5f * avatarSize.Height + 0.1f * unStrSize.Height
+                );
+
+                // Draw the percentage now
+                var pctg = (100 * value).ToString("N0");
+                var pctgStrSize = g.MeasureString(pctg, AvatarPercentageFont);
+                g.DrawString(
+                    pctg, AvatarPercentageFont, AvatarPercentageForeground,
                     x - 0.5f * pctgStrSize.Width,
                     isAbove
-                      ? y - 0.5f * avatarSize.Height - 1.1f * pctgStrSize.Height
-                      : y + 0.5f * avatarSize.Height + 0.1f * pctgStrSize.Height
+                      ? y + 0.5f * avatarSize.Height + 0.1f * pctgStrSize.Height
+                      : y - 0.5f * avatarSize.Height - 1.1f * pctgStrSize.Height
                 );
 
                 isAbove = !isAbove;
