@@ -20,6 +20,9 @@ namespace Inkluzitron.Models
             _lookupPattern = lookupPattern;
         }
 
+        /// <summary>
+        /// Tries to find the file in cache.
+        /// </summary>
         public bool TryFind(out string filePath)
         {
             filePath = _parentDir
@@ -45,6 +48,10 @@ namespace Inkluzitron.Models
             }
         }
 
+        /// <summary>
+        /// Composes the appropriate file path for this cache object.
+        /// This also removes all cache entries with the same unique identifiers.
+        /// </summary>
         public string GetPathForWriting(string extension)
         {
             RemoveLeftovers();
