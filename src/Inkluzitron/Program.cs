@@ -89,6 +89,8 @@ namespace Inkluzitron
                     {
                         if (category.StartsWith("Microsoft.EntityFrameworkCore"))
                             return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
+                        else if (category.StartsWith("System.Net.Http.HttpClient.Default"))
+                            return level > LogLevel.Information;
                         else
                             return true;
                     });
