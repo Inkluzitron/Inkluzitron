@@ -93,11 +93,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
-            var imgFile = ImagesService.CreateCachePath(Path.GetRandomFileName() + ".png");
+            var imgFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".png");
 
             try
             {
-                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.StrongTraitThreshold));
+                using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
                 img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
                 await ReplyFileAsync(imgFile);
             }

@@ -1,7 +1,11 @@
 ﻿using Discord;
+using Discord.WebSocket;
 using GrapeCity.Documents.Imaging;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
+using Inkluzitron.Models.Settings;
 using Inkluzitron.Resources.Bonk;
+using Inkluzitron.Resources.Miscellaneous;
 using Inkluzitron.Resources.Pat;
 using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
@@ -21,65 +25,140 @@ namespace Inkluzitron.Services
 {
     public class ImagesService
     {
-        private ProfilePictureService ProfilePictureService { get; }
+        private DiscordSocketClient Client { get; }
+        private ImageCacheSettings CacheSettings { get; }
 
-        public ImagesService(ProfilePictureService profilePictureService)
+        private DirectoryInfo AvatarCache { get; }
+        private DirectoryInfo WhipCache { get; }
+        private DirectoryInfo SpankCache { get; }
+        private DirectoryInfo LoveCache { get; }
+        private DirectoryInfo PatCache { get; }
+        private DirectoryInfo BonkCache { get; }
+
+        private DirectoryInfo InitializeCache(string directoryName)
         {
-            ProfilePictureService = profilePictureService;
-            Directory.CreateDirectory("ImageCache");
+            var result = new DirectoryInfo(Path.Combine(CacheSettings.DirectoryPath, directoryName));
+            result.Create();
+            return result;
         }
 
-        static public string CreateCachePath(string filename)
-            => Path.Combine("ImageCache", filename);
+        public ImagesService(DiscordSocketClient client, ImageCacheSettings cacheSettings)
+        {
+            Client = client;
+            CacheSettings = cacheSettings;
+
+            AvatarCache = InitializeCache("Avatars");
+            WhipCache = InitializeCache("Whip");
+            SpankCache = InitializeCache("Spank");
+            LoveCache = InitializeCache("Love");
+            PatCache = InitializeCache("Pat");
+            BonkCache = InitializeCache("Bonk");
+        }
 
         static private List<Bitmap> GetBitmapsFromResources<TResources>()
-        {
-            return typeof(TResources).GetProperties()
+            => typeof(TResources).GetProperties()
                 .Where(o => o.PropertyType == typeof(Bitmap))
                 .Select(o => o.GetValue(null, null) as Bitmap)
                 .Where(o => o != null)
                 .ToList();
+
+        static private string GetAvatarExtension(string avatarId)
+            => avatarId.StartsWith("a_") ? "gif" : "png";
+
+        static private AvatarImageWrapper CreateFallbackAvatarWrapper()
+           => new AvatarImageWrapper(MiscellaneousResources.FallbackAvatar, 1, "png", false);
+
+        public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, Size? size = null)
+        {
+            if (guild == null)
+                throw new ArgumentNullException(nameof(guild));
+
+            IUser user = await guild.GetUserAsync(userId);
+            user ??= await Client.Rest.GetUserAsync(userId);
+
+            if (user == null)
+                return CreateFallbackAvatarWrapper();
+            else
+                return await GetAvatarAsync(user, discordSize, size);
+        }
+
+        public async Task<AvatarImageWrapper> GetAvatarAsync(IUser user, ushort discordSize = 128, Size? size = null)
+        {
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
+            var realSize = size ?? new Size(100, 100);
+            var cacheObject = FileCacheObject.In(AvatarCache)
+                .WithUnique(user.Id)
+                .WithParam(user.AvatarId, discordSize, realSize.Width, realSize.Height)
+                .Build();
+
+            if (cacheObject.TryFind(out var filePath))
+            {
+                using var fileStream = File.OpenRead(filePath);
+                return new AvatarImageWrapper(
+                    SysDrawImage.FromStream(fileStream),
+                    fileStream.Length,
+                    Path.GetExtension(filePath)
+                );
+            }
+
+            var profilePictureData = await user.DownloadProfilePictureAsync(size: discordSize);
+            using var memStream = new MemoryStream(profilePictureData);
+            using var rawProfileImage = SysDrawImage.FromStream(memStream);
+            using var roundedProfileImage = rawProfileImage.RoundImage();
+
+            var avatar = roundedProfileImage.ResizeImage(realSize.Width, realSize.Height);
+            var extension = GetAvatarExtension(user.AvatarId);
+            avatar.Save(cacheObject.GetPathForWriting(extension));
+            return new AvatarImageWrapper(avatar, memStream.Length, extension);
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
-        public async Task<string> WhipAsync(IUser target, IUser caller)
+        public async Task<string> WhipAsync(IUser target, bool self)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
-            if (caller == null)
-                throw new ArgumentNullException(nameof(caller));
 
-            var self = target.Equals(caller);
-            var gifName = CreateCachePath($"Whip{(self ? "_self" : "")}_{target.Id}_{target.AvatarId ?? target.Discriminator}.gif");
+            var cacheObject = FileCacheObject.In(WhipCache)
+                .WithUnique(target.Id)
+                .WithConditionalUnique("self", self)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
 
-            if (!File.Exists(gifName))
+            if (cacheObject.TryFind(out string filePath))
+                return filePath;
+            else
+                filePath = cacheObject.GetPathForWriting("gif");
+
+            using var avatar = await GetAvatarAsync(target);
+            using var gifWriter = new GcGifWriter(filePath);
+            using var gcBitmap = new GcBitmap();
+
+            if (self)
+                avatar.Image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
+            var frames = GetBitmapsFromResources<WhipResources>();
+            for (int i = 0; i < frames.Count; i++)
             {
-                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(target);
-                using var gifWriter = new GcGifWriter(gifName);
-                using var gcBitmap = new GcBitmap();
+                var frame = frames[i];
+                using var whipFrame = RenderWhipFrame(avatar.Image, frame, i);
 
-                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                if (self)
+                    whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
-                var frames = GetBitmapsFromResources<WhipResources>();
-                for (int i = 0; i < frames.Count; i++)
-                {
-                    var frame = frames[i];
-                    var whipFrame = RenderWhipFrame(profilePicture, frame, i);
+                using var ms = new MemoryStream();
+                whipFrame.Save(ms, SysImgFormat.Png);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    if (self) whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-                    using var ms = new MemoryStream();
-                    whipFrame.Save(ms, SysImgFormat.Png);
-
-                    gcBitmap.Load(ms.ToArray());
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor);
-                }
+                gcBitmap.Load(ms);
+                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor);
             }
 
-            return gifName;
+            return filePath;
         }
 
-        static private Bitmap RenderWhipFrame(SysDrawImage profilePicture, Bitmap frame, int index)
+        static private Bitmap RenderWhipFrame(SysDrawImage avatar, Bitmap frame, int index)
         {
             var deformation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 5, 9, 6, 4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             var translation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -87,7 +166,7 @@ namespace Inkluzitron.Services
             var bitmap = new Bitmap(250, 145);
             bitmap.MakeTransparent();
 
-            using var frameAvatar = profilePicture.ResizeImage(100 - deformation[index], 100);
+            using var frameAvatar = avatar.ResizeImage(100 - deformation[index], 100);
 
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -99,50 +178,56 @@ namespace Inkluzitron.Services
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
-        public async Task<string> BonkAsync(IUser target, IUser caller)
+        public async Task<string> BonkAsync(IUser target, bool self)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
-            if (caller == null)
-                throw new ArgumentNullException(nameof(caller));
 
-            var self = target.Equals(caller);
-            var gifName = CreateCachePath($"bonk{(self ? "_self" : "")}_{target.Id}_{target.AvatarId ?? target.Discriminator}.gif");
+            var cacheObject = FileCacheObject.In(BonkCache)
+                .WithUnique(target.Id)
+                .WithConditionalUnique("self", self)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
 
-            if (!File.Exists(gifName))
+            if (cacheObject.TryFind(out string filePath))
+                return filePath;
+            else
+                filePath = cacheObject.GetPathForWriting("gif");
+
+            using var avatar = await GetAvatarAsync(target);
+            using var gifWriter = new GcGifWriter(filePath);
+            using var gcBitmap = new GcBitmap();
+
+            if (self)
+                avatar.Image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
+            var frames = GetBitmapsFromResources<BonkResources>();
+            for (int i = 0; i < frames.Count; i++)
             {
-                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(target);
-                using var gifWriter = new GcGifWriter(gifName);
-                using var gcBitmap = new GcBitmap();
+                var frame = frames[i];
+                using var bonkFrame = RenderBonkFrame(avatar.Image, frame, i);
 
-                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                if (self)
+                    bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
-                var frames = GetBitmapsFromResources<BonkResources>();
-                for (int i = 0; i < frames.Count; i++)
-                {
-                    var frame = frames[i];
-                    using var bonkFrame = RenderBonkFrame(profilePicture, frame, i);
+                using var ms = new MemoryStream();
+                bonkFrame.Save(ms, SysImgFormat.Png);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    if (self) bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-                    using var ms = new MemoryStream();
-                    bonkFrame.Save(ms, SysImgFormat.Png);
-
-                    gcBitmap.Load(ms.ToArray());
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 3);
-                }
+                gcBitmap.Load(ms);
+                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 3);
             }
 
-            return gifName;
+            return filePath;
         }
 
-        static private Bitmap RenderBonkFrame(SysDrawImage profilePicture, Bitmap frame, int index)
+        static private Bitmap RenderBonkFrame(SysDrawImage avatar, Bitmap frame, int index)
         {
             var bitmap = new Bitmap(250, 170);
             bitmap.MakeTransparent();
 
             var deformation = new[] { 0, 0, 0, 0, 5, 20, 15, 5 };
-            using var frameAvatar = profilePicture.ResizeImage(110, 100 - deformation[index]);
+            using var frameAvatar = avatar.ResizeImage(110, 100 - deformation[index]);
 
             using var g = Graphics.FromImage(bitmap);
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -156,108 +241,117 @@ namespace Inkluzitron.Services
         // Taken from https://github.com/Misha12/GrillBot
         public async Task<string> PeepoAngryAsync(IUser target, int fileUploadLimit)
         {
-            var imageName = CreateCachePath($"Peepoangry_{target.Id}_{target.AvatarId ?? target.Discriminator}.{(target.AvatarId.StartsWith("a_") ? "gif" : "png")}");
+            var cacheObject = FileCacheObject.In(BonkCache)
+                .WithUnique(target.Id)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
 
-            if (!File.Exists(imageName))
+            if (cacheObject.TryFind(out var filePath))
+                return filePath;
+
+            using var avatar = await GetAvatarAsync(target, 64);
+            var isAnimated = avatar.Extension == "gif";
+
+            // Large animated profile pictures have problem with gif upload.
+            if (isAnimated && avatar.FileSize >= 2 * (fileUploadLimit / 3))
+                isAnimated = false;
+
+            filePath = cacheObject.GetPathForWriting(isAnimated ? "gif" : "png");
+
+            if (isAnimated)
             {
-                var profilePictureData = await target.DownloadProfilePictureAsync(size: 64);
-                using var memStream = new MemoryStream(profilePictureData);
-                using var rawProfilePicture = SysDrawImage.FromStream(memStream);
+                var frames = avatar.Image.SplitGifIntoFrames();
 
-                // Large animated profile pictures have problem with gif upload.
-                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= 2 * (fileUploadLimit / 3))
-                    imageName = Path.ChangeExtension(imageName, ".png");
-
-                if (Path.GetExtension(imageName) == ".gif")
+                try
                 {
-                    var frames = rawProfilePicture.SplitGifIntoFrames();
+                    using var gifWriter = new GcGifWriter(filePath);
+                    using var gcBitmap = new GcBitmap();
+                    var delayTime = avatar.Image.CalculateGifDelay();
 
-                    try
+                    foreach (var userFrame in frames)
                     {
-                        using var gifWriter = new GcGifWriter(imageName);
-                        using var gcBitmap = new GcBitmap();
+                        using var roundedUserFrame = userFrame.RoundImage();
+                        using var frame = RenderPeepoangryFrame(roundedUserFrame);
 
-                        foreach (var userFrame in frames)
-                        {
-                            using var roundedUserFrame = userFrame.RoundImage();
-                            using var frame = RenderPeepoangryFrame(roundedUserFrame);
+                        using var ms = new MemoryStream();
+                        frame.Save(ms, SysImgFormat.Png);
+                        ms.Seek(0, SeekOrigin.Begin);
 
-                            using var ms = new MemoryStream();
-                            frame.Save(ms, SysImgFormat.Png);
-
-                            gcBitmap.Load(ms.ToArray());
-                            gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: rawProfilePicture.CalculateGifDelay());
-                        }
-                    }
-                    finally
-                    {
-                        frames.ForEach(o => o.Dispose());
-                        frames.Clear();
+                        gcBitmap.Load(ms);
+                        gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delayTime);
                     }
                 }
-                else if (Path.GetExtension(imageName) == ".png")
+                finally
                 {
-                    using var roundedProfileImage = rawProfilePicture.RoundImage();
-                    var profilePicture = roundedProfileImage.ResizeImage(64, 64);
-
-                    using var frame = RenderPeepoangryFrame(profilePicture);
-                    frame.Save(imageName, SysImgFormat.Png);
+                    frames.ForEach(f => f.Dispose());
+                    frames.Clear();
                 }
             }
+            else
+            {
+                using var frame = RenderPeepoangryFrame(avatar.Image);
+                frame.Save(filePath, SysImgFormat.Png);
+            }
 
-            return imageName;
+            return filePath;
         }
 
-        static private SysDrawImage RenderPeepoangryFrame(SysDrawImage profilePicture)
+        static private SysDrawImage RenderPeepoangryFrame(SysDrawImage avatar)
         {
             var body = new Bitmap(250, 105);
             using var graphics = Graphics.FromImage(body);
 
-            graphics.DrawImage(profilePicture, new Rectangle(new Point(20, 10), new Size(64, 64)));
+            graphics.DrawImage(avatar, new Rectangle(new Point(20, 10), new Size(64, 64)));
             graphics.DrawImage(PeepoangryResources.peepoangry, new Point(115, -5));
 
             return body;
         }
 
         // Taken from https://github.com/Toaster192/rubbergod
-        public async Task<string> PatAsync(IUser target, IUser caller)
+        public async Task<string> PatAsync(IUser target, bool self)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
-            if (caller == null)
-                throw new ArgumentNullException(nameof(caller));
 
-            var self = target.Equals(caller);
-            var gifName = CreateCachePath($"Pat{(self ? "_self" : "")}_{target.Id}_{target.AvatarId ?? target.Discriminator}.gif");
+            var cacheObject = FileCacheObject.In(PatCache)
+                .WithUnique(target.Id)
+                .WithConditionalUnique("self", self)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
 
-            if (!File.Exists(gifName))
+            if (cacheObject.TryFind(out var filePath))
+                return filePath;
+            else
+                filePath = cacheObject.GetPathForWriting(".gif");
+
+            using var avatar = await GetAvatarAsync(target);
+            using var gifWriter = new GcGifWriter(filePath);
+            using var gcBitmap = new GcBitmap();
+
+            if (self)
+                avatar.Image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
+            var frames = GetBitmapsFromResources<PatResources>();
+            for (int i = 0; i < frames.Count; i++)
             {
-                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(target);
-                using var gifWriter = new GcGifWriter(gifName);
-                using var gcBitmap = new GcBitmap();
+                var frame = frames[i];
+                using var bonkFrame = RenderPatFrame(avatar.Image, frame, i);
 
-                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                if (self)
+                    bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
-                var frames = GetBitmapsFromResources<PatResources>();
-                for (int i = 0; i < frames.Count; i++)
-                {
-                    var frame = frames[i];
-                    using var bonkFrame = RenderPatFrame(profilePicture, frame, i);
+                using var ms = new MemoryStream();
+                bonkFrame.Save(ms, SysImgFormat.Png);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    if (self) bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-                    using var ms = new MemoryStream();
-                    bonkFrame.Save(ms, SysImgFormat.Png);
-
-                    gcBitmap.Load(ms.ToArray());
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 5);
-                }
+                gcBitmap.Load(ms);
+                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 5);
             }
 
-            return gifName;
+            return filePath;
         }
 
-        static private Bitmap RenderPatFrame(SysDrawImage profilePicture, Bitmap frame, int index)
+        static private Bitmap RenderPatFrame(SysDrawImage avatar, Bitmap frame, int index)
         {
             var deformation = new[]
             {
@@ -271,7 +365,7 @@ namespace Inkluzitron.Services
             var bitmap = new Bitmap(130, 150);
             bitmap.MakeTransparent();
 
-            using var frameAvatar = profilePicture.ResizeImage(100 - deformation[index].X, 100 - deformation[index].Y);
+            using var frameAvatar = avatar.ResizeImage(100 - deformation[index].X, 100 - deformation[index].Y);
 
             using var g = Graphics.FromImage(bitmap);
             g.DrawImage(frameAvatar, 120 - (110 - deformation[index].X), 150 - (100 - deformation[index].Y));
@@ -281,49 +375,57 @@ namespace Inkluzitron.Services
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
-        public async Task<string> SpankAsync(IUser target, IUser caller, bool harder)
+        public async Task<string> SpankAsync(IUser target, bool self, bool harder)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
-            if (caller == null)
-                throw new ArgumentNullException(nameof(caller));
 
-            var self = target.Equals(caller);
             var delayTime = harder ? 3 : 5;
-            var gifName = CreateCachePath($"Spank{(self ? "_self" : "")}_{delayTime}_{target.Id}_{target.AvatarId ?? target.Discriminator}.gif");
 
-            if (!File.Exists(gifName))
+            var cacheObject = FileCacheObject.In(SpankCache)
+                .WithUnique(target.Id)
+                .WithConditionalUnique("self", self)
+                .WithParam(delayTime)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
+
+            if (cacheObject.TryFind(out var filePath))
+                return filePath;
+            else
+                filePath = cacheObject.GetPathForWriting("gif");
+
+            using var avatar = await GetAvatarAsync(target);
+            using var gifWriter = new GcGifWriter(filePath);
+            using var gcBitmap = new GcBitmap();
+
+            if (self)
+                avatar.Image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
+            var frames = GetBitmapsFromResources<SpankResources>();
+            for (int i = 0; i < frames.Count; i++)
             {
-                var profilePicture = await ProfilePictureService.GetProfilePictureAsync(target);
-                using var gifWriter = new GcGifWriter(gifName);
-                using var gcBitmap = new GcBitmap();
+                var frame = frames[i];
+                using var whipFrame = RenderSpankFrame(avatar.Image, frame, i, harder);
 
-                if (self) profilePicture.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                if (self)
+                    whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
 
-                var frames = GetBitmapsFromResources<SpankResources>();
-                for (int i = 0; i < frames.Count; i++)
-                {
-                    var frame = frames[i];
-                    var whipFrame = RenderSpankFrame(profilePicture, frame, i, harder);
+                using var ms = new MemoryStream();
+                whipFrame.Save(ms, SysImgFormat.Png);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    if (self) whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-                    using var ms = new MemoryStream();
-                    whipFrame.Save(ms, SysImgFormat.Png);
-
-                    gcBitmap.Load(ms.ToArray());
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delayTime);
-                }
+                gcBitmap.Load(ms);
+                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delayTime);
             }
 
-            return gifName;
+            return filePath;
         }
 
-        public Task<string> SpankGentleAsync(IUser target, IUser caller)
-            => SpankAsync(target, caller, false);
+        public Task<string> SpankGentleAsync(IUser target, bool self)
+            => SpankAsync(target, self, false);
 
-        public Task<string> SpankHarderAsync(IUser target, IUser caller)
-            => SpankAsync(target, caller, true);
+        public Task<string> SpankHarderAsync(IUser target, bool self)
+            => SpankAsync(target, self, true);
 
         static private Bitmap RenderSpankFrame(SysDrawImage profilePicture, Bitmap frame, int index, bool harder)
         {
@@ -345,67 +447,70 @@ namespace Inkluzitron.Services
         }
 
         // Taken from https://github.com/Misha12/GrillBot
-        public async Task<string> PeepoLoveAsync(IUser member, int fileUploadLimit)
+        public async Task<string> PeepoLoveAsync(IUser target, int fileUploadLimit)
         {
-            var imageName = CreateCachePath($"Peepolove_{member.Id}_{member.AvatarId ?? member.Discriminator}.{(member.AvatarId.StartsWith("a_") ? "gif" : "png")}");
+            var cacheObject = FileCacheObject.In(LoveCache)
+                .WithUnique(target.Id)
+                .WithParam(target.AvatarId ?? target.Discriminator)
+                .Build();
 
-            if (!File.Exists(imageName))
+            if (cacheObject.TryFind(out var filePath))
+                return filePath;
+
+            using var avatar = await GetAvatarAsync(target, 256);
+            var isAnimated = avatar.Extension == "gif";
+
+            // Large animated profile pictures have problem with gif upload.
+            if (isAnimated && avatar.FileSize >= 2 * (fileUploadLimit / 3))
+                isAnimated = false;
+
+            filePath = cacheObject.GetPathForWriting(isAnimated ? "gif" : "png");
+
+            if (isAnimated)
             {
-                var profilePictureData = await member.DownloadProfilePictureAsync(size: 256);
-                using var memStream = new MemoryStream(profilePictureData);
-                using var rawProfilePicture = SysDrawImage.FromStream(memStream);
+                var frames = avatar.Image.SplitGifIntoFrames();
 
-                // Large animated profile pictures have problem with gif upload.
-                if (Path.GetExtension(imageName) == ".gif" && profilePictureData.Length >= 2 * (fileUploadLimit / 3))
-                    imageName = Path.ChangeExtension(imageName, ".png");
-
-                if (Path.GetExtension(imageName) == ".gif")
+                try
                 {
-                    var frames = rawProfilePicture.SplitGifIntoFrames();
+                    using var gifWriter = new GcGifWriter(filePath);
+                    using var gcBitmap = new GcBitmap();
+                    var delay = avatar.Image.CalculateGifDelay();
 
-                    try
+                    foreach (var userFrame in frames)
                     {
-                        using var gifWriter = new GcGifWriter(imageName);
-                        using var gcBitmap = new GcBitmap();
+                        using var roundedUserFrame = userFrame.RoundImage();
+                        using var frame = RenderPeepoloveFrame(roundedUserFrame);
 
-                        foreach (var userFrame in frames)
-                        {
-                            using var roundedUserFrame = userFrame.RoundImage();
-                            using var frame = RenderPeepoloveFrame(roundedUserFrame);
+                        using var ms = new MemoryStream();
+                        frame.Save(ms, SysImgFormat.Png);
+                        ms.Seek(0, SeekOrigin.Begin);
 
-                            using var ms = new MemoryStream();
-                            frame.Save(ms, SysImgFormat.Png);
-
-                            gcBitmap.Load(ms.ToArray());
-                            gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: rawProfilePicture.CalculateGifDelay());
-                        }
-                    }
-                    finally
-                    {
-                        frames.ForEach(o => o.Dispose());
-                        frames.Clear();
+                        gcBitmap.Load(ms);
+                        gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delay);
                     }
                 }
-                else if (Path.GetExtension(imageName) == ".png")
+                finally
                 {
-                    using var roundedProfileImage = rawProfilePicture.RoundImage();
-                    using var profilePicture = roundedProfileImage.ResizeImage(256, 256);
-
-                    using var frame = RenderPeepoloveFrame(profilePicture);
-                    frame.Save(imageName, SysImgFormat.Png);
+                    frames.ForEach(o => o.Dispose());
+                    frames.Clear();
                 }
             }
+            else
+            {
+                using var frame = RenderPeepoloveFrame(avatar.Image);
+                frame.Save(filePath, SysImgFormat.Png);
+            }
 
-            return imageName;
+            return filePath;
         }
 
-        static private SysDrawImage RenderPeepoloveFrame(SysDrawImage profilePicture)
+        static private SysDrawImage RenderPeepoloveFrame(SysDrawImage avatar)
         {
             using var body = new Bitmap(PeepoloveResources.body);
             using var graphics = Graphics.FromImage(body);
 
             graphics.RotateTransform(-0.4F);
-            graphics.DrawImage(profilePicture, new Rectangle(5, 312, 180, 180));
+            graphics.DrawImage(avatar, new Rectangle(5, 312, 180, 180));
             graphics.RotateTransform(0.4F);
             graphics.DrawImage(PeepoloveResources.hands, new Rectangle(0, 0, 512, 512));
 

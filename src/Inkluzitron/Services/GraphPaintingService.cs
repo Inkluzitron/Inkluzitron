@@ -6,12 +6,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
 using Inkluzitron.Services;
+using Discord.WebSocket;
+using Inkluzitron.Models;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
     public class GraphPaintingService : IDisposable
     {
-        private ProfilePictureService ProfilePictureService { get; }
+        private ImagesService ImagesService { get; }
 
         public Color BackgroundColor { get; init; } = Color.Black;
         public int CategoryBoxPadding { get; init; } = 20;
@@ -35,12 +37,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         public int ColumnCount { get; init; } = 5;
 
-        protected GraphPaintingService(ProfilePictureService profilePictureService)
+        protected GraphPaintingService(ImagesService imagesService)
         {
-            ProfilePictureService = profilePictureService;
+            ImagesService = imagesService;
         }
 
-        public GraphPaintingService(ProfilePictureService profilePictureService, FontService fontService) : this(profilePictureService)
+        public GraphPaintingService(ImagesService imagesService, FontService fontService) : this(imagesService)
         {
             CategoryBoxHeadingFont?.Dispose();
             GridLinePercentageFont?.Dispose();
@@ -70,7 +72,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             AvatarPercentageForeground.Dispose();
         }
 
-        public async Task<Bitmap> DrawAsync(IDictionary<string, List<QuizDoubleItem>> toplistResults, float reportingThreshold)
+        public async Task<Bitmap> DrawAsync(SocketGuild guild, IDictionary<string, List<QuizDoubleItem>> toplistResults)
         {
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
@@ -78,10 +80,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     toplistResults.Remove(k);
 
             // Download all needed avatars.
-            var avatars = new Dictionary<ulong, Image>();
+            using var avatars = new ValuesDisposingDictionary<ulong, AvatarImageWrapper>();
+
             var userIds = toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct();
             foreach (var userId in userIds)
-                avatars[userId] = await ProfilePictureService.GetProfilePictureAsync(userId);
+                avatars[userId] = await ImagesService.GetAvatarAsync(guild, userId);
 
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -126,7 +129,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                         maxValueInCategory,
                         topList[i].Value.Select(
                             x => (
-                                avatars[x.Parent.SubmittedById],
+                                avatars[x.Parent.SubmittedById].Image,
                                 x.Parent.SubmittedByName,
                                 Convert.ToSingle(x.Value)
                             )

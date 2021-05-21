@@ -67,12 +67,12 @@ namespace Inkluzitron
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>()
-                .AddSingleton<ProfilePictureService>()
                 .AddSingleton<FontService>()
                 .AddSingleton<GraphPaintingService>()
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
+                .AddSingleton<ImageCacheSettings>()
                 .AddHttpClient()
                 .AddMemoryCache();
 
