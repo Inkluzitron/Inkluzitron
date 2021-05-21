@@ -65,8 +65,16 @@ namespace Inkluzitron.Services
         static private string GetAvatarExtension(string avatarId)
             => avatarId.StartsWith("a_") ? "gif" : "png";
 
-        static private AvatarImageWrapper CreateFallbackAvatarWrapper()
-           => new AvatarImageWrapper(MiscellaneousResources.FallbackAvatar, 1, "png", false);
+        static private AvatarImageWrapper CreateFallbackAvatarWrapper(Size? size = null)
+        {
+            var desiredSize = size ?? DefaultAvatarSize;
+
+            using var roundedFallbackAvatar = MiscellaneousResources.FallbackAvatar.RoundImage();
+            var resizedFallbackAvatar = roundedFallbackAvatar.ResizeImage(desiredSize.Width, desiredSize.Height);
+            return new AvatarImageWrapper(resizedFallbackAvatar, 1, "png");
+        }
+
+        static private readonly Size DefaultAvatarSize = new Size(100, 100);
 
         public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, Size? size = null)
         {
@@ -77,7 +85,7 @@ namespace Inkluzitron.Services
             user ??= await Client.Rest.GetUserAsync(userId);
 
             if (user == null)
-                return CreateFallbackAvatarWrapper();
+                return CreateFallbackAvatarWrapper(size);
             else
                 return await GetAvatarAsync(user, discordSize, size);
         }
@@ -87,7 +95,7 @@ namespace Inkluzitron.Services
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var realSize = size ?? new Size(100, 100);
+            var realSize = size ?? DefaultAvatarSize;
             var cacheObject = FileCacheObject.In(AvatarCache)
                 .WithUnique(user.Id)
                 .WithParam(user.AvatarId, discordSize, realSize.Width, realSize.Height)
