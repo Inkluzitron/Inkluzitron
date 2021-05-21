@@ -23,7 +23,7 @@ namespace Inkluzitron.Services
         {
             Logger = logger;
             OpenSansCondensed = LoadFontCollectionFromResource(FontsResources.OpenSansCondensed);
-            OpenSansCondensedLight = LoadFontCollectionFromResource(FontsResources.OpenSansCondensedLight);            
+            OpenSansCondensedLight = LoadFontCollectionFromResource(FontsResources.OpenSansCondensedLight);
         }
 
         public void Dispose()

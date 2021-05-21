@@ -49,7 +49,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             UsernameFont?.Dispose();
             AvatarPercentageFont?.Dispose();
 
-            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20);
+            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold);
             GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
             UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
             AvatarPercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
