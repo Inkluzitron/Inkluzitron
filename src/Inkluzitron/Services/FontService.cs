@@ -44,10 +44,6 @@ namespace Inkluzitron.Services
                 var fontCollection = new PrivateFontCollection();
                 fontCollection.AddMemoryFont(fontData, fontBytes.Length);
 
-                Logger.LogInformation("TTF loading yielded {0} items in the private font collection", fontCollection.Families.Length);
-                foreach (var x in fontCollection.Families)
-                    Logger.LogInformation("PrivateFontCollection item: {0}", x.Name);
-
                 _fontCollections.Add(fontCollection);
                 _fontMemories.Add(fontData);
                 return fontCollection.Families.FirstOrDefault()
