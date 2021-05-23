@@ -79,25 +79,16 @@ namespace Inkluzitron
                 .AddSingleton<ImagesService>()
                 .AddSingleton(new FileCache(cacheDirLocation))
                 .AddHttpClient()
-                .AddMemoryCache();
-
-            services.AddLogging(config =>
-            {
-                config
-                    .SetMinimumLevel(LogLevel.Information)
-                    .AddSystemdConsole(opt =>
+                .AddMemoryCache()
+                .AddLogging(config =>
+                {
+                    config.AddConfiguration(configuration.GetSection("Logging"));
+                    config.AddSystemdConsole(opt =>
                     {
                         opt.IncludeScopes = true;
                         opt.TimestampFormat = "dd. MM. yyyy HH:mm:ss\t";
-                    })
-                    .AddFilter((category, level) =>
-                    {
-                        if (category.StartsWith("Microsoft.EntityFrameworkCore"))
-                            return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
-                        else
-                            return true;
                     });
-            });
+                });
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)
