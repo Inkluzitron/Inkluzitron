@@ -9,6 +9,9 @@ using SysDraw = System.Drawing;
 namespace Inkluzitron.Modules.Points
 {
     [Group("body")]
+    [Name("Body")]
+    [Summary("Body se počítají stejně jako u GrillBot. Za každou reakci uživatel obdrží 0 až 10 bodů, za zprávu 0 až 25 bodů. Po odeslání zprávy " +
+        "bot počítá jedno minutový cooldown. U reakce je cooldown 30 vteřin.")]
     public class PointsModule : ModuleBase
     {
         private PointsService PointsService { get; }
