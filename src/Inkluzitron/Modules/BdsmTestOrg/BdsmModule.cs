@@ -21,6 +21,7 @@ using Inkluzitron.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -93,25 +94,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
-            var imgFile = ImagesService.CreateCachePath(Path.GetRandomFileName() + ".png");
 
-            try
-            {
-                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.StrongTraitThreshold));
-                img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
-                await ReplyFileAsync(imgFile);
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(imgFile);
-                }
-                catch
-                {
-                    // *** it's not much but it was honest work ***
-                }
-            }
+            using var imgFile = new TemporaryFile("png");
+            using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
+            img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
+            await ReplyFileAsync(imgFile.Path);
         }
 
         [Command("list")]

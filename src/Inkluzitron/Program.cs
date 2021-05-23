@@ -8,6 +8,7 @@ using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,10 @@ namespace Inkluzitron
             if (dbFileLocation == null)
                 throw new InvalidOperationException("The 'DatabaseFilePath' configuration value is missing.");
 
+            var cacheDirLocation = configuration.GetValue<string>("CacheDirectoryPath");
+            if (cacheDirLocation == null)
+                throw new InvalidOperationException("The 'CacheDirectoryPath' configuration value is missing.");
+
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
@@ -67,32 +72,23 @@ namespace Inkluzitron
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>()
-                .AddSingleton<ProfilePictureService>()
                 .AddSingleton<FontService>()
                 .AddSingleton<GraphPaintingService>()
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
+                .AddSingleton(new FileCache(cacheDirLocation))
                 .AddHttpClient()
-                .AddMemoryCache();
-
-            services.AddLogging(config =>
-            {
-                config
-                    .SetMinimumLevel(LogLevel.Information)
-                    .AddSystemdConsole(opt =>
+                .AddMemoryCache()
+                .AddLogging(config =>
+                {
+                    config.AddConfiguration(configuration.GetSection("Logging"));
+                    config.AddSystemdConsole(opt =>
                     {
                         opt.IncludeScopes = true;
                         opt.TimestampFormat = "dd. MM. yyyy HH:mm:ss\t";
-                    })
-                    .AddFilter((category, level) =>
-                    {
-                        if (category.StartsWith("Microsoft.EntityFrameworkCore"))
-                            return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
-                        else
-                            return true;
                     });
-            });
+                });
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)

@@ -1,7 +1,5 @@
 ﻿using Inkluzitron.Extensions;
 using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 
 namespace Inkluzitron.Models.Settings
 {
@@ -17,6 +15,7 @@ namespace Inkluzitron.Models.Settings
         public string NoMatchesMessage { get; }
         public int MaximumMatchCount { get; }
         public double StrongTraitThreshold { get; }
+        public double WeakTraitThreshold { get; }
         public string NoTraitsToReportMessage { get; }
         public string InvalidVerboseModeUsage { get; }
         public string BadFilterQueryMessage { get; }
@@ -37,6 +36,7 @@ namespace Inkluzitron.Models.Settings
             NoMatchesMessage = cfg.GetRequired<string>(nameof(NoMatchesMessage));
             MaximumMatchCount = cfg.GetRequired<int>(nameof(MaximumMatchCount));
             StrongTraitThreshold = cfg.GetRequired<double>(nameof(StrongTraitThreshold));
+            WeakTraitThreshold = cfg.GetRequired<double>(nameof(WeakTraitThreshold));
             NoTraitsToReportMessage = cfg.GetRequired<string>(nameof(NoTraitsToReportMessage));
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
