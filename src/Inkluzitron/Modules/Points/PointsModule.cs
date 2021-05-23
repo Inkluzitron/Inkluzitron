@@ -1,0 +1,41 @@
+﻿using Discord;
+using Discord.Commands;
+using Inkluzitron.Extensions;
+using Inkluzitron.Services;
+using System.IO;
+using System.Threading.Tasks;
+using SysDraw = System.Drawing;
+
+namespace Inkluzitron.Modules.Points
+{
+    [Group("body")]
+    public class PointsModule : ModuleBase
+    {
+        private PointsService PointsService { get; }
+
+        public PointsModule(PointsService pointsService)
+        {
+            PointsService = pointsService;
+        }
+
+        [Command("kde")]
+        [Alias("gde")]
+        [Summary("Aktuální stav bodů uživatele.")]
+        public async Task GetPointsAsync(IUser member = null)
+        {
+            if (member == null) member = Context.User;
+            using var points = await PointsService.GetPointsAsync(member);
+
+            if(points == null)
+            {
+                await ReplyAsync($"Uživatel `{member.GetDisplayName()}` ještě nemá žádné body.");
+                return;
+            }
+
+            var tmpPath = Path.Combine(Path.GetTempPath(), $"{Path.GetRandomFileName()}.png");
+            points.Save(tmpPath, SysDraw.Imaging.ImageFormat.Png);
+
+            await ReplyFileAsync(tmpPath);
+        }
+    }
+}

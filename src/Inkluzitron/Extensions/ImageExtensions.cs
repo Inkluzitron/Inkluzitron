@@ -72,5 +72,21 @@ namespace Inkluzitron.Extensions
             var item = image.GetPropertyItem(0x5100); // FrameDelay in libgdi+.
             return item.Value[0] + (item.Value[1] * 256);
         }
+
+        static public void RenderRectangle(this Graphics graphics, Rectangle rect, Color color, int radius = 1)
+        {
+            using var path = new GraphicsPath();
+
+            path.AddArc(rect.X, rect.Y, radius * 2, radius * 2, 180, 90);
+            path.AddLine(rect.X + radius, rect.Y, rect.X + rect.Width - radius, rect.Y);
+            path.AddArc(rect.X + rect.Width - (2 * radius), rect.Y, 2 * radius, 2 * radius, 270, 90);
+            path.AddLine(rect.X + rect.Width, rect.Y + radius, rect.X + rect.Width, rect.Y + rect.Height - radius);
+            path.AddArc(rect.X + rect.Width - (2 * radius), rect.Y + rect.Height - (2 * radius), radius + radius, radius + radius, 0, 91);
+            path.AddLine(rect.X + radius, rect.Y + rect.Height, rect.X + rect.Width - radius, rect.Y + rect.Height);
+            path.AddArc(rect.X, rect.Y + rect.Height - (2 * radius), 2 * radius, 2 * radius, 90, 91);
+
+            using var brush = new SolidBrush(color);
+            graphics.FillPath(brush, path);
+        }
     }
 }
