@@ -73,6 +73,7 @@ namespace Inkluzitron
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
+                .AddSingleton<PointsService>()
                 .AddHttpClient()
                 .AddMemoryCache();
 
@@ -114,6 +115,7 @@ namespace Inkluzitron
             await context.Database.MigrateAsync();
 
             provider.GetRequiredService<ReactionsModule>();
+            provider.GetRequiredService<PointsService>();
 
             var runtime = provider.GetRequiredService<RuntimeService>();
             await runtime.StartAsync();
