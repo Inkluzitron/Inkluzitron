@@ -3,7 +3,6 @@ using Discord.WebSocket;
 using GrapeCity.Documents.Imaging;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
-using Inkluzitron.Models.Settings;
 using Inkluzitron.Resources.Bonk;
 using Inkluzitron.Resources.Miscellaneous;
 using Inkluzitron.Resources.Pat;
@@ -11,12 +10,14 @@ using Inkluzitron.Resources.Peepoangry;
 using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
+using Inkluzitron.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using SysDrawImage = System.Drawing.Image;
 using SysImgFormat = System.Drawing.Imaging.ImageFormat;
@@ -25,34 +26,17 @@ namespace Inkluzitron.Services
 {
     public class ImagesService
     {
+        static private readonly Size DefaultAvatarSize = new Size(100, 100);
+
         private DiscordSocketClient Client { get; }
-        private ImageCacheSettings CacheSettings { get; }
+        private FileCache Cache { get; }
+        public IHttpClientFactory HttpClientFactory { get; }
 
-        private DirectoryInfo AvatarCache { get; }
-        private DirectoryInfo WhipCache { get; }
-        private DirectoryInfo SpankCache { get; }
-        private DirectoryInfo LoveCache { get; }
-        private DirectoryInfo PatCache { get; }
-        private DirectoryInfo BonkCache { get; }
-
-        private DirectoryInfo InitializeCache(string directoryName)
-        {
-            var result = new DirectoryInfo(Path.Combine(CacheSettings.DirectoryPath, directoryName));
-            result.Create();
-            return result;
-        }
-
-        public ImagesService(DiscordSocketClient client, ImageCacheSettings cacheSettings)
+        public ImagesService(DiscordSocketClient client, FileCache fileCache, IHttpClientFactory httpClientFactory)
         {
             Client = client;
-            CacheSettings = cacheSettings;
-
-            AvatarCache = InitializeCache("Avatars");
-            WhipCache = InitializeCache("Whip");
-            SpankCache = InitializeCache("Spank");
-            LoveCache = InitializeCache("Love");
-            PatCache = InitializeCache("Pat");
-            BonkCache = InitializeCache("Bonk");
+            Cache = fileCache;
+            HttpClientFactory = httpClientFactory;
         }
 
         static private List<Bitmap> GetBitmapsFromResources<TResources>()
@@ -62,9 +46,6 @@ namespace Inkluzitron.Services
                 .Where(o => o != null)
                 .ToList();
 
-        static private string GetAvatarExtension(string avatarId)
-            => avatarId.StartsWith("a_") ? "gif" : "png";
-
         static private AvatarImageWrapper CreateFallbackAvatarWrapper(Size? size = null)
         {
             var desiredSize = size ?? DefaultAvatarSize;
@@ -73,8 +54,6 @@ namespace Inkluzitron.Services
             var resizedFallbackAvatar = roundedFallbackAvatar.ResizeImage(desiredSize.Width, desiredSize.Height);
             return new AvatarImageWrapper(resizedFallbackAvatar, 1, "png");
         }
-
-        static private readonly Size DefaultAvatarSize = new Size(100, 100);
 
         public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, Size? size = null)
         {
@@ -96,7 +75,7 @@ namespace Inkluzitron.Services
                 throw new ArgumentNullException(nameof(user));
 
             var realSize = size ?? DefaultAvatarSize;
-            var cacheObject = FileCacheObject.In(AvatarCache)
+            var cacheObject = Cache.WithCategory("Avatars")
                 .WithUnique(user.Id)
                 .WithParam(user.AvatarId, discordSize, realSize.Width, realSize.Height)
                 .Build();
@@ -111,15 +90,18 @@ namespace Inkluzitron.Services
                 );
             }
 
-            var profilePictureData = await user.DownloadProfilePictureAsync(size: discordSize);
+            var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
+            var isAnimated = user.AvatarId.StartsWith("a_");
+            var avatarExtension = isAnimated ? "gif" : "png";
+            var profilePictureData = await HttpClientFactory.CreateClient().GetByteArrayAsync(avatarUrl);
+
             using var memStream = new MemoryStream(profilePictureData);
             using var rawProfileImage = SysDrawImage.FromStream(memStream);
             using var roundedProfileImage = rawProfileImage.RoundImage();
 
             var avatar = roundedProfileImage.ResizeImage(realSize.Width, realSize.Height);
-            var extension = GetAvatarExtension(user.AvatarId);
-            avatar.Save(cacheObject.GetPathForWriting(extension));
-            return new AvatarImageWrapper(avatar, memStream.Length, extension);
+            avatar.Save(cacheObject.GetPathForWriting(avatarExtension));
+            return new AvatarImageWrapper(avatar, memStream.Length, avatarExtension);
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
@@ -128,7 +110,7 @@ namespace Inkluzitron.Services
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var cacheObject = FileCacheObject.In(WhipCache)
+            var cacheObject = Cache.WithCategory("Whip")
                 .WithUnique(target.Id)
                 .WithConditionalUnique("self", self)
                 .WithParam(target.AvatarId ?? target.Discriminator)
@@ -191,7 +173,7 @@ namespace Inkluzitron.Services
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var cacheObject = FileCacheObject.In(BonkCache)
+            var cacheObject = Cache.WithCategory("Bonk")
                 .WithUnique(target.Id)
                 .WithConditionalUnique("self", self)
                 .WithParam(target.AvatarId ?? target.Discriminator)
@@ -249,7 +231,7 @@ namespace Inkluzitron.Services
         // Taken from https://github.com/Misha12/GrillBot
         public async Task<string> PeepoAngryAsync(IUser target, int fileUploadLimit)
         {
-            var cacheObject = FileCacheObject.In(BonkCache)
+            var cacheObject = Cache.WithCategory("Angry")
                 .WithUnique(target.Id)
                 .WithParam(target.AvatarId ?? target.Discriminator)
                 .Build();
@@ -321,7 +303,7 @@ namespace Inkluzitron.Services
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var cacheObject = FileCacheObject.In(PatCache)
+            var cacheObject = Cache.WithCategory("Pat")
                 .WithUnique(target.Id)
                 .WithConditionalUnique("self", self)
                 .WithParam(target.AvatarId ?? target.Discriminator)
@@ -390,7 +372,7 @@ namespace Inkluzitron.Services
 
             var delayTime = harder ? 3 : 5;
 
-            var cacheObject = FileCacheObject.In(SpankCache)
+            var cacheObject = Cache.WithCategory("Spank")
                 .WithUnique(target.Id)
                 .WithConditionalUnique("self", self)
                 .WithParam(delayTime)
@@ -457,7 +439,7 @@ namespace Inkluzitron.Services
         // Taken from https://github.com/Misha12/GrillBot
         public async Task<string> PeepoLoveAsync(IUser target, int fileUploadLimit)
         {
-            var cacheObject = FileCacheObject.In(LoveCache)
+            var cacheObject = Cache.WithCategory("Love")
                 .WithUnique(target.Id)
                 .WithParam(target.AvatarId ?? target.Discriminator)
                 .Build();

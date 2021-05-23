@@ -8,6 +8,7 @@ using System.Globalization;
 using Inkluzitron.Services;
 using Discord.WebSocket;
 using Inkluzitron.Models;
+using Inkluzitron.Utilities;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -17,7 +18,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         public Color BackgroundColor { get; init; } = Color.Black;
         public int CategoryBoxPadding { get; init; } = 20;
-        public int CategoryBoxHeight { get; init; } = 300;
+        public int CategoryBoxHeight { get; init; } = 350;
 
         public Font GridLinePercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
         public Brush GridLinePercentageForegroundMajor { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
@@ -222,7 +223,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Measure the category heading, draw it and shrink the graph area so that it does not overlap.
             var headingSize = g.MeasureString(categoryName, CategoryBoxHeadingFont);
-            var headingPadding = 0.1f * headingSize.Height;
+            var headingPadding = 0.2f * headingSize.Height;
             var headingHeightWithPadding = 2*headingPadding + headingSize.Height;
             graphArea.Y += headingHeightWithPadding;
             graphArea.Height -= headingHeightWithPadding;
@@ -235,7 +236,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Reduce the width & center the graph area so that there is some (= 0.75*AvatarSize) padding left.
             var gridLinesArea = graphArea;
-            gridLinesArea.Inflate(-0.75f * AvatarSize, -0.75f * AvatarSize);
+            gridLinesArea.Inflate(-0.75f * AvatarSize, -0.75f * AvatarSize - 0.50f*headingSize.Height);
 
             // Draw grid lines over the established area.
             DrawCategoryGridLines(g, gridLinesArea, minValue, maxValue, out avatarsArea);

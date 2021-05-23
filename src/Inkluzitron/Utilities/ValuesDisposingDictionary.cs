@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Inkluzitron.Models
+namespace Inkluzitron.Utilities
 {
     public class ValuesDisposingDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IDisposable
         where TValue : IDisposable

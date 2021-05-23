@@ -8,6 +8,7 @@ using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,10 @@ namespace Inkluzitron
             if (dbFileLocation == null)
                 throw new InvalidOperationException("The 'DatabaseFilePath' configuration value is missing.");
 
+            var cacheDirLocation = configuration.GetValue<string>("CacheDirectoryPath");
+            if (cacheDirLocation == null)
+                throw new InvalidOperationException("The 'CacheDirectoryPath' configuration value is missing.");
+
             var services = new ServiceCollection()
                 .AddSingleton(new DiscordSocketClient(discordConfig))
                 .AddSingleton(new CommandService(commandsConfig))
@@ -72,7 +77,7 @@ namespace Inkluzitron
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
-                .AddSingleton<ImageCacheSettings>()
+                .AddSingleton(new FileCache(cacheDirLocation))
                 .AddHttpClient()
                 .AddMemoryCache();
 
@@ -89,8 +94,6 @@ namespace Inkluzitron
                     {
                         if (category.StartsWith("Microsoft.EntityFrameworkCore"))
                             return category == "Microsoft.EntityFrameworkCore.Migrations" || level > LogLevel.Information;
-                        else if (category.StartsWith("System.Net.Http.HttpClient.Default"))
-                            return level > LogLevel.Information;
                         else
                             return true;
                     });
