@@ -49,8 +49,8 @@ namespace Inkluzitron.Extensions
         {
             if (str.Length >= maxLength - 3)
                 str = str[^(maxLength - 3)] + "...";
-            return str;
 
+            return str;
         }
     }
 }
