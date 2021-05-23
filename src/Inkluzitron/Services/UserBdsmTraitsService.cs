@@ -22,6 +22,7 @@ namespace Inkluzitron.Services
         public BdsmTraitOperationCheckTranslations CheckTranslations { get; }
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
+        public double WeakTraitThreshold => Settings.WeakTraitThreshold;
 
         public IMemoryCache Cache { get; }
 
@@ -136,14 +137,18 @@ namespace Inkluzitron.Services
             var score = 0.0;
 
             var domDiff = Math.Abs(targetDominance - userDominance);
-            if (targetDominance > StrongTraitThreshold && targetDominance > userDominance)
+            var domSanityCheck = targetDominance > WeakTraitThreshold && userDominance > WeakTraitThreshold;
+            if (domSanityCheck && targetDominance > StrongTraitThreshold && targetDominance > userDominance)
                 score -= domDiff;
-            else if (userDominance > StrongTraitThreshold && userDominance > targetDominance)
+            else if (domSanityCheck && userDominance > StrongTraitThreshold && userDominance > targetDominance)
                 score += domDiff;
 
             var subDiff = Math.Abs(targetSubmissiveness - userSubmissiveness);
-            if (targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness) score += subDiff;
-            else if (userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness) score -= subDiff;
+            var subSanityCheck = targetSubmissiveness > WeakTraitThreshold && userSubmissiveness > WeakTraitThreshold;
+            if (subSanityCheck && targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness)
+                score += subDiff;
+            else if (subSanityCheck && userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness)
+                score -= subDiff;
 
             if (score >= 0)
             {
