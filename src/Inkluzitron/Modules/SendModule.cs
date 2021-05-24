@@ -1,44 +1,67 @@
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Inkluzitron.Models.Settings;
 
 namespace Inkluzitron.Modules
 {
     [Name("Odesílání zpráv")]
+    [RequireContext(ContextType.DM, ErrorMessage = "Tento příkaz funguje pouze v soukromých zprávách.")]
     public class SendModule : ModuleBase
     {
-        [Command("send")]
-        [Summary("Odešle anonymně zprávu (i včetně přílohy) do stejné roomky. Původní příkaz smaže.")]
-        public async Task SendAsync([Remainder][Name("zpráva")] string message = null)
-        {
-            // get collection of message attachements
-            var attachments = Context.Message.Attachments;
+        private BotSettings BotSettings { get; }
+        private SendSettings SendSettings { get; }
 
-            // send user to hell if no msg/attachemnt is present
-            if (message == null && attachments.Count == 0)
+        public SendModule(BotSettings botSettings, SendSettings sendSettings)
+        {
+            BotSettings = botSettings;
+            SendSettings = sendSettings;
+        }
+
+        [Command("send")]
+        [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky. Funguje pouze v DM.")]
+        public async Task SendAsync([Name("cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
+        {
+            var guild = Context.Client.GetGuild(BotSettings.HomeGuildId);
+            if (guild is null)
             {
-                await ReplyAsync("Tak hele de:b:ílku, tahle by to teda nešlo...\n Dej mi aspoň zprávu nebo přílohu!");
+                await ReplyAsync(SendSettings.ErrorGuildNotFound);
                 return;
             }
 
-            // delete user's message
-            await Context.Message.DeleteAsync();
-            // send message if not null
-            if (message != null) await Context.Channel.SendMessageAsync(message);
-            // return if no attachment is present
-            if (attachments.Count == 0) return;
-
-            // get link to attachments and repost them.
-            using var client = new HttpClient();
-            foreach (var a in attachments)
+            var channel = guild.TextChannels.FirstOrDefault(c => c.Name == roomName);
+            if (channel is null || channel.GetUser(Context.User.Id) is null)
             {
-                using var response = await client.GetAsync(a.Url);
+                await ReplyAsync(SendSettings.ErrorRoomNotFound);
+                return;
+            }
 
-                if (!response.IsSuccessStatusCode) continue;
+            var attachments = Context.Message.Attachments;
+            if (messageText == null && attachments.Count == 0)
+            {
+                await ReplyAsync(SendSettings.ErrorNoContent);
+                return;
+            }
 
-                using var stream = await response.Content.ReadAsStreamAsync();
-                await Context.Channel.SendFileAsync(stream, a.Filename, isSpoiler: a.IsSpoiler());
+            if (messageText != null)
+                await channel.SendMessageAsync(messageText);
+
+            if (attachments.Count > 0)
+            {
+                using var client = new HttpClient();
+
+                foreach (var a in attachments)
+                {
+                    using var response = await client.GetAsync(a.Url);
+
+                    if (!response.IsSuccessStatusCode)
+                        continue;
+
+                    using var stream = await response.Content.ReadAsStreamAsync();
+                    await channel.SendFileAsync(stream, a.Filename, messageText ?? string.Empty, isSpoiler: a.IsSpoiler());
+                }
             }
         }
     }

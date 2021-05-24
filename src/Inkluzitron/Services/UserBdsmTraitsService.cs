@@ -89,6 +89,9 @@ namespace Inkluzitron.Services
         private void SetLastOperationCheck(IUser user, BdsmTraitOperationCheck lastCheck)
             => Cache.Set(ToLastOperationCheckKey(user), lastCheck);
 
+        static private double Janchsinus(double score)
+            => Math.Sin(Math.Abs(score) * Math.PI * 0.5);
+
         /// <summary>
         /// Check based on BDSM results.
         /// This check probabilistically prevents sub users from whipping dom users.
@@ -135,20 +138,8 @@ namespace Inkluzitron.Services
             check.TargetSubmissiveness = targetSubmissiveness.ToIntPercentage();
 
             var score = 0.0;
-
-            var domDiff = Math.Abs(targetDominance - userDominance);
-            var domSanityCheck = targetDominance > WeakTraitThreshold && userDominance > WeakTraitThreshold;
-            if (domSanityCheck && targetDominance > StrongTraitThreshold && targetDominance > userDominance)
-                score -= domDiff;
-            else if (domSanityCheck && userDominance > StrongTraitThreshold && userDominance > targetDominance)
-                score += domDiff;
-
-            var subDiff = Math.Abs(targetSubmissiveness - userSubmissiveness);
-            var subSanityCheck = targetSubmissiveness > WeakTraitThreshold && userSubmissiveness > WeakTraitThreshold;
-            if (subSanityCheck && targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness)
-                score += subDiff;
-            else if (subSanityCheck && userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness)
-                score -= subDiff;
+            score += userDominance * targetSubmissiveness;
+            score -= targetDominance * userSubmissiveness;
 
             if (score >= 0)
             {
@@ -157,9 +148,7 @@ namespace Inkluzitron.Services
             else
             {
                 const int rollMaximum = 100;
-                score /= -2.0;
-                var easeOutCubic = 1 - Math.Pow(1.0 - score, 3);
-                check.RequiredValue = (int)Math.Round(100 * easeOutCubic);
+                check.RequiredValue = (int)Math.Round(rollMaximum * Janchsinus(score));
                 check.RolledValue = ThreadSafeRandom.Next(1, rollMaximum + 1);
                 check.RollMaximum = rollMaximum;
 
