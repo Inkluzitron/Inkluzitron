@@ -20,6 +20,7 @@ namespace Inkluzitron.Models.Settings
         public string InvalidVerboseModeUsage { get; }
         public string BadFilterQueryMessage { get; }
         public string TestLinkUrl { get; }
+        public string NoContentToStats { get; }
 
         public BdsmTestOrgSettings(IConfiguration config)
         {
@@ -40,6 +41,7 @@ namespace Inkluzitron.Models.Settings
             NoTraitsToReportMessage = cfg.GetRequired<string>(nameof(NoTraitsToReportMessage));
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
+            NoContentToStats = cfg.GetRequired<string>(nameof(NoContentToStats));
         }
     }
 }
