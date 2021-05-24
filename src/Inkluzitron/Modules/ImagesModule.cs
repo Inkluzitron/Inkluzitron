@@ -22,7 +22,7 @@ namespace Inkluzitron.Modules
         [Command("peepolove")]
         [Alias("peepo love", "love")]
         [Summary("Vytvoří obrázek peepa objímajícího autora nebo zadaného uživatele.")]
-        public async Task PeepoloveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
+        public async Task PeepoLoveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
                 member = Context.User;
@@ -34,7 +34,7 @@ namespace Inkluzitron.Modules
         [Command("peepoangry")]
         [Alias("peepo angry", "angry")]
         [Summary("Vytvoří obrázek peepa, který je naštvaný na autora nebo zadaného uživatele.")]
-        public async Task PeepoangryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
+        public async Task PeepoAngryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
                 member = Context.User;
@@ -46,7 +46,7 @@ namespace Inkluzitron.Modules
         [Command("pat")]
         [Alias("pet")]
         [Summary("Pohladí autora nebo zadaného uživatele.")]
-        public async Task PatAsync([Name("uživatel")] IUser member = null)
+        public async Task PatAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
                 member = Context.User;
@@ -57,44 +57,44 @@ namespace Inkluzitron.Modules
 
         [Command("bonk")]
         [Summary("Bonkne autora nebo zadaného uživatele.")]
-        public Task BonkAsync([Name("uživatel")] IUser user = null)
+        public Task BonkAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, false, ImagesService.BonkAsync);
 
         [Command("bonk roll")]
         [Summary("Bonkne autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
-        public Task BonkWithRollInfoAsync([Name("uživatel")] IUser user = null)
+        public Task BonkWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, true, ImagesService.BonkAsync);
 
         [Command("whip")]
         [Summary("Použije bič na autora nebo zadaného uživatele.")]
-        public Task WhipAsync([Name("uživatel")] IUser user = null)
+        public Task WhipAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, false, ImagesService.WhipAsync);
 
         [Command("whip roll")]
         [Summary("Použije bič na autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
-        public Task WhipWithRollInfoAsync([Name("uživatel")] IUser user = null)
+        public Task WhipWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, true, ImagesService.WhipAsync);
 
         [Command("spank")]
         [Summary("Naplácá autorovi nebo zadanému uživateli.")]
-        public Task SpankAsync([Name("uživatel")] IUser user = null)
+        public Task SpankAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, false, ImagesService.SpankGentleAsync);
 
         [Command("spank roll")]
         [Summary("Naplácá autorovi nebo zadanému uživateli a vypíše vliv výsledků BDSM testu.")]
-        public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null)
+        public Task SpankWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, true, ImagesService.SpankGentleAsync);
 
         [Command("spank harder")]
         [Alias("harder daddy", "spank-harder", "harder-daddy")]
         [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli.")]
-        public Task SpankHarderAsync([Name("uživatel")] IUser user = null)
+        public Task SpankHarderAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, false, ImagesService.SpankHarderAsync);
 
-        [Command("spank-harder roll")]
-        [Alias("harder-daddy roll")]
+        [Command("spank harder roll")]
+        [Alias("harder daddy roll", "spank-harder roll", "harder-daddy roll")]
         [Summary("Naplácá s větší silou autorovi nebo zadanému uživateli avypíše vliv výsledků BDSM testu.")]
-        public Task SpankHarderWithRollInfoAsync([Name("uživatel")] IUser user = null)
+        public Task SpankHarderWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, true, ImagesService.SpankHarderAsync);
 
         private delegate Task<string> AsyncImageGenerator(IUser target, bool self);
