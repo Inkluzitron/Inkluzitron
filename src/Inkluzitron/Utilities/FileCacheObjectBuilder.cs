@@ -14,6 +14,9 @@ namespace Inkluzitron.Utilities
         public FileCacheObjectBuilder(DirectoryInfo parentDir)
         {
             _parentDir = parentDir ?? throw new ArgumentNullException(nameof(parentDir));
+
+            if (!_parentDir.Exists)
+                _parentDir.Create();
         }
 
         public FileCacheObjectBuilder WithUnique(params object[] identifiers)
