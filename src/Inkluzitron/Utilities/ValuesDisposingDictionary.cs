@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace Inkluzitron.Utilities
 {
+    [Serializable]
     public class ValuesDisposingDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IDisposable
         where TValue : IDisposable
     {
@@ -13,6 +15,14 @@ namespace Inkluzitron.Utilities
 
             Clear();
             GC.SuppressFinalize(this);
+        }
+
+        public ValuesDisposingDictionary()
+        {
+        }
+
+        protected ValuesDisposingDictionary(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
+        {
         }
     }
 }

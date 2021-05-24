@@ -46,8 +46,7 @@ namespace Inkluzitron.Services
         public async Task<double> GetTraitScore(IUser user, BdsmTraits trait)
         {
             var traitName = trait.GetType()
-                .GetMember(trait.ToString())
-                .First()
+                .GetMember(trait.ToString())[0]
                 .GetCustomAttribute<DisplayAttribute>()
                 .GetName();
 

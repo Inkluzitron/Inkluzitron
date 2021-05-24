@@ -18,7 +18,6 @@ namespace Inkluzitron.Handlers
         private IServiceProvider Provider { get; }
         private IConfiguration Configuration { get; }
 
-
         public CommandsHandler(CommandService commandService, IConfiguration configuration, IServiceProvider provider)
         {
             CommandService = commandService;
@@ -64,7 +63,7 @@ namespace Inkluzitron.Handlers
                         if (typeName == "Int32") typeName = "číslo";
                         if (typeName == "String") typeName = "řetězec";
 
-                        reply = $"V {(pos + 1)}. argumentu má být **{typeName}**\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
+                        reply = $"V {pos + 1}. argumentu má být **{typeName}**\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
                         break;
 
                     case CommandError.BadArgCount:
