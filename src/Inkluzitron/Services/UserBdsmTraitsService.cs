@@ -136,38 +136,20 @@ namespace Inkluzitron.Services
 
             var score = 0.0;
 
-            var domDiff = Math.Abs(targetDominance - userDominance);
-            var domSanityCheck = targetDominance > WeakTraitThreshold && userDominance > WeakTraitThreshold;
-            if (domSanityCheck && targetDominance > StrongTraitThreshold && targetDominance > userDominance)
-                score -= domDiff;
-            else if (domSanityCheck && userDominance > StrongTraitThreshold && userDominance > targetDominance)
-                score += domDiff;
+            if (targetDominance > StrongTraitThreshold && targetDominance > userDominance)
+                score--;
+            else if (userDominance > StrongTraitThreshold && userDominance > targetDominance)
+                score++;
 
-            var subDiff = Math.Abs(targetSubmissiveness - userSubmissiveness);
-            var subSanityCheck = targetSubmissiveness > WeakTraitThreshold && userSubmissiveness > WeakTraitThreshold;
-            if (subSanityCheck && targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness)
-                score += subDiff;
-            else if (subSanityCheck && userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness)
-                score -= subDiff;
+            if (targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness)
+                score++;
+            else if (userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness)
+                score--;
 
-            if (score >= 0)
-            {
-                check.Result = BdsmTraitOperationCheckResult.InCompliance;
-            }
-            else
-            {
-                const int rollMaximum = 100;
-                score /= -2.0;
-                var easeOutCubic = 1 - Math.Pow(1.0 - score, 3);
-                check.RequiredValue = (int)Math.Round(100 * easeOutCubic);
-                check.RolledValue = ThreadSafeRandom.Next(1, rollMaximum + 1);
-                check.RollMaximum = rollMaximum;
-
-                if (check.RolledValue >= check.RequiredValue)
-                    check.Result = BdsmTraitOperationCheckResult.RollSucceeded;
-                else
-                    check.Result = BdsmTraitOperationCheckResult.RollFailed;
-            }
+            check.RequiredValue = check.RolledValue = check.RollMaximum = 0;
+            check.Result = score >= 0
+                ? BdsmTraitOperationCheckResult.InCompliance
+                : BdsmTraitOperationCheckResult.RollFailed;
 
             return check;
         }
