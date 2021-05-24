@@ -35,8 +35,9 @@ namespace Inkluzitron.Services
                 {
                     messageText = Regex.Replace(
                         messageText,
-                        @"^(Executed \""send\"") .*?#\d{4} (in .*)$",
-                        "$1 $2");
+                        @"^(Executed \""send\"").+",
+                        "$1"
+                    );
                 }
 
                 switch (message.Severity)
