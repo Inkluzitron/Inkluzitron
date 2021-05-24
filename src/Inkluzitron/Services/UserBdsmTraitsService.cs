@@ -89,6 +89,9 @@ namespace Inkluzitron.Services
         private void SetLastOperationCheck(IUser user, BdsmTraitOperationCheck lastCheck)
             => Cache.Set(ToLastOperationCheckKey(user), lastCheck);
 
+        static private double Janchsinus(double score)
+            => Math.Sin(Math.Abs(score) * Math.PI * 0.5);
+
         /// <summary>
         /// Check based on BDSM results.
         /// This check probabilistically prevents sub users from whipping dom users.
@@ -135,21 +138,25 @@ namespace Inkluzitron.Services
             check.TargetSubmissiveness = targetSubmissiveness.ToIntPercentage();
 
             var score = 0.0;
+            score += userDominance * targetSubmissiveness;
+            score -= targetDominance * userSubmissiveness;
 
-            if (targetDominance > StrongTraitThreshold && targetDominance > userDominance)
-                score--;
-            else if (userDominance > StrongTraitThreshold && userDominance > targetDominance)
-                score++;
+            if (score >= 0)
+            {
+                check.Result = BdsmTraitOperationCheckResult.InCompliance;
+            }
+            else
+            {
+                const int rollMaximum = 100;
+                check.RequiredValue = (int)Math.Round(rollMaximum * Janchsinus(score));
+                check.RolledValue = ThreadSafeRandom.Next(1, rollMaximum + 1);
+                check.RollMaximum = rollMaximum;
 
-            if (targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness)
-                score++;
-            else if (userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness)
-                score--;
-
-            check.RequiredValue = check.RolledValue = check.RollMaximum = 0;
-            check.Result = score >= 0
-                ? BdsmTraitOperationCheckResult.InCompliance
-                : BdsmTraitOperationCheckResult.RollFailed;
+                if (check.RolledValue >= check.RequiredValue)
+                    check.Result = BdsmTraitOperationCheckResult.RollSucceeded;
+                else
+                    check.Result = BdsmTraitOperationCheckResult.RollFailed;
+            }
 
             return check;
         }
