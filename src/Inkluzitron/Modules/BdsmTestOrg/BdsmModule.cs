@@ -144,8 +144,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var namedTraits = Enum.GetValues<BdsmTraits>()
                 .Select(t => t.GetType()
-                    .GetMember(t.ToString())
-                    .First()
+                    .GetMember(t.ToString())[0]
                     .GetCustomAttribute<DisplayAttribute>()
                     .GetName());
 
