@@ -15,7 +15,6 @@ namespace Inkluzitron.Models.Settings
             ErrorGuildNotFound = section.GetRequired<string>(nameof(ErrorGuildNotFound));
             ErrorRoomNotFound = section.GetRequired<string>(nameof(ErrorRoomNotFound));
             ErrorNoContent = section.GetRequired<string>(nameof(ErrorNoContent));
-            ConfirmationMessage = section.GetRequired<string>(nameof(ConfirmationMessage));
         }
 
         public ulong GuildId { get; }
@@ -23,6 +22,5 @@ namespace Inkluzitron.Models.Settings
         public string ErrorGuildNotFound { get; }
         public string ErrorRoomNotFound { get; }
         public string ErrorNoContent { get; }
-        public string ConfirmationMessage { get; }
     }
 }
