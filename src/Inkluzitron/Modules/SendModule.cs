@@ -8,26 +8,23 @@ using Inkluzitron.Models.Settings;
 namespace Inkluzitron.Modules
 {
     [Name("Odesílání zpráv")]
+    [RequireContext(ContextType.DM, ErrorMessage = "Tento příkaz funguje pouze v soukromých zprávách.")]
     public class SendModule : ModuleBase
     {
+        private BotSettings BotSettings { get; }
         private SendSettings SendSettings { get; }
 
-        public SendModule(SendSettings sendSettings)
+        public SendModule(BotSettings botSettings, SendSettings sendSettings)
         {
+            BotSettings = botSettings;
             SendSettings = sendSettings;
         }
 
         [Command("send")]
         [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky. Funguje pouze v DM.")]
-        public async Task SendAsync([Name("název roomky")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
+        public async Task SendAsync([Name("cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
         {
-            if (!Context.IsPrivate)
-            {
-                await ReplyAsync(SendSettings.ErrorDmOnly);
-                return;
-            }
-
-            var guild = Context.Client.Guilds.FirstOrDefault(g => g.Id == SendSettings.GuildId);
+            var guild = Context.Client.GetGuild(BotSettings.HomeGuildId);
             if (guild is null)
             {
                 await ReplyAsync(SendSettings.ErrorGuildNotFound);
