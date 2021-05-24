@@ -77,6 +77,7 @@ namespace Inkluzitron
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()
                 .AddSingleton<ImagesService>()
+                .AddSingleton<SendSettings>()
                 .AddSingleton(new FileCache(cacheDirLocation))
                 .AddHttpClient()
                 .AddMemoryCache()
