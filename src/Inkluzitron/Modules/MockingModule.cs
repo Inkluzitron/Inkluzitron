@@ -11,12 +11,10 @@ namespace Inkluzitron.Modules
     public class MockingModule : ModuleBase
     {
         private IConfiguration Config { get; }
-        private Random Random { get; }
 
-        public MockingModule(IConfiguration config, Random random)
+        public MockingModule(IConfiguration config)
         {
             Config = config;
-            Random = random;
         }
 
         // Get maximum range value for a random number generator that decides if the char should be uppercase.
@@ -39,7 +37,7 @@ namespace Inkluzitron.Modules
             {
                 // Letter 'i' cannot be uppercased and letter 'l' should be always uppercased.
                 // This feature is here to prevent confusion of lowercase 'l' and uppercase 'i'
-                if (char.IsLetter(c) && c != 'i' && (c == 'l' || Random.Next(MockRandomCoefficient[coeffIndex]) == 0))
+                if (char.IsLetter(c) && c != 'i' && (c == 'l' || ThreadSafeRandom.Next(MockRandomCoefficient[coeffIndex]) == 0))
                 {
                     result += char.ToUpperInvariant(c);
                     coeffIndex = MockRandomCoefficient.Length - 1;

@@ -20,6 +20,8 @@ using Inkluzitron.Models.BdsmTestOrgApi;
 using Inkluzitron.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -36,16 +38,19 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
+        public UserBdsmTraitsService BdsmTraitsService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
-            GraphPaintingService graphPainter, IHttpClientFactory factory)
+            GraphPaintingService graphPainter, IHttpClientFactory factory,
+            UserBdsmTraitsService bdsmTraitsService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
             GraphPainter = graphPainter;
             HttpClientFactory = factory;
+            BdsmTraitsService = bdsmTraitsService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -89,24 +94,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
-            var imgFile = ImagesModule.CreateCachePath(Path.GetRandomFileName() + ".png");
 
-            try
-            {
-                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.StrongTraitThreshold));
-                img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
-                await ReplyFileAsync(imgFile);
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(imgFile);
-                }
-                catch {
-                    // *** it's not much but it was honest work ***
-                }
-            }
+            using var imgFile = new TemporaryFile("png");
+            using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
+            img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
+            await ReplyFileAsync(imgFile.Path);
         }
 
         [Command("list")]
@@ -228,6 +220,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .ToListAsync();
             }
 
+            foreach (var testResult in resultsDict.Values.SelectMany(x => x).Select(x => x.Parent))
+            {
+                var guildMember = await Context.Guild.GetUserAsync(testResult.SubmittedById);
+                if (guildMember == null)
+                    continue;
+
+                testResult.SubmittedByName = guildMember.Nickname
+                    ?? guildMember.Username
+                    ?? testResult.SubmittedByName;
+            }
+
             return resultsDict;
         }
 
@@ -295,6 +298,19 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
 
             await ShowUserResultsAsync();
+        }
+
+        [Command("last roll")]
+        [Summary("Vypíše poslední započítaný vliv výsledků BDSM testu, např. vůči použitému příkazu whip.")]
+        public async Task ShowLastOperationCheckAsync()
+        {
+            if (!BdsmTraitsService.TryGetLastOperationCheck(Context.User, out var lastCheck))
+            {
+                await Context.Message.AddReactionAsync(ReactionSettings.Shrunk);
+                return;
+            }
+
+            await ReplyAsync(lastCheck.ToString());
         }
     }
 }

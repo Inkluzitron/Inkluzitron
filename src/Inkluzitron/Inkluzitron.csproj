@@ -40,6 +40,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>FontsResources.resx</DependentUpon>
     </Compile>
+    <Compile Update="Resources\Miscellaneous\MiscellaneousResources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MiscellaneousResources.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\Pat\PatResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -75,6 +80,10 @@
     <EmbeddedResource Update="Resources\Fonts\FontsResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>FontsResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Miscellaneous\MiscellaneousResources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>MiscellaneousResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Pat\PatResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
