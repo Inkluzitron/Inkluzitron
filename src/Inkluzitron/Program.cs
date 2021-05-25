@@ -80,6 +80,7 @@ namespace Inkluzitron
                 .AddSingleton<SendSettings>()
                 .AddSingleton<BotSettings>()
                 .AddSingleton(new FileCache(cacheDirLocation))
+                .AddSingleton<PointsService>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -112,6 +113,7 @@ namespace Inkluzitron
             await context.Database.MigrateAsync();
 
             provider.GetRequiredService<ReactionsModule>();
+            provider.GetRequiredService<PointsService>();
 
             var runtime = provider.GetRequiredService<RuntimeService>();
             await runtime.StartAsync();

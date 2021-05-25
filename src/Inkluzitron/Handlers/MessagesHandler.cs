@@ -1,6 +1,8 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
 
@@ -35,7 +37,14 @@ namespace Inkluzitron.Handlers
 
             int argPos = 0;
             if (IsCommand(userMessage, ref argPos))
+            {
                 await CommandService.ExecuteAsync(context, userMessage.Content[argPos..], ServiceProvider);
+            }
+            else
+            {
+                if (!context.IsPrivate)
+                    await ServiceProvider.GetRequiredService<PointsService>().IncrementAsync(message);
+            }
         }
 
         static public bool TryParseMessageAndCheck(SocketMessage message, out SocketUserMessage socketUserMessage)

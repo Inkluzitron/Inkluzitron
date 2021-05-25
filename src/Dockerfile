@@ -10,7 +10,8 @@ RUN mkdir /app/fonts
 RUN cp /source/Inkluzitron/Resources/Fonts/*.ttf /app/fonts/
 
 FROM mcr.microsoft.com/dotnet/runtime:5.0-buster-slim
-RUN apt-get update && apt-get -y install libgdiplus tzdata && apt-get clean
+RUN sed -i'.bak' 's/$/ contrib/' /etc/apt/sources.list
+RUN apt-get update && apt-get -y install libgdiplus tzdata ttf-mscorefonts-installer fontconfig && apt-get clean
 ENV TZ=Europe/Prague
 WORKDIR /app
 COPY --from=build /app .

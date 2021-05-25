@@ -18,6 +18,8 @@ namespace Inkluzitron.Data
         public DbSet<RolePickerMessage> UserRoleMessage { get; set; }
         public DbSet<RolePickerMessageRole> UserRoleMessageItem { get; set; }
 
+        public DbSet<User> Users { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<QuizResult>().HasKey(r => r.ResultId);
