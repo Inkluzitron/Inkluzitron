@@ -26,6 +26,8 @@ namespace Inkluzitron.Extensions
             return rounded;
         }
 
+        static public Image ResizeImage(this Image original, Size size) => ResizeImage(original, size.Width, size.Height);
+
         /// <summary>
         /// Resizes image
         /// </summary>

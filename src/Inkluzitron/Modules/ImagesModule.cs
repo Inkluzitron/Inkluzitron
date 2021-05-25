@@ -2,7 +2,6 @@
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Services;
-using System;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -52,7 +51,7 @@ namespace Inkluzitron.Modules
             if (member == null)
                 member = Context.User;
 
-            var gifName = await ImagesService.PatAsync(member, Context.User);
+            var gifName = await ImagesService.PatAsync(member, Context.User.Equals(member));
             await ReplyFileAsync(gifName);
         }
 
@@ -98,7 +97,7 @@ namespace Inkluzitron.Modules
         public Task SpankHarderWithRollInfoAsync([Name("uživatel")] IUser user = null)
             => DomSubRolledImageAsync(user, true, ImagesService.SpankHarderAsync);
 
-        private delegate Task<string> AsyncImageGenerator(IUser target, IUser caller);
+        private delegate Task<string> AsyncImageGenerator(IUser target, bool self);
 
         private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, AsyncImageGenerator asyncImageGenerator)
         {
@@ -122,7 +121,7 @@ namespace Inkluzitron.Modules
                 if (showRollInfo)
                     messageText = check.ToString();
 
-                imagePath = await asyncImageGenerator(target, Context.User);
+                imagePath = await asyncImageGenerator(target, Context.User.Equals(target));
             }
 
             await ReplyFileAsync(imagePath, messageText);

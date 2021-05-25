@@ -13,19 +13,32 @@ using SysDraw = System.Drawing;
 
 namespace Inkluzitron.Services
 {
-    public class PointsService
+    public class PointsService : IDisposable
     {
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
-        private ProfilePictureService ProfilePictureService { get; }
+        private ImagesService ImagesService { get; }
 
-        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ProfilePictureService profilePicture)
+        private Font PositionFont { get; }
+        private Font NicknameFont { get; }
+        private Font TitleTextFont { get; }
+        private SolidBrush WhiteBrush { get; }
+        private SolidBrush LightGrayBrush { get; }
+
+        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ImagesService imagesService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
-            ProfilePictureService = profilePicture;
+            ImagesService = imagesService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
+
+            const string font = "Comic Sans MS";
+            PositionFont = new Font(font, 45F);
+            NicknameFont = new Font(font, 40F);
+            TitleTextFont = new Font(font, 20F);
+            WhiteBrush = new SolidBrush(SysDraw.Color.White);
+            LightGrayBrush = new SolidBrush(SysDraw.Color.LightGray);
         }
 
         private Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
@@ -70,7 +83,7 @@ namespace Inkluzitron.Services
             if (lastIncrement == null)
                 return true;
 
-            var limit = isReaction ? 0.5f : 1.0f;
+            var limit = isReaction ? 0.5 : 1.0;
             return (DateTime.UtcNow - lastIncrement.Value).TotalMinutes >= limit;
         }
 
@@ -91,6 +104,7 @@ namespace Inkluzitron.Services
         {
             var users = await context.Users.AsQueryable()
                 .Where(o => o.Points > 0)
+                .OrderByDescending(o => o.Points)
                 .ToListAsync();
 
             return users.FindIndex(o => o.Id == user.Id) + 1;
@@ -104,13 +118,6 @@ namespace Inkluzitron.Services
             if (userEntity == null)
                 return null;
 
-            const string font = "DejaVu Sans";
-            using var positionFont = new Font(font, 45F);
-            using var nicknameFont = new Font(font, 40F);
-            using var titleTextFont = new Font(font, 20F);
-            using var whiteBrush = new SolidBrush(SysDraw.Color.White);
-            using var lightGrayBrush = new SolidBrush(SysDraw.Color.LightGray);
-
             var position = await CalculatePositionAsync(context, user);
 
             var bitmap = new Bitmap(1000, 300);
@@ -120,20 +127,32 @@ namespace Inkluzitron.Services
             graphics.RenderRectangle(new Rectangle(0, 0, bitmap.Width, bitmap.Height), SysDraw.Color.FromArgb(35, 39, 42), 15);
             graphics.RenderRectangle(new Rectangle(50, 50, 900, 200), SysDraw.Color.FromArgb(100, 0, 0, 0), 15);
 
-            using var profilePicture = await ProfilePictureService.GetProfilePictureAsync(user);
-            graphics.DrawImage(profilePicture, 70, 70, 160, 160);
+            using var profilePicture = (await ImagesService.GetAvatarAsync(user)).Frames[0];
+            using var roundedImage = profilePicture.RoundImage();
+            graphics.DrawImage(roundedImage, 70, 70, 160, 160);
 
-            var positionTextSize = graphics.MeasureString($"#{position}", positionFont);
-            graphics.DrawString("BODY", titleTextFont, whiteBrush, new PointF(250, 180));
-            graphics.DrawString(userEntity.Points.ToString(), positionFont, lightGrayBrush, new PointF(340, 150));
-            var positionTitleTextSize = graphics.MeasureString("POZICE", titleTextFont);
-            graphics.DrawString("POZICE", titleTextFont, whiteBrush, new PointF(900 - positionTextSize.Width - positionTitleTextSize.Width, 180));
-            graphics.DrawString($"#{position}", positionFont, whiteBrush, new PointF(910 - positionTextSize.Width, 150));
+            var positionTextSize = graphics.MeasureString($"#{position}", PositionFont);
+            graphics.DrawString("BODY", TitleTextFont, WhiteBrush, new PointF(250, 180));
+            graphics.DrawString(userEntity.Points.ToString(), PositionFont, LightGrayBrush, new PointF(340, 150));
+            var positionTitleTextSize = graphics.MeasureString("POZICE", TitleTextFont);
+            graphics.DrawString("POZICE", TitleTextFont, WhiteBrush, new PointF(900 - positionTextSize.Width - positionTitleTextSize.Width, 180));
+            graphics.DrawString($"#{position}", PositionFont, WhiteBrush, new PointF(910 - positionTextSize.Width, 150));
 
             var nickname = user.GetDisplayName().Cut(20);
-            graphics.DrawString(nickname, nicknameFont, whiteBrush, new PointF(250, 60));
+            graphics.DrawString(nickname, NicknameFont, WhiteBrush, new PointF(250, 60));
 
             return bitmap;
+        }
+
+        public void Dispose()
+        {
+            PositionFont.Dispose();
+            NicknameFont.Dispose();
+            TitleTextFont.Dispose();
+            WhiteBrush.Dispose();
+            LightGrayBrush.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }

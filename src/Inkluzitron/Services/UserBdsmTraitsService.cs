@@ -22,6 +22,7 @@ namespace Inkluzitron.Services
         public BdsmTraitOperationCheckTranslations CheckTranslations { get; }
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
+        public double WeakTraitThreshold => Settings.WeakTraitThreshold;
 
         public IMemoryCache Cache { get; }
 
@@ -45,8 +46,7 @@ namespace Inkluzitron.Services
         public async Task<double> GetTraitScore(IUser user, BdsmTraits trait)
         {
             var traitName = trait.GetType()
-                .GetMember(trait.ToString())
-                .First()
+                .GetMember(trait.ToString())[0]
                 .GetCustomAttribute<DisplayAttribute>()
                 .GetName();
 
@@ -87,6 +87,9 @@ namespace Inkluzitron.Services
 
         private void SetLastOperationCheck(IUser user, BdsmTraitOperationCheck lastCheck)
             => Cache.Set(ToLastOperationCheckKey(user), lastCheck);
+
+        static private double Janchsinus(double score)
+            => Math.Sin(Math.Abs(score) * Math.PI * 0.5);
 
         /// <summary>
         /// Check based on BDSM results.
@@ -134,16 +137,8 @@ namespace Inkluzitron.Services
             check.TargetSubmissiveness = targetSubmissiveness.ToIntPercentage();
 
             var score = 0.0;
-
-            var domDiff = Math.Abs(targetDominance - userDominance);
-            if (targetDominance > StrongTraitThreshold && targetDominance > userDominance)
-                score -= domDiff;
-            else if (userDominance > StrongTraitThreshold && userDominance > targetDominance)
-                score += domDiff;
-
-            var subDiff = Math.Abs(targetSubmissiveness - userSubmissiveness);
-            if (targetSubmissiveness > StrongTraitThreshold && targetSubmissiveness > userSubmissiveness) score += subDiff;
-            else if (userSubmissiveness > StrongTraitThreshold && userSubmissiveness > targetSubmissiveness) score -= subDiff;
+            score += userDominance * targetSubmissiveness;
+            score -= targetDominance * userSubmissiveness;
 
             if (score >= 0)
             {
@@ -152,9 +147,7 @@ namespace Inkluzitron.Services
             else
             {
                 const int rollMaximum = 100;
-                score /= -2.0;
-                var easeOutCubic = 1 - Math.Pow(1.0 - score, 3);
-                check.RequiredValue = (int)Math.Round(100 * easeOutCubic);
+                check.RequiredValue = (int)Math.Round(rollMaximum * Janchsinus(score));
                 check.RolledValue = ThreadSafeRandom.Next(1, rollMaximum + 1);
                 check.RollMaximum = rollMaximum;
 

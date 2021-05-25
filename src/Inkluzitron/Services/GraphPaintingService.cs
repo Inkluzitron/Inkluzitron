@@ -6,16 +6,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
 using Inkluzitron.Services;
+using Discord.WebSocket;
+using Inkluzitron.Utilities;
+using Inkluzitron.Extensions;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
-    public class GraphPaintingService : IDisposable
+    public sealed class GraphPaintingService : IDisposable
     {
-        private ProfilePictureService ProfilePictureService { get; }
+        private ImagesService ImagesService { get; }
 
         public Color BackgroundColor { get; init; } = Color.Black;
         public int CategoryBoxPadding { get; init; } = 20;
-        public int CategoryBoxHeight { get; init; } = 300;
+        public int CategoryBoxHeight { get; init; } = 350;
 
         public Font GridLinePercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
         public Brush GridLinePercentageForegroundMajor { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
@@ -35,19 +38,16 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         public int ColumnCount { get; init; } = 5;
 
-        protected GraphPaintingService(ProfilePictureService profilePictureService)
+        public GraphPaintingService(ImagesService imagesService, FontService fontService)
         {
-            ProfilePictureService = profilePictureService;
-        }
+            ImagesService = imagesService;
 
-        public GraphPaintingService(ProfilePictureService profilePictureService, FontService fontService) : this(profilePictureService)
-        {
             CategoryBoxHeadingFont?.Dispose();
             GridLinePercentageFont?.Dispose();
             UsernameFont?.Dispose();
             AvatarPercentageFont?.Dispose();
 
-            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20);
+            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold);
             GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
             UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
             AvatarPercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
@@ -70,18 +70,25 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             AvatarPercentageForeground.Dispose();
         }
 
-        public async Task<Bitmap> DrawAsync(IDictionary<string, List<QuizDoubleItem>> toplistResults, float reportingThreshold)
+        public async Task<Bitmap> DrawAsync(SocketGuild guild, IDictionary<string, List<QuizDoubleItem>> toplistResults)
         {
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
+            {
                 if (toplistResults[k].Count == 0)
                     toplistResults.Remove(k);
+            }
 
             // Download all needed avatars.
-            var avatars = new Dictionary<ulong, Image>();
-            var userIds = toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct();
-            foreach (var userId in userIds)
-                avatars[userId] = await ProfilePictureService.GetProfilePictureAsync(userId);
+            using var avatars = new ValuesDisposingDictionary<ulong, Image>();
+
+            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct())
+            {
+                using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
+                using var rounded = rawAvatar.Frames[0].RoundImage();
+
+                avatars[userId] = rounded.ResizeImage(ImagesService.DefaultAvatarSize);
+            }
 
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -90,8 +97,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var categoryHeight = CategoryBoxHeight;
             var columnCount = Math.Min(ColumnCount, toplistResults.Count);
             var rowCount = (int)Math.Ceiling(topList.Count / (1f * columnCount));
-            var imageWidth = 2f * CategoryBoxPadding + (columnCount - 1) * CategoryBoxPadding + columnCount * categoryWidth;
-            var imageHeight = 2f * CategoryBoxPadding + (rowCount - 1) * CategoryBoxPadding + rowCount * categoryHeight;
+            var imageWidth = (2f * CategoryBoxPadding) + ((columnCount - 1) * CategoryBoxPadding) + (columnCount * categoryWidth);
+            var imageHeight = (2f * CategoryBoxPadding) + ((rowCount - 1) * CategoryBoxPadding) + (rowCount * categoryHeight);
             var image = new Bitmap((int)Math.Ceiling(imageWidth), (int)Math.Ceiling(imageHeight));
 
             using var g = Graphics.FromImage(image);
@@ -99,13 +106,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
-                var x = CategoryBoxPadding + columnIndex * (categoryWidth + CategoryBoxPadding);
+                var x = CategoryBoxPadding + (columnIndex * (categoryWidth + CategoryBoxPadding));
 
                 for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
                 {
-                    var y = CategoryBoxPadding + rowIndex * (categoryHeight + CategoryBoxPadding);
+                    var y = CategoryBoxPadding + (rowIndex * (categoryHeight + CategoryBoxPadding));
 
-                    var i = rowIndex * columnCount + columnIndex;
+                    var i = (rowIndex * columnCount) + columnIndex;
                     if (i >= topList.Count)
                         continue;
 
@@ -185,7 +192,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Determine the displayed ranged and adjust the number of grid lines so that the percentage values are nice.
             var range = Clamp(maxValue - minValue, 0.1f, 1.0f);
-            var tenths = (int) Math.Round(range / 0.1f);
+            var tenths = (int)Math.Round(range / 0.1f);
             var innerGridLineCount = tenths switch
             {
                 1 => 1,
@@ -199,8 +206,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             for (var i = 1; i <= innerGridLineCount; i++)
             {
-                float v = minValue + i * step;
-                float y = dst.Bottom - dst.Height * (v - minValue) / (maxValue - minValue);
+                float v = minValue + (i * step);
+                float y = dst.Bottom - (dst.Height * (v - minValue) / (maxValue - minValue));
 
                 DrawGridLine(g, dst, y, v, false, gridLineLabelPadding);
             }
@@ -219,20 +226,20 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Measure the category heading, draw it and shrink the graph area so that it does not overlap.
             var headingSize = g.MeasureString(categoryName, CategoryBoxHeadingFont);
-            var headingPadding = 0.1f * headingSize.Height;
-            var headingHeightWithPadding = 2*headingPadding + headingSize.Height;
+            var headingPadding = 0.2f * headingSize.Height;
+            var headingHeightWithPadding = (2 * headingPadding) + headingSize.Height;
             graphArea.Y += headingHeightWithPadding;
             graphArea.Height -= headingHeightWithPadding;
 
             g.DrawString(
                 categoryName, CategoryBoxHeadingFont, CategoryBoxHeadingForeground,
-                graphArea.X + 0.5f*graphArea.Width - 0.5f*headingSize.Width,
+                graphArea.X + (0.5f * graphArea.Width) - (0.5f * headingSize.Width),
                 graphArea.Top - headingSize.Height - headingPadding
             );
 
             // Reduce the width & center the graph area so that there is some (= 0.75*AvatarSize) padding left.
             var gridLinesArea = graphArea;
-            gridLinesArea.Inflate(-0.75f * AvatarSize, -0.75f * AvatarSize);
+            gridLinesArea.Inflate(-0.75f * AvatarSize, (-0.75f * AvatarSize) - (0.50f * headingSize.Height));
 
             // Draw grid lines over the established area.
             DrawCategoryGridLines(g, gridLinesArea, minValue, maxValue, out avatarsArea);
@@ -253,7 +260,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             avatarsArea.Inflate(-0.5f * AvatarSize, 0);
 
             var itemSpacingX = avatarsArea.Width / areaWidthDivisor;    // Establish the spacing between centers of drawn avatars
-            var x = avatarsArea.Left + itemSpacingX * areaWidthDivisor; // Find out the X coordinate of the rightmost rendered item.
+            var x = avatarsArea.Left + (itemSpacingX * areaWidthDivisor); // Find out the X coordinate of the rightmost rendered item.
             if (datas.Length == 1)
                 x = avatarsArea.Left; // .. and override it to the left if it does not have any friends.
 
@@ -265,12 +272,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             foreach ((var picture, var username, var value) in datas.Reverse())
             {
-                var y = avatarsArea.Bottom - avatarsArea.Height * (value - minValue) / (maxValue - minValue);
+                var y = avatarsArea.Bottom - (avatarsArea.Height * (value - minValue) / (maxValue - minValue));
 
                 g.DrawImage(
                     picture,
-                    x - 0.5f * avatarSize.Width,
-                    y - 0.5f * avatarSize.Height,
+                    x - (0.5f * avatarSize.Width),
+                    y - (0.5f * avatarSize.Height),
                     avatarSize.Width,
                     avatarSize.Height
                 );
@@ -278,17 +285,18 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
                 var unStrSize = g.MeasureString(un, UsernameFont);
-                while (un.Length >= 5 && unStrSize.Width > maxUsernameWidth) {
+                while (un.Length >= 5 && unStrSize.Width > maxUsernameWidth)
+                {
                     un = un[0..^1];
                     unStrSize = g.MeasureString(un, UsernameFont);
                 }
 
                 g.DrawString(
                     un, UsernameFont, UsernameForeground,
-                    x - 0.5f * unStrSize.Width,
+                    x - (0.5f * unStrSize.Width),
                     isAbove
-                      ? y - 0.5f * avatarSize.Height - 1.1f * unStrSize.Height
-                      : y + 0.5f * avatarSize.Height + 0.1f * unStrSize.Height
+                      ? y - (0.5f * avatarSize.Height) - (1.1f * unStrSize.Height)
+                      : y + (0.5f * avatarSize.Height) + (0.1f * unStrSize.Height)
                 );
 
                 // Draw the percentage now
@@ -296,10 +304,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var pctgStrSize = g.MeasureString(pctg, AvatarPercentageFont);
                 g.DrawString(
                     pctg, AvatarPercentageFont, AvatarPercentageForeground,
-                    x - 0.5f * pctgStrSize.Width,
+                    x - (0.5f * pctgStrSize.Width),
                     isAbove
-                      ? y + 0.5f * avatarSize.Height + 0.1f * pctgStrSize.Height
-                      : y - 0.5f * avatarSize.Height - 1.1f * pctgStrSize.Height
+                      ? y + (0.5f * avatarSize.Height) + (0.1f * pctgStrSize.Height)
+                      : y - (0.5f * avatarSize.Height) - (1.1f * pctgStrSize.Height)
                 );
 
                 isAbove = !isAbove;

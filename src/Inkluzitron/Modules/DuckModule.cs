@@ -60,7 +60,7 @@ namespace Inkluzitron.Modules
         private Embed GetDuckStateEmbed(DuckCurrentState state)
         {
             var embed = new EmbedBuilder()
-                .WithThumbnailUrl(Context.User.GetUserAvatar())
+                .WithThumbnailUrl(Context.User.GetUserOrDefaultAvatarUrl())
                 .WithColor(Color.Gold)
                 .WithCurrentTimestamp();
 

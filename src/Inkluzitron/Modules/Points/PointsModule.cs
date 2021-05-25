@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 using System.IO;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
@@ -29,16 +30,16 @@ namespace Inkluzitron.Modules.Points
             if (member == null) member = Context.User;
             using var points = await PointsService.GetPointsAsync(member);
 
-            if(points == null)
+            if (points == null)
             {
                 await ReplyAsync($"Uživatel `{member.GetDisplayName()}` ještě nemá žádné body.");
                 return;
             }
 
-            var tmpPath = Path.Combine(Path.GetTempPath(), $"{Path.GetRandomFileName()}.png");
-            points.Save(tmpPath, SysDraw.Imaging.ImageFormat.Png);
+            var tmpFile = new TemporaryFile("png");
+            points.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
 
-            await ReplyFileAsync(tmpPath);
+            await ReplyFileAsync(tmpFile.Path);
         }
     }
 }

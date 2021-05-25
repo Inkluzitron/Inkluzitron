@@ -21,6 +21,7 @@ using Inkluzitron.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -93,25 +94,17 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
-            var imgFile = ImagesService.CreateCachePath(Path.GetRandomFileName() + ".png");
 
-            try
+            if (resultsDict.All(o => o.Value.Count == 0))
             {
-                using var img = await GraphPainter.DrawAsync(resultsDict, Convert.ToSingle(Settings.StrongTraitThreshold));
-                img.Save(imgFile, System.Drawing.Imaging.ImageFormat.Png);
-                await ReplyFileAsync(imgFile);
+                await ReplyAsync(Settings.NoContentToStats);
+                return;
             }
-            finally
-            {
-                try
-                {
-                    File.Delete(imgFile);
-                }
-                catch
-                {
-                    // *** it's not much but it was honest work ***
-                }
-            }
+
+            using var imgFile = new TemporaryFile("png");
+            using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
+            img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
+            await ReplyFileAsync(imgFile.Path);
         }
 
         [Command("list")]
@@ -151,8 +144,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var namedTraits = Enum.GetValues<BdsmTraits>()
                 .Select(t => t.GetType()
-                    .GetMember(t.ToString())
-                    .First()
+                    .GetMember(t.ToString())[0]
                     .GetCustomAttribute<DisplayAttribute>()
                     .GetName());
 
