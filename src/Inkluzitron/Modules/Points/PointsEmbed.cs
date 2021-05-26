@@ -11,7 +11,7 @@ namespace Inkluzitron.Modules.Points
 {
     public class PointsEmbed : EmbedBuilder
     {
-        private static NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
+        static private readonly NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
 
         public PointsEmbed WithBoard(
             Dictionary<int, User> board, DiscordSocketClient client,
