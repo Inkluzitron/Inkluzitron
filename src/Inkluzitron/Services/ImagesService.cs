@@ -27,7 +27,7 @@ namespace Inkluzitron.Services
 {
     public class ImagesService
     {
-        static public readonly Size DefaultAvatarSize = new Size(100, 100);
+        static public readonly Size DefaultAvatarSize = new(100, 100);
 
         private DiscordSocketClient Client { get; }
         private FileCache Cache { get; }
@@ -101,7 +101,7 @@ namespace Inkluzitron.Services
             var fileInfo = new FileInfo(filePath);
             var image = SysDrawImage.FromFile(filePath);
             isAnimated ??= image.FrameDimensionsList.Contains(SysImgFrameDimension.Time.Guid);
-            extension ??= Path.GetExtension(filePath).Substring(1);
+            extension ??= Path.GetExtension(filePath)[1..];
 
             if (isAnimated.Value)
                 return AvatarImageWrapper.FromAnimatedImage(image, fileInfo.Length, extension);

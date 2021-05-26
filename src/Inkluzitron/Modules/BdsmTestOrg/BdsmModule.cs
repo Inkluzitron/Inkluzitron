@@ -206,7 +206,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     return resultsDict;
                 }
                 else if (matchesFound == 1)
+                {
                     explicitlyRequestedTraits.Add(lastMatch);
+                }
             }
 
             if (positiveFilters.IsEmpty)

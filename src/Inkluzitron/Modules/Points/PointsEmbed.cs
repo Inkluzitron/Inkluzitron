@@ -36,7 +36,7 @@ namespace Inkluzitron.Modules.Points
 
             foreach (var item in board)
             {
-                position.AppendLine($"**{item.Key}.**");
+                position.Append("**").Append(item.Key).AppendLine(".**");
                 var userData = client.GetUser(item.Value.Id);
                 users.AppendLine(userData == null ? "*neznámý*" : userData.GetDisplayName());
 

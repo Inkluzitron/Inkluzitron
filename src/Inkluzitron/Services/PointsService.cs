@@ -20,9 +20,9 @@ namespace Inkluzitron.Services
 {
     public class PointsService : IDisposable
     {
-        private static readonly DateTime FallbackDateTime = new DateTime(2000, 1, 1);
-        private static readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
-        private static readonly TimeSpan ReactionIncrementCooldown = TimeSpan.FromSeconds(30);
+        static private readonly DateTime FallbackDateTime = new(2000, 1, 1);
+        static private readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
+        static private readonly TimeSpan ReactionIncrementCooldown = TimeSpan.FromSeconds(30);
 
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }

@@ -47,7 +47,7 @@ namespace Inkluzitron.Modules.Help
 
             if (!string.IsNullOrEmpty(query))
             {
-                var found = availableModules.FirstOrDefault(
+                var found = availableModules.Find(
                     m => m.Commands.Any(
                         c => c.Aliases.Any(
                             a => a.Contains(query))));
@@ -56,11 +56,9 @@ namespace Inkluzitron.Modules.Help
                     module = found;
             }
 
-
             var prefix = Configuration["Prefix"];
             var embed = await new HelpPageEmbed().WithModuleAsync(
                 module, Context, Provider, availableModules.Count, prefix, availableModules.IndexOf(module)+1);
-
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
