@@ -9,12 +9,12 @@ namespace Inkluzitron.Extensions
             return user.GetAvatarUrl(imageFormat, size) ?? user.GetDefaultAvatarUrl();
         }
 
-        static public string GetDisplayName(this IUser user)
+        static public string GetDisplayName(this IUser user, bool ignoreDiscriminator = false)
         {
             if (user is IGuildUser sgu && !string.IsNullOrEmpty(sgu.Nickname))
                 return sgu.Nickname;
 
-            return $"{user.Username}#{user.Discriminator}";
+            return ignoreDiscriminator ? user.Username : $"{user.Username}#{user.Discriminator}";
         }
     }
 }

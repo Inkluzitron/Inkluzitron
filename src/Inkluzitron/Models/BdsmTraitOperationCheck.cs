@@ -65,8 +65,8 @@ namespace Inkluzitron.Models
 
             return string.Format(
                 format,
-                User.GetDisplayName(), UserSubmissiveness, UserDominance,
-                Target.GetDisplayName(), TargetSubmissiveness, TargetDominance,
+                User.GetDisplayName(true), UserSubmissiveness, UserDominance,
+                Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue
             );
         }
