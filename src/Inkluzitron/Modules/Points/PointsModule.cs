@@ -14,6 +14,7 @@ namespace Inkluzitron.Modules.Points
 {
     [Group("body")]
     [Name("Body")]
+    [Alias("points")]
     [Summary("Body se počítají stejně jako u GrillBot. Za každou reakci uživatel obdrží 0 až 10 bodů, za zprávu 0 až 25 bodů. Po odeslání zprávy " +
         "bot počítá jedno minutový cooldown. U reakce je cooldown 30 vteřin.")]
     public class PointsModule : ModuleBase, IReactionHandler
@@ -33,10 +34,17 @@ namespace Inkluzitron.Modules.Points
 
         [Command("")]
         [Alias("kde", "gde")]
-        [Summary("Aktuální stav svých bodů nebo bodů jiného uživatele.")]
-        public async Task GetPointsAsync([Name("uživatel")]IUser member = null)
+        [Summary("Zobrazí aktuální stav svých bodů.")]
+        public async Task GetPointsAsync()
         {
-            if (member == null) member = Context.User;
+            await GetPointsAsync(Context.User);
+        }
+
+        [Command("")]
+        [Alias("kde", "gde")]
+        [Summary("Zobrazí aktuální stav bodů jiného uživatele.")]
+        public async Task GetPointsAsync([Name("uživatel")]IUser member)
+        {
             using var points = await PointsService.GetPointsAsync(member);
 
             if (points == null)
@@ -52,21 +60,17 @@ namespace Inkluzitron.Modules.Points
         }
 
         [Command("board")]
-        [Alias("list", "top")]
-        [Summary("Žebříček uživatelů s nejvíce body. Zobrazí žebříček kolem zadaného uživatele.")]
-        public async Task GetLeaderboardAsync([Name("uživatel")] IUser user)
+        [Alias("list")]
+        [Summary("Žebříček uživatelů s nejvíce body.")]
+        public async Task GetLeaderboardAsync()
         {
-            var pos = await PointsService.GetUserPosition(user);
-            if(pos < 0)
-                await ReplyAsync("Tento uživatel nemá žádný záznam o bodech.");
-            else
-                await GetLeaderboardAsync(pos);
+            await GetLeaderboardAsync(0);
         }
 
         [Command("board")]
-        [Alias("list", "top")]
-        [Summary("Žebříček uživatelů s nejvíce body.")]
-        public async Task GetLeaderboardAsync([Name("počátek")]int start = 0)
+        [Alias("list")]
+        [Summary("Žebříček uživatelů s nejvíce body s posunem od počátku tabulky.")]
+        public async Task GetLeaderboardAsync([Name("offset")]int start)
         {
             var count = await PointsService.GetUserCount();
 
@@ -80,6 +84,18 @@ namespace Inkluzitron.Modules.Points
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
+        }
+
+        [Command("board")]
+        [Alias("list")]
+        [Summary("Žebříček uživatelů s nejvíce body. Zobrazí žebříček kolem zadaného uživatele.")]
+        public async Task GetLeaderboardAsync([Name("uživatel")] IUser user)
+        {
+            var pos = await PointsService.GetUserPosition(user);
+            if (pos < 0)
+                await ReplyAsync("Tento uživatel nemá žádný záznam o bodech.");
+            else
+                await GetLeaderboardAsync(pos);
         }
 
         public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
