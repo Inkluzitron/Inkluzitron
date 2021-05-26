@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
 
@@ -81,16 +80,16 @@ namespace Inkluzitron.Services
 
         public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
         {
-            await AddPointsAsync(user, 0, points, decrement);
-        }
-
-            public async Task AddPointsAsync(IUser user, int from, int to, bool decrement = false)
-        {
             using var context = DatabaseFactory.Create();
             var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
 
-            userEntity.Points += (decrement ? -1 : 1) * ThreadSafeRandom.Next(from, to);
+            userEntity.Points += (decrement ? -1 : 1) * points;
             await context.SaveChangesAsync();
+        }
+
+        public async Task AddPointsRandomAsync(IUser user, int from, int to, bool decrement = false)
+        {
+            await AddPointsAsync(user, ThreadSafeRandom.Next(from, to), decrement);
         }
 
         static private bool CanIncrementPoints(User userEntity, bool isReaction)
