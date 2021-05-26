@@ -10,6 +10,9 @@ dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
 csharp_preferred_modifier_order = static,public:suggestion
 dotnet_diagnostic.RCS1090.severity = none
+dotnet_diagnostic.S4457.severity = none
+dotnet_diagnostic.S3881.severity = none
+dotnet_diagnostic.S1075.severity = none
 
 [*.json]
 indent_size = 4

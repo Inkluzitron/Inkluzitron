@@ -95,6 +95,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
 
+            if (resultsDict.All(o => o.Value.Count == 0))
+            {
+                await ReplyAsync(Settings.NoContentToStats);
+                return;
+            }
+
             using var imgFile = new TemporaryFile("png");
             using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
             img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
@@ -138,8 +144,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var namedTraits = Enum.GetValues<BdsmTraits>()
                 .Select(t => t.GetType()
-                    .GetMember(t.ToString())
-                    .First()
+                    .GetMember(t.ToString())[0]
                     .GetCustomAttribute<DisplayAttribute>()
                     .GetName());
 

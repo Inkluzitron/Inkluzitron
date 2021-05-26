@@ -44,5 +44,13 @@ namespace Inkluzitron.Extensions
 
             yield return currentChunk.ToString();
         }
+
+        static public string Cut(this string str, int maxLength)
+        {
+            if (str.Length >= maxLength - 3)
+                str = str[^(maxLength - 3)] + "...";
+
+            return str;
+        }
     }
 }

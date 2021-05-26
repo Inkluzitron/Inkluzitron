@@ -3,14 +3,16 @@ using System;
 using Inkluzitron.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    partial class BotDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20210523172144_UserLastIncrement")]
+    partial class UserLastIncrement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -86,7 +88,7 @@ namespace Inkluzitron.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessage", b =>
                 {
                     b.Property<ulong>("GuildId")
                         .HasColumnType("INTEGER");
@@ -108,7 +110,7 @@ namespace Inkluzitron.Migrations
                     b.ToTable("UserRoleMessage");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessageRole", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessageRole", b =>
                 {
                     b.Property<ulong>("Id")
                         .HasColumnType("INTEGER");
@@ -171,9 +173,9 @@ namespace Inkluzitron.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessageRole", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessageRole", b =>
                 {
-                    b.HasOne("Inkluzitron.Data.Entities.RoleMenuMessage", "Message")
+                    b.HasOne("Inkluzitron.Data.RolePickerMessage", "Message")
                         .WithMany("Roles")
                         .HasForeignKey("GuildId", "ChannelId", "MessageId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -187,7 +189,7 @@ namespace Inkluzitron.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>
+            modelBuilder.Entity("Inkluzitron.Data.RolePickerMessage", b =>
                 {
                     b.Navigation("Roles");
                 });

@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using System.Globalization;
 using Inkluzitron.Services;
 using Discord.WebSocket;
-using Inkluzitron.Models;
 using Inkluzitron.Utilities;
+using Inkluzitron.Extensions;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -80,11 +80,15 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             // Download all needed avatars.
-            using var avatars = new ValuesDisposingDictionary<ulong, AvatarImageWrapper>();
+            using var avatars = new ValuesDisposingDictionary<ulong, Image>();
 
-            var userIds = toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct();
-            foreach (var userId in userIds)
-                avatars[userId] = await ImagesService.GetAvatarAsync(guild, userId);
+            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct())
+            {
+                using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
+                using var rounded = rawAvatar.Frames[0].RoundImage();
+
+                avatars[userId] = rounded.ResizeImage(ImagesService.DefaultAvatarSize);
+            }
 
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -129,7 +133,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                         maxValueInCategory,
                         topList[i].Value.Select(
                             x => (
-                                avatars[x.Parent.SubmittedById].Image,
+                                avatars[x.Parent.SubmittedById],
                                 x.Parent.SubmittedByName,
                                 Convert.ToSingle(x.Value)
                             )
@@ -188,7 +192,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // Determine the displayed ranged and adjust the number of grid lines so that the percentage values are nice.
             var range = Clamp(maxValue - minValue, 0.1f, 1.0f);
-            var tenths = (int) Math.Round(range / 0.1f);
+            var tenths = (int)Math.Round(range / 0.1f);
             var innerGridLineCount = tenths switch
             {
                 1 => 1,
@@ -229,13 +233,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             g.DrawString(
                 categoryName, CategoryBoxHeadingFont, CategoryBoxHeadingForeground,
-                graphArea.X + (0.5f *graphArea.Width) - (0.5f *headingSize.Width),
+                graphArea.X + (0.5f * graphArea.Width) - (0.5f * headingSize.Width),
                 graphArea.Top - headingSize.Height - headingPadding
             );
 
             // Reduce the width & center the graph area so that there is some (= 0.75*AvatarSize) padding left.
             var gridLinesArea = graphArea;
-            gridLinesArea.Inflate(-0.75f * AvatarSize, (-0.75f * AvatarSize) - (0.50f *headingSize.Height));
+            gridLinesArea.Inflate(-0.75f * AvatarSize, (-0.75f * AvatarSize) - (0.50f * headingSize.Height));
 
             // Draw grid lines over the established area.
             DrawCategoryGridLines(g, gridLinesArea, minValue, maxValue, out avatarsArea);
@@ -281,7 +285,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
                 var unStrSize = g.MeasureString(un, UsernameFont);
-                while (un.Length >= 5 && unStrSize.Width > maxUsernameWidth) {
+                while (un.Length >= 5 && unStrSize.Width > maxUsernameWidth)
+                {
                     un = un[0..^1];
                     unStrSize = g.MeasureString(un, UsernameFont);
                 }
