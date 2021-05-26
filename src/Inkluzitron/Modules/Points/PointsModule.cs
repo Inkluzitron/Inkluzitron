@@ -144,6 +144,7 @@ namespace Inkluzitron.Modules.Points
 
             if (!context.IsPrivate) // DMs have blocked removing reactions.
                 await message.RemoveReactionAsync(reaction, user);
+
             return true;
         }
     }

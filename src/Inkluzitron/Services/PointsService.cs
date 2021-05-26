@@ -56,44 +56,50 @@ namespace Inkluzitron.Services
         public async Task IncrementAsync(SocketReaction reaction)
         {
             var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
-
             using var context = DatabaseFactory.Create();
-            var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
 
-            if (!CanIncrementPoints(userEntity, true))
-                return;
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                if (!CanIncrementPoints(userEntity, true))
+                    return;
 
-            userEntity.LastReactionPointsIncrement = DateTime.UtcNow;
-            userEntity.Points += ThreadSafeRandom.Next(0, 10);
-            await context.SaveChangesAsync();
+                userEntity.LastReactionPointsIncrement = DateTime.UtcNow;
+                userEntity.Points += ThreadSafeRandom.Next(0, 10);
+                await context.SaveChangesAsync();
+            });
         }
 
         public async Task IncrementAsync(SocketMessage message)
         {
             using var context = DatabaseFactory.Create();
-            var userEntity = await GetOrCreateUserEntityAsync(context, message.Author.Id);
 
-            if (!CanIncrementPoints(userEntity, false))
-                return;
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await GetOrCreateUserEntityAsync(context, message.Author.Id);
+                if (!CanIncrementPoints(userEntity, false))
+                    return;
 
-            userEntity.LastMessagePointsIncrement = DateTime.UtcNow;
-            userEntity.Points += ThreadSafeRandom.Next(0, 25);
-            await context.SaveChangesAsync();
+                userEntity.LastMessagePointsIncrement = DateTime.UtcNow;
+                userEntity.Points += ThreadSafeRandom.Next(0, 25);
+                await context.SaveChangesAsync();
+            });
         }
 
         public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
         {
             using var context = DatabaseFactory.Create();
-            var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
 
-            userEntity.Points += (decrement ? -1 : 1) * points;
-            await context.SaveChangesAsync();
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                userEntity.Points += (decrement ? -1 : 1) * points;
+                await context.SaveChangesAsync();
+            });
         }
 
-        public async Task AddPointsRandomAsync(IUser user, int from, int to, bool decrement = false)
-        {
-            await AddPointsAsync(user, ThreadSafeRandom.Next(from, to), decrement);
-        }
+        public Task AddPointsRandomAsync(IUser user, int from, int to, bool decrement = false)
+            => AddPointsAsync(user, ThreadSafeRandom.Next(from, to), decrement);
 
         static private bool CanIncrementPoints(User userEntity, bool isReaction)
         {
@@ -114,6 +120,7 @@ namespace Inkluzitron.Services
 
             userEntity = new User() { Id = userId };
             await context.AddAsync(userEntity);
+            await context.SaveChangesAsync();
 
             return userEntity;
         }
