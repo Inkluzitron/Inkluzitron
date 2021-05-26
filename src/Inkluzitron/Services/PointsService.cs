@@ -1,12 +1,15 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using GrapeCity.Documents.Imaging;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
+using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
@@ -110,7 +113,7 @@ namespace Inkluzitron.Services
             return users.FindIndex(o => o.Id == user.Id) + 1;
         }
 
-        public async Task<SysDraw.Image> GetPointsAsync(IUser user)
+        public async Task<TemporaryFile> GetPointsAsync(IUser user)
         {
             using var context = DatabaseFactory.Create();
             var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
@@ -119,17 +122,59 @@ namespace Inkluzitron.Services
                 return null;
 
             var position = await CalculatePositionAsync(context, user);
+            using var profilePicture = await ImagesService.GetAvatarAsync(user);
 
+            if (user.HaveAnimatedAvatar())
+            {
+                var tmpFile = new TemporaryFile("gif");
+                using var gifWriter = new GcGifWriter(tmpFile.Path);
+                using var gcBitmap = new GcBitmap();
+
+                foreach (var frame in profilePicture.Frames)
+                {
+                    using var roundedProfilePicture = frame.RoundImage();
+                    using var baseImage = RenderPointsBaseFrame(userEntity, position, user);
+
+                    using var graphics = Graphics.FromImage(baseImage);
+                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    graphics.DrawImage(roundedProfilePicture, 70, 70, 160, 160);
+
+                    using var destinationStream = new MemoryStream();
+                    baseImage.Save(destinationStream, SysDraw.Imaging.ImageFormat.Png);
+                    destinationStream.Seek(0, SeekOrigin.Begin);
+
+                    gcBitmap.Load(destinationStream);
+                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: profilePicture.GifDelay.Value);
+                }
+
+                return tmpFile;
+            }
+            else
+            {
+                var baseImage = RenderPointsBaseFrame(userEntity, position, user);
+                using var graphics = Graphics.FromImage(baseImage);
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                using var roundedImage = profilePicture.Frames[0].RoundImage();
+                graphics.DrawImage(roundedImage, 70, 70, 160, 160);
+
+                var tmpFile = new TemporaryFile("png");
+                baseImage.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
+
+                return tmpFile;
+            }
+        }
+
+        private SysDraw.Image RenderPointsBaseFrame(User userEntity, int position, IUser user)
+        {
             var bitmap = new Bitmap(1000, 300);
+            bitmap.MakeTransparent();
+
             using var graphics = Graphics.FromImage(bitmap);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
             graphics.RenderRectangle(new Rectangle(0, 0, bitmap.Width, bitmap.Height), SysDraw.Color.FromArgb(35, 39, 42), 15);
             graphics.RenderRectangle(new Rectangle(50, 50, 900, 200), SysDraw.Color.FromArgb(100, 0, 0, 0), 15);
-
-            using var profilePicture = (await ImagesService.GetAvatarAsync(user)).Frames[0];
-            using var roundedImage = profilePicture.RoundImage();
-            graphics.DrawImage(roundedImage, 70, 70, 160, 160);
 
             var positionTextSize = graphics.MeasureString($"#{position}", PositionFont);
             graphics.DrawString("BODY", TitleTextFont, WhiteBrush, new PointF(250, 180));
@@ -138,7 +183,7 @@ namespace Inkluzitron.Services
             graphics.DrawString("POZICE", TitleTextFont, WhiteBrush, new PointF(900 - positionTextSize.Width - positionTitleTextSize.Width, 180));
             graphics.DrawString($"#{position}", PositionFont, WhiteBrush, new PointF(910 - positionTextSize.Width, 150));
 
-            var nickname = user.GetDisplayName().Cut(20);
+            var nickname = user.GetDisplayName(true).Cut(30);
             graphics.DrawString(nickname, NicknameFont, WhiteBrush, new PointF(250, 60));
 
             return bitmap;
