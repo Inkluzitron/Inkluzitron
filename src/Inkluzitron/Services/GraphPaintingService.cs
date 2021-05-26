@@ -284,7 +284,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
-                var unStrSize = g.ShrinkAndMeasureString(ref un, UsernameFont, maxUsernameWidth);
+                var unStrSize = g.MeasureAndShrinkText(ref un, UsernameFont, maxUsernameWidth);
 
                 g.DrawString(
                     un, UsernameFont, UsernameForeground,

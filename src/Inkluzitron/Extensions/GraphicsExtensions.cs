@@ -7,7 +7,7 @@ namespace Inkluzitron.Extensions
     {
         private const string Ellipsis = "...";
 
-        static public SizeF ShrinkAndMeasureString(this Graphics g, ref string text, Font font, float maxWidth, bool appendEllipsis = false)
+        static public SizeF MeasureAndShrinkText(this Graphics g, ref string text, Font font, float maxWidth, bool appendEllipsis = false)
         {
             if (text is null)
                 throw new ArgumentNullException(nameof(text));

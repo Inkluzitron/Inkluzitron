@@ -185,7 +185,7 @@ namespace Inkluzitron.Services
             graphics.DrawString($"#{position}", PositionFont, WhiteBrush, new PointF(910 - positionTextSize.Width, 150));
 
             var nickname = user.GetDisplayName();
-            graphics.ShrinkAndMeasureString(ref nickname, NicknameFont, 725, appendEllipsis: true);
+            graphics.MeasureAndShrinkText(ref nickname, NicknameFont, 725, appendEllipsis: true);
             graphics.DrawString(nickname, NicknameFont, WhiteBrush, new PointF(250, 60));
             return bitmap;
         }
