@@ -44,6 +44,9 @@ namespace Inkluzitron.Modules
                 return;
             }
 
+            if (!Context.IsPrivate) // DMs have blocked removing reactions.
+                await Context.Message.DeleteAsync();
+
             if (messageText != null)
                 await channel.SendMessageAsync(messageText);
 
@@ -62,9 +65,6 @@ namespace Inkluzitron.Modules
                     await channel.SendFileAsync(stream, a.Filename, messageText ?? string.Empty, isSpoiler: a.IsSpoiler());
                 }
             }
-
-            if (!Context.IsPrivate) // DMs have blocked removing reactions.
-                await Context.Message.DeleteAsync();
         }
     }
 }
