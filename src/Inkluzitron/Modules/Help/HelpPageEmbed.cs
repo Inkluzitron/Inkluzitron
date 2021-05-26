@@ -14,18 +14,19 @@ namespace Inkluzitron.Modules.Help
         {
             var bot = context.Client.CurrentUser;
 
-            this.WithTitle(module.Name);
-            this.WithCurrentTimestamp();
-            this.WithAuthor(new EmbedAuthorBuilder()
+            WithTitle(module.Name);
+            WithColor(new Color(241, 190, 223));
+            WithCurrentTimestamp();
+            WithAuthor(new EmbedAuthorBuilder()
             {
                 Name = "Nápověda",
                 IconUrl = bot.GetAvatarUrl()
             });
-            this.WithFooter($"{page}/{pagesCount}");
+            WithFooter($"{page}/{pagesCount}");
             this.WithMetadata(new HelpPageEmbedMetadata { PageNumber = page, PageCount = pagesCount });
 
             if (!string.IsNullOrEmpty(module.Summary))
-                this.WithDescription(module.Summary);
+                WithDescription(module.Summary);
 
             var executableCommands = await module.GetExecutableCommandsAsync(context, provider);
             foreach (var command in executableCommands.Take(MaxFieldCount))
@@ -36,7 +37,7 @@ namespace Inkluzitron.Modules.Help
                 if (!string.IsNullOrEmpty(aliases))
                     aliases = $"**Alias:** *{aliases}*\n";
 
-                this.AddField($"{command.GetCommandFormat(prefix)}", $"{aliases}{summary}");
+                AddField($"{command.GetCommandFormat(prefix)}", $"{aliases}{summary}");
             }
 
             return this;

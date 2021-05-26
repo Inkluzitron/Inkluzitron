@@ -8,7 +8,6 @@ using Inkluzitron.Models.Settings;
 namespace Inkluzitron.Modules
 {
     [Name("Odesílání zpráv")]
-    [RequireContext(ContextType.DM, ErrorMessage = "Tento příkaz funguje pouze v soukromých zprávách.")]
     public class SendModule : ModuleBase
     {
         private BotSettings BotSettings { get; }
@@ -21,7 +20,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("send")]
-        [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky. Funguje pouze v DM.")]
+        [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky.")]
         public async Task SendAsync([Name("cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
         {
             var guild = Context.Client.GetGuild(BotSettings.HomeGuildId);
@@ -44,6 +43,9 @@ namespace Inkluzitron.Modules
                 await ReplyAsync(SendSettings.ErrorNoContent);
                 return;
             }
+
+            if (!Context.IsPrivate) // DMs have blocked removing reactions.
+                await Context.Message.DeleteAsync();
 
             if (messageText != null)
                 await channel.SendMessageAsync(messageText);

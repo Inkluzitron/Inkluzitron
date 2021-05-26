@@ -3,14 +3,16 @@ using System;
 using Inkluzitron.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    partial class BotDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20210519174221_RolePickerToRoleMenu")]
+    partial class RolePickerToRoleMenu
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,25 +67,6 @@ namespace Inkluzitron.Migrations
                     b.ToTable("QuizResults");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("QuizResult");
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
-                {
-                    b.Property<ulong>("Id")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("LastMessagePointsIncrement")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LastReactionPointsIncrement")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("Points")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>

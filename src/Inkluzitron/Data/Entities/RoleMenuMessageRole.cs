@@ -1,8 +1,8 @@
-﻿namespace Inkluzitron.Data
+﻿namespace Inkluzitron.Data.Entities
 {
-    public class RolePickerMessageRole
+    public class RoleMenuMessageRole
     {
-        public RolePickerMessage Message { get; set; }
+        public RoleMenuMessage Message { get; set; }
 
         public ulong GuildId { get; set; }
         public ulong ChannelId { get; set; }
