@@ -2,10 +2,7 @@
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Services;
-using Inkluzitron.Utilities;
-using System.IO;
 using System.Threading.Tasks;
-using SysDraw = System.Drawing;
 
 namespace Inkluzitron.Modules.Points
 {
@@ -36,10 +33,7 @@ namespace Inkluzitron.Modules.Points
                 return;
             }
 
-            var tmpFile = new TemporaryFile("png");
-            points.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
-
-            await ReplyFileAsync(tmpFile.Path);
+            await ReplyFileAsync(points.Path);
         }
     }
 }
