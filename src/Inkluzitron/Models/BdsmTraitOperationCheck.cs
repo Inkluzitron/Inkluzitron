@@ -27,6 +27,7 @@ namespace Inkluzitron.Models
         public int RolledValue { get; set; }
         public int RollMaximum { get; set; }
         public int RequiredValue { get; set; }
+        public int SubstractedPoints => IsSuccessful ? 0 : RequiredValue - RolledValue;
 
         public override string ToString()
         {
@@ -66,7 +67,7 @@ namespace Inkluzitron.Models
                 format,
                 User.Username, UserSubmissiveness, UserDominance,
                 Target.Username, TargetSubmissiveness, TargetDominance,
-                RolledValue, RollMaximum, RequiredValue
+                RolledValue, RollMaximum, RequiredValue, SubstractedPoints
             );
         }
     }

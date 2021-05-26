@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
 using Inkluzitron.Services;
 using System.Threading.Tasks;
 
@@ -12,11 +13,14 @@ namespace Inkluzitron.Modules
     {
         private ImagesService ImagesService { get; }
         private UserBdsmTraitsService UserBdsmTraits { get; }
+        private PointsService PointsService { get; }
 
-        public ImagesModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits)
+        public ImagesModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits,
+            PointsService pointsService)
         {
             ImagesService = imagesService;
             UserBdsmTraits = userBdsmTraits;
+            PointsService = pointsService;
         }
 
         [Command("peepolove")]
@@ -25,10 +29,7 @@ namespace Inkluzitron.Modules
         public async Task PeepoLoveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-            {
-                var refMsg = Context.Message.ReferencedMessage;
-                member = refMsg == null ? Context.User : refMsg.Author;
-            }
+                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
 
             var imageName = await ImagesService.PeepoLoveAsync(member, Context.Guild.CalculateFileUploadLimit());
             await ReplyFileAsync(imageName);
@@ -40,10 +41,7 @@ namespace Inkluzitron.Modules
         public async Task PeepoAngryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-            {
-                var refMsg = Context.Message.ReferencedMessage;
-                member = refMsg == null ? Context.User : refMsg.Author;
-            }
+                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
 
             var imageName = await ImagesService.PeepoAngryAsync(member, Context.Guild.CalculateFileUploadLimit());
             await ReplyFileAsync(imageName);
@@ -55,10 +53,7 @@ namespace Inkluzitron.Modules
         public async Task PatAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-            {
-                var refMsg = Context.Message.ReferencedMessage;
-                member = refMsg == null ? Context.User : refMsg.Author;
-            }
+                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
 
             var gifName = await ImagesService.PatAsync(member, Context.User.Equals(member));
             await ReplyFileAsync(gifName);
@@ -108,12 +103,15 @@ namespace Inkluzitron.Modules
 
         private delegate Task<string> AsyncImageGenerator(IUser target, bool self);
 
-        private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, AsyncImageGenerator asyncImageGenerator)
+        private async Task<RuntimeResult> DomSubRolledImageAsync(IUser target, bool showRollInfo, AsyncImageGenerator asyncImageGenerator)
         {
             if (target == null)
+                target = Context.Message.ReferencedMessage?.Author ?? Context.User;
+
+            if (!await UserBdsmTraits.TestExists(Context.User))
             {
-                var refMsg = Context.Message.ReferencedMessage;
-                target = refMsg == null ? Context.User : refMsg.Author;
+                // Whip-like commands can only by used by users who completed the BDSM test.
+                return new CommandRedirectResult("bdsm");
             }
 
             string imagePath;
@@ -128,7 +126,10 @@ namespace Inkluzitron.Modules
                 var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
 
                 if (!check.IsSuccessful)
+                {
+                    await PointsService.AddPointsAsync(Context.User, check.SubstractedPoints, decrement:true);
                     target = Context.User;
+                }
 
                 if (showRollInfo)
                     messageText = check.ToString();
@@ -137,6 +138,7 @@ namespace Inkluzitron.Modules
             }
 
             await ReplyFileAsync(imagePath, messageText);
+            return null;
         }
     }
 }
