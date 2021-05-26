@@ -5,9 +5,11 @@ using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
 
@@ -100,7 +102,13 @@ namespace Inkluzitron.Services
             return userEntity;
         }
 
-        static private async Task<int> CalculatePositionAsync(BotDatabaseContext context, IUser user)
+        public async Task<int> GetUserPosition(IUser user)
+        {
+            using var context = DatabaseFactory.Create();
+            return await GetUserPosition(context, user);
+        }
+
+        public async Task<int> GetUserPosition(BotDatabaseContext context, IUser user)
         {
             var users = await context.Users.AsQueryable()
                 .Where(o => o.Points > 0)
@@ -108,6 +116,30 @@ namespace Inkluzitron.Services
                 .ToListAsync();
 
             return users.FindIndex(o => o.Id == user.Id) + 1;
+        }
+
+        public Dictionary<int, User> GetLeaderboard(int startFrom = 0, int count = 10)
+        {
+            using var context = DatabaseFactory.Create();
+            var users = context.Users.AsQueryable()
+                .OrderByDescending(u => u.Points)
+                .Skip(startFrom).Take(count);
+
+            var board = new Dictionary<int, User>();
+
+            foreach (var user in users)
+            {
+                startFrom++;
+                board.Add(startFrom, user);
+            }
+
+            return board;
+        }
+
+        public async Task<int> GetUserCount()
+        {
+            using var context = DatabaseFactory.Create();
+            return await context.Users.AsQueryable().CountAsync();
         }
 
         public async Task<SysDraw.Image> GetPointsAsync(IUser user)
@@ -118,7 +150,7 @@ namespace Inkluzitron.Services
             if (userEntity == null)
                 return null;
 
-            var position = await CalculatePositionAsync(context, user);
+            var position = await GetUserPosition(context, user);
 
             var bitmap = new Bitmap(1000, 300);
             using var graphics = Graphics.FromImage(bitmap);
