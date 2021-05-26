@@ -7,6 +7,7 @@ using Inkluzitron.Extensions;
 using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -80,6 +81,20 @@ namespace Inkluzitron.Services
             await context.SaveChangesAsync();
         }
 
+        public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
+        {
+            using var context = DatabaseFactory.Create();
+            var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+
+            userEntity.Points += (decrement ? -1 : 1) * points;
+            await context.SaveChangesAsync();
+        }
+
+        public async Task AddPointsRandomAsync(IUser user, int from, int to, bool decrement = false)
+        {
+            await AddPointsAsync(user, ThreadSafeRandom.Next(from, to), decrement);
+        }
+
         static private bool CanIncrementPoints(User userEntity, bool isReaction)
         {
             var lastIncrement = isReaction ? userEntity.LastReactionPointsIncrement : userEntity.LastMessagePointsIncrement;
@@ -103,7 +118,13 @@ namespace Inkluzitron.Services
             return userEntity;
         }
 
-        static private async Task<int> CalculatePositionAsync(BotDatabaseContext context, IUser user)
+        public async Task<int> GetUserPosition(IUser user)
+        {
+            using var context = DatabaseFactory.Create();
+            return await GetUserPosition(context, user);
+        }
+
+        public async Task<int> GetUserPosition(BotDatabaseContext context, IUser user)
         {
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
@@ -114,15 +135,41 @@ namespace Inkluzitron.Services
             return index + 1;
         }
 
-        public async Task<TemporaryFile> GetPointsAsync(IUser user)
+        public Dictionary<int, User> GetLeaderboard(int startFrom = 0, int count = 10)
         {
             using var context = DatabaseFactory.Create();
-            var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
+            var users = context.Users.AsQueryable()
+                .OrderByDescending(u => u.Points)
+                .Skip(startFrom).Take(count);
 
-            if (userEntity == null)
-                return null;
+            var board = new Dictionary<int, User>();
 
-            var position = await CalculatePositionAsync(context, user);
+            foreach (var user in users)
+            {
+                startFrom++;
+                board.Add(startFrom, user);
+            }
+
+            return board;
+        }
+
+        public async Task<int> GetUserCount()
+        {
+            using var context = DatabaseFactory.Create();
+            return await context.Users.AsQueryable().CountAsync();
+        }
+
+        public async Task<TemporaryFile> GetPointsAsync(IUser user)
+        {
+            User userEntity;
+            int position;
+
+            using (var context = DatabaseFactory.Create())
+            {
+                userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                position = await GetUserPosition(context, user);
+            }
+
             using var profilePicture = await ImagesService.GetAvatarAsync(user);
 
             if (profilePicture.IsAnimated)
