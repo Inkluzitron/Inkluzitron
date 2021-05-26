@@ -79,6 +79,20 @@ namespace Inkluzitron.Services
             await context.SaveChangesAsync();
         }
 
+        public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
+        {
+            await AddPointsAsync(user, 0, points, decrement);
+        }
+
+            public async Task AddPointsAsync(IUser user, int from, int to, bool decrement = false)
+        {
+            using var context = DatabaseFactory.Create();
+            var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+
+            userEntity.Points += (decrement ? -1 : 1) * ThreadSafeRandom.Next(from, to);
+            await context.SaveChangesAsync();
+        }
+
         static private bool CanIncrementPoints(User userEntity, bool isReaction)
         {
             var lastIncrement = isReaction ? userEntity.LastReactionPointsIncrement : userEntity.LastMessagePointsIncrement;
@@ -111,7 +125,6 @@ namespace Inkluzitron.Services
         public async Task<int> GetUserPosition(BotDatabaseContext context, IUser user)
         {
             var users = await context.Users.AsQueryable()
-                .Where(o => o.Points > 0)
                 .OrderByDescending(o => o.Points)
                 .ToListAsync();
 
