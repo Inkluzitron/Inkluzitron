@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Inkluzitron.Modules
 {
     [Name("Obrázkové příkazy")]
-    [Summary("Za každý příkaz v této kategorii je možné napsat libovolnou zprávu.\nTaké pozor, na koho tyto příkazy používáte. Některé spicy příkazy jsou závislé na výsledku BDSM testu.")]
+    [Summary("Za každý příkaz v této kategorii je možné napsat libovolnou zprávu.\nTyto příkazy jdou použít jako odpověď na zprávu, podobně jako $mock.\nTaké pozor, na koho příkazy používáte. Některé spicy příkazy jsou závislé na výsledku BDSM testu.")]
     public class ImagesModule : ModuleBase
     {
         private ImagesService ImagesService { get; }
@@ -25,7 +25,10 @@ namespace Inkluzitron.Modules
         public async Task PeepoLoveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-                member = Context.User;
+            {
+                var refMsg = Context.Message.ReferencedMessage;
+                member = refMsg == null ? Context.User : refMsg.Author;
+            }
 
             var imageName = await ImagesService.PeepoLoveAsync(member, Context.Guild.CalculateFileUploadLimit());
             await ReplyFileAsync(imageName);
@@ -37,7 +40,10 @@ namespace Inkluzitron.Modules
         public async Task PeepoAngryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-                member = Context.User;
+            {
+                var refMsg = Context.Message.ReferencedMessage;
+                member = refMsg == null ? Context.User : refMsg.Author;
+            }
 
             var imageName = await ImagesService.PeepoAngryAsync(member, Context.Guild.CalculateFileUploadLimit());
             await ReplyFileAsync(imageName);
@@ -49,7 +55,10 @@ namespace Inkluzitron.Modules
         public async Task PatAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
         {
             if (member == null)
-                member = Context.User;
+            {
+                var refMsg = Context.Message.ReferencedMessage;
+                member = refMsg == null ? Context.User : refMsg.Author;
+            }
 
             var gifName = await ImagesService.PatAsync(member, Context.User.Equals(member));
             await ReplyFileAsync(gifName);
@@ -102,7 +111,10 @@ namespace Inkluzitron.Modules
         private async Task DomSubRolledImageAsync(IUser target, bool showRollInfo, AsyncImageGenerator asyncImageGenerator)
         {
             if (target == null)
-                target = Context.User;
+            {
+                var refMsg = Context.Message.ReferencedMessage;
+                target = refMsg == null ? Context.User : refMsg.Author;
+            }
 
             string imagePath;
             string messageText = null;
