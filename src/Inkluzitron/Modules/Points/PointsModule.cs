@@ -8,7 +8,6 @@ using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 using System.Linq;
 using System.Threading.Tasks;
-using SysDraw = System.Drawing;
 
 namespace Inkluzitron.Modules.Points
 {
@@ -53,10 +52,7 @@ namespace Inkluzitron.Modules.Points
                 return;
             }
 
-            var tmpFile = new TemporaryFile("png");
-            points.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
-
-            await ReplyFileAsync(tmpFile.Path);
+            await ReplyFileAsync(points.Path);
         }
 
         [Command("board")]

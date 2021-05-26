@@ -48,7 +48,7 @@ namespace Inkluzitron.Extensions
         static public string Cut(this string str, int maxLength)
         {
             if (str.Length >= maxLength - 3)
-                str = str[^(maxLength - 3)] + "...";
+                str = str.Substring(0, maxLength - 3) + "...";
 
             return str;
         }

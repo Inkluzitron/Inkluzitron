@@ -80,7 +80,7 @@ namespace Inkluzitron.Services
                 .WithParam(user.AvatarId, discordSize, realSize.Width, realSize.Height)
                 .Build();
 
-            var isAnimated = user.AvatarId.StartsWith("a_");
+            var isAnimated = user.HaveAnimatedAvatar();
             var avatarExtension = isAnimated ? "gif" : "png";
 
             if (cacheObject.TryFind(out var filePath))
