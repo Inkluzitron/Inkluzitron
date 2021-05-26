@@ -102,12 +102,13 @@ namespace Inkluzitron.Services
 
         static private async Task<int> CalculatePositionAsync(BotDatabaseContext context, IUser user)
         {
-            var users = await context.Users.AsQueryable()
-                .Where(o => o.Points > 0)
-                .OrderByDescending(o => o.Points)
-                .ToListAsync();
+            var index = await context.Users.AsQueryable()
+                .Where(u => u.Id == user.Id)
+                .Select(u => u.Points)
+                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.Points > 0).Where(u => u.Points < ownPoints))
+                .CountAsync();
 
-            return users.FindIndex(o => o.Id == user.Id) + 1;
+            return index + 1;
         }
 
         public async Task<SysDraw.Image> GetPointsAsync(IUser user)
