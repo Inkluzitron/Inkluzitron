@@ -15,5 +15,8 @@ namespace Inkluzitron.Data.Entities
 
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
+
+        [Timestamp]
+        public byte[] Timestamp { get; set; }
     }
 }

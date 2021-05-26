@@ -72,8 +72,7 @@ namespace Inkluzitron.Modules.Points
             if (start >= count) start = count - 1;
             start -= start % BoardPageLimit;
 
-            var board = PointsService.GetLeaderboard(start, BoardPageLimit);
-
+            var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit);
             var embed = new PointsEmbed().WithBoard(
                 board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit);
 
@@ -86,11 +85,8 @@ namespace Inkluzitron.Modules.Points
         [Summary("Žebříček uživatelů s nejvíce body. Zobrazí žebříček kolem zadaného uživatele.")]
         public async Task GetLeaderboardAsync([Name("uživatel")] IUser user)
         {
-            var pos = await PointsService.GetUserPosition(user);
-            if (pos < 0)
-                await ReplyAsync("Tento uživatel nemá žádný záznam o bodech.");
-            else
-                await GetLeaderboardAsync(pos);
+            var pos = await PointsService.GetUserPositionAsync(user);
+            await GetLeaderboardAsync(pos);
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.WebSocket;
 
 namespace Inkluzitron.Extensions
 {
@@ -12,12 +11,10 @@ namespace Inkluzitron.Extensions
 
         static public string GetDisplayName(this IUser user, bool ignoreDiscriminator = false)
         {
-            if (user is SocketGuildUser sgu && !string.IsNullOrEmpty(sgu.Nickname))
+            if (user is IGuildUser sgu && !string.IsNullOrEmpty(sgu.Nickname))
                 return sgu.Nickname;
 
             return ignoreDiscriminator ? user.Username : $"{user.Username}#{user.Discriminator}";
         }
-
-        static public bool HaveAnimatedAvatar(this IUser user) => user.AvatarId.StartsWith("a_");
     }
 }

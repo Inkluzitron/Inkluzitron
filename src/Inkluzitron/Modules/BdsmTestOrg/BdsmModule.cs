@@ -141,6 +141,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
             var positiveFilters = new ConcurrentDictionary<string, double>();
             var negativeFilters = new ConcurrentDictionary<string, double>();
+            var explicitlyRequestedTraits = new HashSet<string>();
 
             var namedTraits = Enum.GetValues<BdsmTraits>()
                 .Select(t => t.GetType()
@@ -170,22 +171,43 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                         threshold = 1;
                 }
 
-                var matchFound = false;
+                var matchesFound = 0;
+                string lastMatch = null;
+
                 foreach (var traitName in namedTraits)
                 {
                     if (!traitName.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (isNegativeQuery)
-                        matchFound |= negativeFilters.TryAdd(traitName, threshold);
+                    {
+                        if (explicitlyRequestedTraits.Contains(traitName))
+                            continue;
+
+                        if (negativeFilters.TryAdd(traitName, threshold))
+                        {
+                            matchesFound++;
+                            lastMatch = traitName;
+                        }
+                    }
                     else
-                        matchFound |= positiveFilters.TryAdd(traitName, threshold);
+                    {
+                        if (positiveFilters.TryAdd(traitName, threshold))
+                        {
+                            matchesFound++;
+                            lastMatch = traitName;
+                        }
+                    }
                 }
 
-                if (!matchFound)
+                if (matchesFound == 0)
                 {
                     await ReplyAsync($"{Settings.BadFilterQueryMessage}: {rawQueryItem}");
                     return resultsDict;
+                }
+                else if (matchesFound == 1)
+                {
+                    explicitlyRequestedTraits.Add(lastMatch);
                 }
             }
 

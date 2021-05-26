@@ -21,12 +21,13 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using SysDrawImage = System.Drawing.Image;
 using SysImgFormat = System.Drawing.Imaging.ImageFormat;
+using SysImgFrameDimension = System.Drawing.Imaging.FrameDimension;
 
 namespace Inkluzitron.Services
 {
     public class ImagesService
     {
-        static public readonly Size DefaultAvatarSize = new Size(100, 100);
+        static public readonly Size DefaultAvatarSize = new(100, 100);
 
         private DiscordSocketClient Client { get; }
         private FileCache Cache { get; }
@@ -80,31 +81,32 @@ namespace Inkluzitron.Services
                 .WithParam(user.AvatarId, discordSize, realSize.Width, realSize.Height)
                 .Build();
 
-            var isAnimated = user.HaveAnimatedAvatar();
-            var avatarExtension = isAnimated ? "gif" : "png";
+            bool? isAnimated = null;
+            string extension = null;
 
-            if (cacheObject.TryFind(out var filePath))
+            if (!cacheObject.TryFind(out var filePath))
             {
-                var fileInfo = new FileInfo(filePath);
+                var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
+                using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
+                using var rawProfileImage = SysDrawImage.FromStream(memStream);
 
-                if (isAnimated)
-                    return AvatarImageWrapper.FromAnimatedImage(SysDrawImage.FromFile(filePath), fileInfo.Length, avatarExtension);
-                else
-                    return AvatarImageWrapper.FromImage(SysDrawImage.FromFile(filePath), fileInfo.Length, avatarExtension);
+                isAnimated = rawProfileImage.FrameDimensionsList.Contains(SysImgFrameDimension.Time.Guid);
+                extension = isAnimated.Value ? "gif" : "png";
+                var format = isAnimated.Value ? SysImgFormat.Gif : SysImgFormat.Png;
+
+                filePath = cacheObject.GetPathForWriting(extension);
+                rawProfileImage.Save(filePath, format);
             }
 
-            var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
-            var profilePictureData = await HttpClientFactory.CreateClient().GetByteArrayAsync(avatarUrl);
+            var fileInfo = new FileInfo(filePath);
+            var image = SysDrawImage.FromFile(filePath);
+            isAnimated ??= image.FrameDimensionsList.Contains(SysImgFrameDimension.Time.Guid);
+            extension ??= Path.GetExtension(filePath)[1..];
 
-            var memStream = new MemoryStream(profilePictureData);
-            var rawProfileImage = SysDrawImage.FromStream(memStream);
-
-            rawProfileImage.Save(cacheObject.GetPathForWriting(avatarExtension));
-
-            if (isAnimated)
-                return AvatarImageWrapper.FromAnimatedImage(rawProfileImage, memStream.Length, avatarExtension);
+            if (isAnimated.Value)
+                return AvatarImageWrapper.FromAnimatedImage(image, fileInfo.Length, extension);
             else
-                return AvatarImageWrapper.FromImage(rawProfileImage, memStream.Length, avatarExtension);
+                return AvatarImageWrapper.FromImage(image, fileInfo.Length, extension);
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess

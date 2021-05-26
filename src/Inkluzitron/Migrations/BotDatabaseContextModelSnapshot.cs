@@ -67,25 +67,6 @@ namespace Inkluzitron.Migrations
                     b.HasDiscriminator<string>("Discriminator").HasValue("QuizResult");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
-                {
-                    b.Property<ulong>("Id")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("LastMessagePointsIncrement")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("LastReactionPointsIncrement")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("Points")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Users");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>
                 {
                     b.Property<ulong>("GuildId")
@@ -136,6 +117,30 @@ namespace Inkluzitron.Migrations
                     b.HasIndex("GuildId", "ChannelId", "MessageId");
 
                     b.ToTable("UserRoleMessageItem");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
+                {
+                    b.Property<ulong>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastMessagePointsIncrement")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastReactionPointsIncrement")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Timestamp")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.QuizDoubleItem", b =>

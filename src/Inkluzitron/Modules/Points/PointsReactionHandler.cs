@@ -65,7 +65,7 @@ namespace Inkluzitron.Modules.Points
 
             if (newStart != metadata.Start)
             {
-                var board = PointsService.GetLeaderboard(newStart, BoardPageLimit);
+                var board = await PointsService.GetLeaderboardAsync(newStart, BoardPageLimit);
 
                 var newEmbed = new PointsEmbed()
                     .WithBoard(board, Client, context.Client.CurrentUser, count, newStart, BoardPageLimit)
