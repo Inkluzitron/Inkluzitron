@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Inkluzitron.Enums;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using System;
 
@@ -64,8 +65,8 @@ namespace Inkluzitron.Models
 
             return string.Format(
                 format,
-                User.Username, UserSubmissiveness, UserDominance,
-                Target.Username, TargetSubmissiveness, TargetDominance,
+                User.GetDisplayName(), UserSubmissiveness, UserDominance,
+                Target.GetDisplayName(), TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue
             );
         }
