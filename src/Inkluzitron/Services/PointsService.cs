@@ -12,6 +12,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
 
@@ -19,6 +20,10 @@ namespace Inkluzitron.Services
 {
     public class PointsService : IDisposable
     {
+        private static readonly DateTime FallbackDateTime = new DateTime(2000, 1, 1);
+        private static readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan ReactionIncrementCooldown = TimeSpan.FromSeconds(30);
+
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
         private ImagesService ImagesService { get; }
@@ -45,43 +50,51 @@ namespace Inkluzitron.Services
             LightGrayBrush = new SolidBrush(SysDraw.Color.LightGray);
         }
 
-        private Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        private async Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (channel is not SocketGuildChannel)
-                return Task.CompletedTask; // Only server messages increments points.
+            if (channel is not IGuildChannel)
+                return; // Only server messages increments points.
 
-            return IncrementAsync(reaction);
+            var user = reaction.User.IsSpecified
+                ? reaction.User.Value
+                : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+
+            if (user.IsBot)
+                return;
+
+            await AddIncrementalPoints(
+                user,
+                ThreadSafeRandom.Next(0, 10),
+                u => DateTime.UtcNow.Subtract(u.LastReactionPointsIncrement ?? FallbackDateTime) < ReactionIncrementCooldown,
+                u => u.LastReactionPointsIncrement = DateTime.UtcNow
+            );
         }
 
-        public async Task IncrementAsync(SocketReaction reaction)
+        public async Task IncrementAsync(SocketMessage message)
         {
-            var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+            if (message.Author.IsBot)
+                return;
+
+            await AddIncrementalPoints(
+                message.Author,
+                ThreadSafeRandom.Next(0, 25),
+                u => DateTime.UtcNow.Subtract(u.LastMessagePointsIncrement ?? FallbackDateTime) < MessageIncrementCooldown,
+                u => u.LastMessagePointsIncrement = DateTime.UtcNow
+            );
+        }
+
+        public async Task AddIncrementalPoints(IUser user, int amount, Func<User, bool> isOnCooldownFunc, Action<User> resetCooldownAction)
+        {
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
-                if (!CanIncrementPoints(userEntity, true))
+                if (isOnCooldownFunc(userEntity))
                     return;
 
-                userEntity.LastReactionPointsIncrement = DateTime.UtcNow;
-                userEntity.Points += ThreadSafeRandom.Next(0, 10);
-                await context.SaveChangesAsync();
-            });
-        }
-
-        public async Task IncrementAsync(SocketMessage message)
-        {
-            using var context = DatabaseFactory.Create();
-
-            await Patiently.HandleDbConcurrency(async () =>
-            {
-                var userEntity = await GetOrCreateUserEntityAsync(context, message.Author.Id);
-                if (!CanIncrementPoints(userEntity, false))
-                    return;
-
-                userEntity.LastMessagePointsIncrement = DateTime.UtcNow;
-                userEntity.Points += ThreadSafeRandom.Next(0, 25);
+                userEntity.Points += amount;
+                resetCooldownAction(userEntity);
                 await context.SaveChangesAsync();
             });
         }
@@ -98,19 +111,6 @@ namespace Inkluzitron.Services
             });
         }
 
-        public Task AddPointsRandomAsync(IUser user, int from, int to, bool decrement = false)
-            => AddPointsAsync(user, ThreadSafeRandom.Next(from, to), decrement);
-
-        static private bool CanIncrementPoints(User userEntity, bool isReaction)
-        {
-            var lastIncrement = isReaction ? userEntity.LastReactionPointsIncrement : userEntity.LastMessagePointsIncrement;
-            if (lastIncrement == null)
-                return true;
-
-            var limit = isReaction ? 0.5 : 1.0;
-            return (DateTime.UtcNow - lastIncrement.Value).TotalMinutes >= limit;
-        }
-
         static private async Task<User> GetOrCreateUserEntityAsync(BotDatabaseContext context, ulong userId)
         {
             var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == userId);
@@ -125,33 +125,34 @@ namespace Inkluzitron.Services
             return userEntity;
         }
 
-        public async Task<int> GetUserPosition(IUser user)
+        public async Task<int> GetUserPositionAsync(IUser user)
         {
             using var context = DatabaseFactory.Create();
-            return await GetUserPosition(context, user);
+            return await GetUserPositionAsync(context, user);
         }
 
-        public async Task<int> GetUserPosition(BotDatabaseContext context, IUser user)
+        static public async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user)
         {
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
                 .Select(u => u.Points)
-                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.Points > 0).Where(u => u.Points < ownPoints))
+                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.Points > ownPoints))
                 .CountAsync();
 
             return index + 1;
         }
 
-        public Dictionary<int, User> GetLeaderboard(int startFrom = 0, int count = 10)
+        public async Task<Dictionary<int, User>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
         {
             using var context = DatabaseFactory.Create();
             var users = context.Users.AsQueryable()
                 .OrderByDescending(u => u.Points)
-                .Skip(startFrom).Take(count);
+                .Skip(startFrom).Take(count)
+                .AsAsyncEnumerable();
 
             var board = new Dictionary<int, User>();
 
-            foreach (var user in users)
+            await foreach (var user in users)
             {
                 startFrom++;
                 board.Add(startFrom, user);
@@ -174,7 +175,7 @@ namespace Inkluzitron.Services
             using (var context = DatabaseFactory.Create())
             {
                 userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
-                position = await GetUserPosition(context, user);
+                position = await GetUserPositionAsync(context, user);
             }
 
             using var profilePicture = await ImagesService.GetAvatarAsync(user);
