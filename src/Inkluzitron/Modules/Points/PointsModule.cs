@@ -36,7 +36,7 @@ namespace Inkluzitron.Modules.Points
                 return;
             }
 
-            var tmpFile = new TemporaryFile("png");
+            using var tmpFile = new TemporaryFile("png");
             points.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
 
             await ReplyFileAsync(tmpFile.Path);

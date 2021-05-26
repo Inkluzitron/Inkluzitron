@@ -139,9 +139,9 @@ namespace Inkluzitron.Services
             graphics.DrawString("POZICE", TitleTextFont, WhiteBrush, new PointF(900 - positionTextSize.Width - positionTitleTextSize.Width, 180));
             graphics.DrawString($"#{position}", PositionFont, WhiteBrush, new PointF(910 - positionTextSize.Width, 150));
 
-            var nickname = user.GetDisplayName().Cut(20);
+            var nickname = user.GetDisplayName();
+            graphics.ShrinkAndMeasureString(ref nickname, NicknameFont, 725, appendEllipsis: true);
             graphics.DrawString(nickname, NicknameFont, WhiteBrush, new PointF(250, 60));
-
             return bitmap;
         }
 

@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Discord.WebSocket;
 
 namespace Inkluzitron.Extensions
 {
@@ -12,7 +11,7 @@ namespace Inkluzitron.Extensions
 
         static public string GetDisplayName(this IUser user)
         {
-            if (user is SocketGuildUser sgu && !string.IsNullOrEmpty(sgu.Nickname))
+            if (user is IGuildUser sgu && !string.IsNullOrEmpty(sgu.Nickname))
                 return sgu.Nickname;
 
             return $"{user.Username}#{user.Discriminator}";
