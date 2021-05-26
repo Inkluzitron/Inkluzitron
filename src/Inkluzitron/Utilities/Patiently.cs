@@ -14,9 +14,7 @@ namespace Inkluzitron.Utilities
             if (concurrentDbTaskFunc is null)
                 throw new ArgumentNullException(nameof(concurrentDbTaskFunc));
 
-            var attemptNumber = 1;
-
-            while (true)
+            for (var attemptNumber = 1; attemptNumber <= Patience; attemptNumber++)
             {
                 try
                 {
