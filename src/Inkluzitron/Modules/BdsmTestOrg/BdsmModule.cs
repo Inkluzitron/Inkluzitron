@@ -66,21 +66,23 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("")]
-        [Summary("Zobrazí výsledky uživatele.")]
-        public async Task ShowUserResultsAsync()
+        [Summary("Zobrazí výsledky odesilatele nebo uživatele.")]
+        public async Task ShowUserResultsAsync([Name("koho")] IUser target = null)
         {
-            var authorId = Context.Message.Author.Id;
+            if (target is null)
+                target = Context.Message.Author;
+
             var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults.Include(x => x.Items)
-                .Where(x => x.SubmittedById == authorId);
+                .Where(x => x.SubmittedById == target.Id);
 
             var pageCount = await quizResultsOfUser.CountAsync();
             var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefaultAsync();
 
-            var embedBuilder = new EmbedBuilder().WithAuthor(Context.Message.Author);
+            var embedBuilder = new EmbedBuilder().WithAuthor(target);
 
             if (mostRecentResult is null)
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, Context.Message.Author);
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, target);
             else
                 embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(Settings, mostRecentResult, 1, pageCount);
 
