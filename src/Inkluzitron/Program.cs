@@ -131,7 +131,7 @@ namespace Inkluzitron
             await provider.DisposeAsync();
         }
 
-        static private IConfiguration BuildConfiguration(string[] args)
+        static public IConfiguration BuildConfiguration(string[] args)
         {
             var builder = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json");
@@ -146,7 +146,7 @@ namespace Inkluzitron
                 .Build();
         }
 
-        static private string BuildConnectionString(string sqliteDatabasePath)
+        static public string BuildConnectionString(string sqliteDatabasePath)
         {
             var builder = new DbConnectionStringBuilder()
             {

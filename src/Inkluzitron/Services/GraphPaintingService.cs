@@ -70,7 +70,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             AvatarPercentageForeground.Dispose();
         }
 
-        public async Task<Bitmap> DrawAsync(SocketGuild guild, IDictionary<string, List<QuizDoubleItem>> toplistResults)
+        public async Task<Bitmap> DrawAsync(SocketGuild guild, IDictionary<string, List<BdsmTestOrgItem>> toplistResults)
         {
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
@@ -82,7 +82,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             // Download all needed avatars.
             using var avatars = new ValuesDisposingDictionary<ulong, Image>();
 
-            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct())
+            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.UserId).Distinct())
             {
                 using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
                 using var rounded = rawAvatar.Frames[0].RoundImage();
@@ -116,8 +116,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     if (i >= topList.Count)
                         continue;
 
-                    var minValueInCategory = Convert.ToSingle(topList[i].Value.Min(v => v.Value));
-                    var maxValueInCategory = Convert.ToSingle(topList[i].Value.Max(v => v.Value));
+                    var minValueInCategory = Convert.ToSingle(topList[i].Value.Min(v => v.Score));
+                    var maxValueInCategory = Convert.ToSingle(topList[i].Value.Max(v => v.Score));
 
                     var categoryRect = new RectangleF(x, y, categoryWidth, categoryHeight);
 
@@ -133,9 +133,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                         maxValueInCategory,
                         topList[i].Value.Select(
                             x => (
-                                avatars[x.Parent.SubmittedById],
-                                x.Parent.SubmittedByName,
-                                Convert.ToSingle(x.Value)
+                                avatars[x.Parent.UserId],
+                                x.Parent.User.Name,
+                                Convert.ToSingle(x.Score)
                             )
                         )
                     );

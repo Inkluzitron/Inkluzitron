@@ -29,7 +29,7 @@ namespace Inkluzitron.Modules.RoleMenu
             var channel = message.Channel as ITextChannel;
 
             using var dbContext = DatabaseFactory.Create();
-            var data = await dbContext.UserRoleMessageItem.AsQueryable()
+            var data = await dbContext.RoleMenuMessageRoles.AsQueryable()
                 .Where(i =>
                     i.GuildId == channel.GuildId &&
                     i.ChannelId == channel.Id &&
@@ -48,8 +48,8 @@ namespace Inkluzitron.Modules.RoleMenu
                 return true;
             }
 
-            var guildRoles = channel.Guild.Roles.Where(r => data.Any(e => r.Id == e.Id));
-            var selectedRole = guildRoles.FirstOrDefault(r => r.Id == role.Id);
+            var guildRoles = channel.Guild.Roles.Where(r => data.Any(e => r.Id == e.RoleId));
+            var selectedRole = guildRoles.FirstOrDefault(r => r.Id == role.RoleId);
 
             // Role does not exists
             if (selectedRole == null)
@@ -71,7 +71,7 @@ namespace Inkluzitron.Modules.RoleMenu
             }
 
             // Remove roles when in exclusive mode
-            if (dbContext.UserRoleMessage.Any(m =>
+            if (dbContext.RoleMenuMessages.Any(m =>
                 m.GuildId == channel.GuildId &&
                 m.ChannelId == channel.Id &&
                 m.MessageId == message.Id &&

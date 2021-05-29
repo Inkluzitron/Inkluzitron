@@ -26,7 +26,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             return builder;
         }
 
-        static public EmbedBuilder WithBdsmTestOrgQuizResult(this EmbedBuilder builder, BdsmTestOrgSettings settings, BdsmTestOrgQuizResult quizResult, int pageNumber, int pageCount)
+        static public EmbedBuilder WithBdsmTestOrgQuizResult(this EmbedBuilder builder, BdsmTestOrgSettings settings, BdsmTestOrgResult quizResult, int pageNumber, int pageCount)
         {
             if (quizResult is null)
                 throw new ArgumentNullException(nameof(quizResult));
@@ -38,21 +38,21 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             builder.WithFooter($"{pageNumber}/{pageCount}");
             builder.WithMetadata(new QuizEmbedMetadata
             {
-                ResultId = quizResult.ResultId,
-                UserId = quizResult.SubmittedById,
+                ResultId = quizResult.Id,
+                UserId = quizResult.UserId,
                 PageNumber = pageNumber
             });
 
-            var relevantItems = quizResult.Items.OfType<QuizDoubleItem>()
-                .Where(i => i.Value >= settings.StrongTraitThreshold)
-                .OrderByDescending(i => i.Value)
+            var relevantItems = quizResult.Items
+                .Where(i => i.Score >= settings.StrongTraitThreshold)
+                .OrderByDescending(i => i.Score)
                 .ToList();
 
             if (relevantItems.Count == 0)
                 builder.WithDescription(settings.NoTraitsToReportMessage);
 
             foreach (var relevantItem in relevantItems)
-                builder.AddField(relevantItem.Key, $"{relevantItem.Value:P0}");
+                builder.AddField(relevantItem.Trait.GetDisplayName(), $"{relevantItem.Score:P0}");
 
             return builder;
         }
