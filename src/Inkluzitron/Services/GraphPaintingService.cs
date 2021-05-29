@@ -19,7 +19,7 @@ namespace Inkluzitron.Services
         public GraphPaintingService(ImagesService imagesService)
             => ImagesService = imagesService;
 
-        public async Task<Bitmap> DrawAsync(SocketGuild guild, GraphPaintingStrategy strategy, IDictionary<string, List<GraphItem>> toplistResults)
+        public async Task<Bitmap> DrawAsync(SocketGuild guild, GraphPaintingStrategy strategy, IDictionary<string, IReadOnlyList<GraphItem>> toplistResults)
         {
             if (guild == null)
                 throw new ArgumentNullException(nameof(guild));
@@ -228,9 +228,9 @@ namespace Inkluzitron.Services
 
                 // Draw the percentage now
                 var userValueLabel = strategy.FormatUserValueLabel(value);
-                var userValueLabelSize = g.MeasureString(userValueLabel, strategy.AvatarPercentageFont);
+                var userValueLabelSize = g.MeasureString(userValueLabel, strategy.UserValueLabelFont);
                 g.DrawString(
-                    userValueLabel, strategy.AvatarPercentageFont, strategy.AvatarPercentageForeground,
+                    userValueLabel, strategy.UserValueLabelFont, strategy.UserValueLabelForeground,
                     x - (0.5f * userValueLabelSize.Width),
                     isAbove
                       ? y + (0.5f * avatarSize.Height) + (0.1f * userValueLabelSize.Height)

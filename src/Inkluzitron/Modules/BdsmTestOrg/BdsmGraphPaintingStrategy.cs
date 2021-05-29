@@ -10,16 +10,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     public class BdsmGraphPaintingStrategy : GraphPaintingStrategy
     {
         public BdsmGraphPaintingStrategy(FontService fontService)
+            : base(
+                  new Font(fontService.OpenSansCondensedLight, 20),
+                  new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold),
+                  new Font(fontService.OpenSansCondensedLight, 20),
+                  new Font(fontService.OpenSansCondensedLight, 20)
+            )
         {
-            CategoryBoxHeadingFont?.Dispose();
-            GridLinePercentageFont?.Dispose();
-            UsernameFont?.Dispose();
-            AvatarPercentageFont?.Dispose();
-
-            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold);
-            GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
-            UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
-            AvatarPercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
         }
 
         public override int CalculateColumnCount(IDictionary<string, List<GraphItem>> results)

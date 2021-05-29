@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -37,9 +36,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
-        private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
         private UserBdsmTraitsService BdsmTraitsService { get; }
+        private GraphPaintingService GraphPaintingService { get; }
         private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
@@ -50,9 +49,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
-            GraphPainter = graphPainter;
             HttpClientFactory = factory;
             BdsmTraitsService = bdsmTraitsService;
+            GraphPaintingService = graphPainter;
             GraphPaintingStrategy = new BdsmGraphPaintingStrategy(fontService);
         }
 
@@ -104,6 +103,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         [Summary("Sestaví a zobrazí žebříček výsledků a vykreslí jej do grafu. Volitelně je možné výsledky filtrovat.")]
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
+            await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
 
             if (resultsDict.All(o => o.Value.Count == 0))
@@ -113,7 +113,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             using var imgFile = new TemporaryFile("png");
-            using var img = await GraphPainter.DrawAsync(Context.Guild, GraphPaintingStrategy, resultsDict);
+            using var img = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, resultsDict);
             img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
             await ReplyFileAsync(imgFile.Path);
         }
@@ -147,9 +147,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
-        private async Task<IDictionary<string, List<GraphItem>>> ProcessQueryAsync(params string[] query)
+        private async Task<IDictionary<string, IReadOnlyList<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
-            var resultsDict = new ConcurrentDictionary<string, List<GraphItem>>();
+            var resultsDict = new ConcurrentDictionary<string, IReadOnlyList<GraphItem>>();
             var positiveFilters = new ConcurrentDictionary<string, double>();
             var negativeFilters = new ConcurrentDictionary<string, double>();
             var explicitlyRequestedTraits = new HashSet<string>();
@@ -256,7 +256,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .ThenByDescending(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
                     .Select(i => new GraphItem {
-                        Category = i.Key,
                         UserId = i.Parent.SubmittedById,
                         UserDisplayName = i.Parent.SubmittedByName,
                         Value = i.Value

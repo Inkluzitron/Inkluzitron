@@ -1,13 +1,6 @@
-﻿using Inkluzitron.Data.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Globalization;
-using Discord.WebSocket;
-using Inkluzitron.Utilities;
-using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 
 namespace Inkluzitron.Services
@@ -21,21 +14,21 @@ namespace Inkluzitron.Services
         public int CategoryBoxPadding { get; set; } = 20;
         public int CategoryBoxHeight { get; set; } = 350;
 
-        public Font GridLinePercentageFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Font GridLinePercentageFont { get; set; }
         public Brush GridLinePercentageForegroundMajor { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
         public Brush GridLinePercentageBackgroundMinor { get; set; } = new SolidBrush(Color.FromArgb(0x32AAAAAA));
         public Pen GridLinePenMinor { get; set; } = new Pen(Color.FromArgb(0x32AAAAAA));
         public Pen GridLinePenMajor { get; set; } = new Pen(Color.FromArgb(0x70AAAAAA));
 
-        public Font CategoryBoxHeadingFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Font CategoryBoxHeadingFont { get; set; }
         public Brush CategoryBoxBackground { get; set; } = new SolidBrush(Color.FromArgb(0x7F333333));
         public Brush CategoryBoxHeadingForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FEEEEEE));
 
         public int AvatarSize { get; set; } = 64;
-        public Font UsernameFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
+        public Font UsernameFont { get; set; }
         public Brush UsernameForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
-        public Font AvatarPercentageFont { get; set; } = new Font(SystemFonts.DefaultFont.FontFamily, 15);
-        public Brush AvatarPercentageForeground { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
+        public Font UserValueLabelFont { get; set; }
+        public Brush UserValueLabelForeground { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
 
         public abstract int CalculateColumnCount(IDictionary<string, List<GraphItem>> results);
         public abstract int CalculateRowCount(IDictionary<string, List<GraphItem>> results);
@@ -44,6 +37,14 @@ namespace Inkluzitron.Services
         public abstract int CalculateGridLineCount(float lowerLimit, float upperLimit);
         public abstract string FormatGridLineValueLabel(float value);
         public abstract string FormatUserValueLabel(float value);
+
+        protected GraphPaintingStrategy(Font gridLinePercentrageFont, Font categoryBoxHeadingFont, Font usernameFont, Font avatarPercentageFont)
+        {
+            GridLinePercentageFont = gridLinePercentrageFont;
+            CategoryBoxHeadingFont = categoryBoxHeadingFont;
+            UsernameFont = usernameFont;
+            UserValueLabelFont = avatarPercentageFont;
+        }
 
         public void Dispose()
         {
@@ -68,8 +69,8 @@ namespace Inkluzitron.Services
                 CategoryBoxHeadingForeground?.Dispose();
                 UsernameFont?.Dispose();
                 UsernameForeground?.Dispose();
-                AvatarPercentageFont?.Dispose();
-                AvatarPercentageForeground?.Dispose();
+                UserValueLabelFont?.Dispose();
+                UserValueLabelForeground?.Dispose();
             }
 
             _disposed = true;

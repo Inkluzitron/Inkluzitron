@@ -1,11 +1,13 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Inkluzitron.Contracts;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
-using System.Linq;
+using Inkluzitron.Utilities;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Points
@@ -15,19 +17,29 @@ namespace Inkluzitron.Modules.Points
     [Alias("points")]
     [Summary("Body se počítají stejně jako u GrillBot. Za každou reakci uživatel obdrží 0 až 10 bodů, za zprávu 0 až 25 bodů. Po odeslání zprávy " +
         "bot počítá jedno minutový cooldown. U reakce je cooldown 30 vteřin.")]
-    public class PointsModule : ModuleBase
+    public sealed class PointsModule : ModuleBase, IDisposable
     {
         private PointsService PointsService { get; }
+        private GraphPaintingService GraphPaintingService { get; }
         private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
         private readonly int BoardPageLimit = 10;
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client,
-            ReactionSettings reactionSettings)
+        private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
+
+        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService)
         {
             PointsService = pointsService;
             Client = client;
             ReactionSettings = reactionSettings;
+            GraphPaintingService = graphPaintingService;
+            GraphPaintingStrategy = new PointsGraphPaintingStrategy();
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            GraphPaintingStrategy.Dispose();
         }
 
         [Command("")]
@@ -87,6 +99,23 @@ namespace Inkluzitron.Modules.Points
         {
             var pos = await PointsService.GetUserPositionAsync(user);
             await GetLeaderboardAsync(pos);
+        }
+
+        [Command("graph")]
+        [Summary("Graf všech uživatelů a jimi získaných bodů.")]
+        public async Task GetGraphAsync()
+        {
+            await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
+            var results = new Dictionary<string, IReadOnlyList<GraphItem>>
+            {
+                { "Body", await PointsService.GetAllPointsAsync() }
+            };
+
+            using var file = new TemporaryFile("png");
+            using (var graph = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, results))
+                graph.Save(file.Path);
+
+            await ReplyFileAsync(file.Path);
         }
     }
 }

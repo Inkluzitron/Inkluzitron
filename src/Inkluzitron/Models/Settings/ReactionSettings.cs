@@ -14,6 +14,7 @@ namespace Inkluzitron.Models.Settings
         public IEmote Remove { get; }
         public IEmote BdsmTestResultAdded { get; }
         public IEmote Shrunk { get; }
+        public IEmote Loading { get; }
 
         public IEmote[] PaginationReactions { get; }
         public IEmote[] PaginationReactionsWithRemoval { get; }
@@ -31,6 +32,7 @@ namespace Inkluzitron.Models.Settings
 
             BdsmTestResultAdded = config["ReactionSettings:BdsmTestResultAdded"].ToDiscordEmote();
             Shrunk = config["ReactionSettings:Shrunk"].ToDiscordEmote();
+            Loading = config["ReactionSettings:Loading"].ToDiscordEmote();
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
             PaginationReactionsWithRemoval = new[] { MoveToFirst, MoveToPrevious, Remove, MoveToNext, MoveToLast };
