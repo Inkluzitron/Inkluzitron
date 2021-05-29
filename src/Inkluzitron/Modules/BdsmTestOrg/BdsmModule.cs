@@ -35,12 +35,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
+        private UsersService UsersService { get; }
         public UserBdsmTraitsService BdsmTraitsService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
-            UserBdsmTraitsService bdsmTraitsService)
+            UserBdsmTraitsService bdsmTraitsService, UsersService usersService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
@@ -48,6 +49,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             GraphPainter = graphPainter;
             HttpClientFactory = factory;
             BdsmTraitsService = bdsmTraitsService;
+            UsersService = usersService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -92,7 +94,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
 
-            if (resultsDict.Count() == 0) return;
+            if (resultsDict.Count == 0) return;
 
             if (resultsDict.All(o => o.Value.Count == 0))
             {
@@ -202,7 +204,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
                 else if (matchesFound == 1)
                 {
-                    explicitlyRequestedTraits.Add((BdsmTrait)lastMatch);
+                    explicitlyRequestedTraits.Add(lastMatch.Value);
                 }
             }
 
@@ -286,8 +288,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
 
 
-            var user = await PointsService.GetOrCreateUserEntityAsync(
-                DbContext, Context.Message.Author);
+            var user = await UsersService.GetUserDbEntityAsync(
+                Context.Message.Author);
 
             if (testResult.Gender != Gender.Unspecified)
                 user.Gender = testResult.Gender;

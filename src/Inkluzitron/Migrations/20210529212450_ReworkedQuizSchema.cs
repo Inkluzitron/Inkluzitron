@@ -89,9 +89,7 @@ namespace Inkluzitron.Migrations
                 {
                     var link = reader["Link"].ToString();
                     var id = reader["SubmittedById"].ToString();
-                    var task = GetBdsmResultAsync(link, configuration);
-                    task.Wait();
-                    var test = task.Result;
+                    var test = GetBdsmResultAsync(link, configuration).GetAwaiter().GetResult();
 
                     migrationBuilder.Sql($"UPDATE Users SET Gender='{test.Gender}' WHERE Id={id}");
                 }
@@ -100,6 +98,8 @@ namespace Inkluzitron.Migrations
                     Console.WriteLine(e);
                 }
             }
+
+            connection.Close();
         }
 
         static private void BdsmUp(MigrationBuilder migrationBuilder)
