@@ -36,6 +36,8 @@ namespace Inkluzitron.Handlers
             {
                 string reply = "";
 
+                string moreInfo = $"\n*Pro vice informací zadej `{Configuration["Prefix"]}help {command.Value.Aliases.First().Split(' ', 2)[0]}`*";
+
                 switch (result.Error.Value)
                 {
                     case CommandError.Unsuccessful when result is CommandRedirectResult crr && !string.IsNullOrEmpty(crr.NewCommand):
@@ -51,7 +53,7 @@ namespace Inkluzitron.Handlers
                         ParameterInfo param = ((ParseResult)result).ErrorParameter;
                         var pos = param.Command.Parameters.ToList().IndexOf(param);
 
-                        reply = $"Nemohl jsem najít uživatele zadaného v {pos + 1}. argumentu.\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
+                        reply = $"Nemohl jsem najít uživatele zadaného v {pos + 1}. argumentu.\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}{moreInfo}";
                         break;
 
                     case CommandError.ParseFailed:
@@ -63,13 +65,13 @@ namespace Inkluzitron.Handlers
                         if (typeName == "Int32") typeName = "číslo";
                         if (typeName == "String") typeName = "řetězec";
 
-                        reply = $"V {pos + 1}. argumentu má být **{typeName}**\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}";
+                        reply = $"V {pos + 1}. argumentu má být **{typeName}**\n> {command.Value.GetCommandFormat(Configuration["Prefix"], param)}{moreInfo}";
                         break;
 
                     case CommandError.BadArgCount:
                         var firstLine = Configuration.GetSection("BadArgumentFirstLine").AsEnumerable().Where(o => o.Value != null).ToArray();
 
-                        reply = $"{firstLine[ThreadSafeRandom.Next(firstLine.Length)].Value}\n> {command.Value.GetCommandFormat(Configuration["Prefix"])}";
+                        reply = $"{firstLine[ThreadSafeRandom.Next(firstLine.Length)].Value}\n> {command.Value.GetCommandFormat(Configuration["Prefix"])}{moreInfo}";
                         break;
 
                     case CommandError.Exception:
