@@ -92,7 +92,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await UsersService.GetUserDbEntityAsync(user);
+                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 if (isOnCooldownFunc(userEntity))
                     return;
 
@@ -108,7 +108,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await UsersService.GetUserDbEntityAsync(user);
+                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 userEntity.Points += (decrement ? -1 : 1) * points;
                 await context.SaveChangesAsync();
             });
@@ -163,7 +163,7 @@ namespace Inkluzitron.Services
 
             using (var context = DatabaseFactory.Create())
             {
-                userEntity = await UsersService.GetUserDbEntityAsync(user);
+                userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 position = await GetUserPositionAsync(context, user);
             }
 
