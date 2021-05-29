@@ -2,7 +2,7 @@
 
 namespace Inkluzitron.Enums
 {
-    public enum BdsmTraits
+    public enum BdsmTrait
     {
         [Display(Name = "Ageplayer")]
         Ageplayer = 1,

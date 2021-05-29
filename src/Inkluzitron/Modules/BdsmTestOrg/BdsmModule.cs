@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,8 +17,6 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using Inkluzitron.Models.BdsmTestOrgApi;
 using Inkluzitron.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 
@@ -30,7 +27,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
     public class BdsmModule : ModuleBase
     {
-        static private readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
+        static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
 
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
@@ -70,8 +67,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task ShowUserResultsAsync()
         {
             var authorId = Context.Message.Author.Id;
-            var quizResultsOfUser = DbContext.BdsmTestOrgQuizResults.Include(x => x.Items)
-                .Where(x => x.SubmittedById == authorId);
+            var quizResultsOfUser = DbContext.BdsmTestOrgResults.Include(x => x.Items)
+                .Where(x => x.UserId == authorId);
 
             var pageCount = await quizResultsOfUser.CountAsync();
             var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
@@ -94,6 +91,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
+
+            if (resultsDict.Count() == 0) return;
 
             if (resultsDict.All(o => o.Value.Count == 0))
             {
@@ -121,7 +120,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
                 if (!resultsGot) continue;
 
-                resultsLine = string.Join(", ", items.Select(i => $"**`{i.Parent.SubmittedByName}`** ({i.Value:P0})"));
+                resultsLine = string.Join(", ", items.Select(i => $"**`{i.Parent.User.Name}`** ({i.Score:P0})"));
 
                 results.AppendFormat("**{0}**: ", trait);
                 results.AppendLine(resultsLine);
@@ -136,18 +135,14 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
-        private async Task<IDictionary<string, List<QuizDoubleItem>>> ProcessQueryAsync(params string[] query)
+        private async Task<IDictionary<string, List<BdsmTestOrgItem>>> ProcessQueryAsync(params string[] query)
         {
-            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
-            var positiveFilters = new ConcurrentDictionary<string, double>();
-            var negativeFilters = new ConcurrentDictionary<string, double>();
-            var explicitlyRequestedTraits = new HashSet<string>();
+            var resultsDict = new ConcurrentDictionary<string, List<BdsmTestOrgItem>>();
+            var positiveFilters = new ConcurrentDictionary<BdsmTrait, double>();
+            var negativeFilters = new ConcurrentDictionary<BdsmTrait, double>();
+            var explicitlyRequestedTraits = new HashSet<BdsmTrait>();
 
-            var namedTraits = Enum.GetValues<BdsmTraits>()
-                .Select(t => t.GetType()
-                    .GetMember(t.ToString())[0]
-                    .GetCustomAttribute<DisplayAttribute>()
-                    .GetName());
+            var availableTraits = Enum.GetValues<BdsmTrait>();
 
             foreach (var rawQueryItem in query)
             {
@@ -172,30 +167,30 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
 
                 var matchesFound = 0;
-                string lastMatch = null;
+                BdsmTrait? lastMatch = null;
 
-                foreach (var traitName in namedTraits)
+                foreach (var trait in availableTraits)
                 {
-                    if (!traitName.Contains(queryItem, StringComparison.OrdinalIgnoreCase))
+                    if (!trait.GetDisplayName().Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (isNegativeQuery)
                     {
-                        if (explicitlyRequestedTraits.Contains(traitName))
+                        if (explicitlyRequestedTraits.Contains(trait))
                             continue;
 
-                        if (negativeFilters.TryAdd(traitName, threshold))
+                        if (negativeFilters.TryAdd(trait, threshold))
                         {
                             matchesFound++;
-                            lastMatch = traitName;
+                            lastMatch = trait;
                         }
                     }
                     else
                     {
-                        if (positiveFilters.TryAdd(traitName, threshold))
+                        if (positiveFilters.TryAdd(trait, threshold))
                         {
                             matchesFound++;
-                            lastMatch = traitName;
+                            lastMatch = trait;
                         }
                     }
                 }
@@ -207,41 +202,34 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 }
                 else if (matchesFound == 1)
                 {
-                    explicitlyRequestedTraits.Add(lastMatch);
+                    explicitlyRequestedTraits.Add((BdsmTrait)lastMatch);
                 }
             }
 
             if (positiveFilters.IsEmpty)
             {
-                foreach (var traitName in namedTraits)
+                foreach (var traitName in availableTraits)
                     positiveFilters.TryAdd(traitName, Settings.StrongTraitThreshold);
             }
 
-            var relevantResults = DbContext.BdsmTestOrgQuizResults.AsQueryable()
-                .GroupBy(r => r.SubmittedById, (_, results) => results.Max(r => r.ResultId))
-                .Join(
-                    DbContext.BdsmTestOrgQuizResults.Include(i => i.Items).AsQueryable(),
-                    id => id,
-                    result => result.ResultId,
-                    (_, result) => result
-                );
+            var relevantResults = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
 
             foreach (var (trait, threshold) in negativeFilters)
-                relevantResults = relevantResults.Where(r => r.Items.OfType<QuizDoubleItem>().All(i => i.Key != trait || i.Value < threshold));
+                relevantResults = relevantResults.Where(r => r.Items.All(i => i.Trait != trait || i.Score < threshold));
 
             var relevantItems = relevantResults.Join(
-                    DbContext.DoubleQuizItems.Include(i => i.Parent).Where(i => i.Parent is BdsmTestOrgQuizResult),
-                    x => x.ResultId,
-                    y => y.Parent.ResultId,
+                    DbContext.BdsmTestOrgItems.Include(i => i.Parent).ThenInclude(r => r.User),
+                    x => x.Id,
+                    y => y.Parent.Id,
                     (_, r) => r
                 );
 
             foreach (var (trait, threshold) in positiveFilters)
             {
-                resultsDict[trait] = await relevantItems
-                    .Where(i => i.Key == trait)
-                    .Where(i => i.Value > threshold)
-                    .OrderByDescending(row => row.Value)
+                resultsDict[trait.GetDisplayName()] = await relevantItems
+                    .Where(i => i.Trait == trait)
+                    .Where(i => i.Score > threshold)
+                    .OrderByDescending(row => row.Score)
                     .ThenByDescending(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
                     .ToListAsync();
@@ -249,13 +237,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             foreach (var testResult in resultsDict.Values.SelectMany(x => x).Select(x => x.Parent))
             {
-                var guildMember = await Context.Guild.GetUserAsync(testResult.SubmittedById);
+                var guildMember = await Context.Guild.GetUserAsync(testResult.UserId);
                 if (guildMember == null)
                     continue;
 
-                testResult.SubmittedByName = guildMember.Nickname
+                testResult.User.Name = guildMember.Nickname
                     ?? guildMember.Username
-                    ?? testResult.SubmittedByName;
+                    ?? testResult.User.Name;
             }
 
             return resultsDict;
@@ -274,7 +262,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             link = testResultMatch.Value;
 
-            if (await DbContext.BdsmTestOrgQuizResults.AsQueryable().AnyAsync(r => r.Link == link))
+            if (await DbContext.BdsmTestOrgResults.AsQueryable().AnyAsync(r => r.Link == link))
             {
                 await ReplyAsync(Settings.LinkAlreadyPresentMessage);
                 return;
@@ -297,30 +285,36 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var responseData = await response.Content.ReadAsStringAsync();
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
 
-            var testResultDb = new BdsmTestOrgQuizResult
+
+            var user = await PointsService.GetOrCreateUserEntityAsync(
+                DbContext, Context.Message.Author);
+
+            if (testResult.Gender != Gender.Unspecified)
+                user.Gender = testResult.Gender;
+
+            var testResultDb = new BdsmTestOrgResult
             {
                 SubmittedAt = testResult.Date,
-                SubmittedByName = Context.Message.Author.Username,
-                SubmittedById = Context.Message.Author.Id,
+                User = user,
                 Link = link
             };
 
             foreach (var trait in testResult.Traits)
             {
-                if (!Enum.IsDefined(typeof(BdsmTraits), trait.Id)) continue;
+                if (!Enum.IsDefined(typeof(BdsmTrait), trait.Id)) continue;
 
                 var percentage = trait.Score / 100.0;
                 if (percentage > 1) percentage = 1;
                 else if (percentage < 0) percentage = 0;
 
-                testResultDb.Items.Add(new QuizDoubleItem
+                testResultDb.Items.Add(new BdsmTestOrgItem
                 {
-                    Key = trait.Name,
-                    Value = percentage
+                    Trait = (BdsmTrait)trait.Id,
+                    Score = percentage
                 });
             }
 
-            await DbContext.BdsmTestOrgQuizResults.AddAsync(testResultDb);
+            await DbContext.BdsmTestOrgResults.AddAsync(testResultDb);
             await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
 

@@ -89,7 +89,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                var userEntity = await GetOrCreateUserEntityAsync(context, user);
                 if (isOnCooldownFunc(userEntity))
                     return;
 
@@ -105,20 +105,34 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                var userEntity = await GetOrCreateUserEntityAsync(context, user);
                 userEntity.Points += (decrement ? -1 : 1) * points;
                 await context.SaveChangesAsync();
             });
         }
 
-        static private async Task<User> GetOrCreateUserEntityAsync(BotDatabaseContext context, ulong userId)
+        static public async Task<User> GetOrCreateUserEntityAsync(BotDatabaseContext context, IUser user)
         {
-            var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == userId);
+            var displayName = user.GetDisplayName();
+            var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
 
             if (userEntity != null)
-                return userEntity;
+            {
+                // Update cached displayname
+                if(userEntity.Name != displayName)
+                {
+                    userEntity.Name = displayName;
+                    await context.SaveChangesAsync();
+                }
 
-            userEntity = new User() { Id = userId };
+                return userEntity;
+            }
+
+            userEntity = new User() {
+                Id = user.Id,
+                Name = displayName
+            };
+
             await context.AddAsync(userEntity);
             await context.SaveChangesAsync();
 
@@ -174,7 +188,7 @@ namespace Inkluzitron.Services
 
             using (var context = DatabaseFactory.Create())
             {
-                userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                userEntity = await GetOrCreateUserEntityAsync(context, user);
                 position = await GetUserPositionAsync(context, user);
             }
 

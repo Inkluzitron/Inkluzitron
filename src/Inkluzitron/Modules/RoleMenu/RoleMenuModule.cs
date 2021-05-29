@@ -49,7 +49,7 @@ namespace Inkluzitron.Modules.RoleMenu
         {
             var channel = msg.Channel as ITextChannel;
 
-            return await DbContext.UserRoleMessage.Include(m => m.Roles).FirstOrDefaultAsync(m =>
+            return await DbContext.RoleMenuMessages.Include(m => m.Roles).FirstOrDefaultAsync(m =>
                 m.GuildId == channel.Guild.Id &&
                 m.ChannelId == channel.Id &&
                 m.MessageId == msg.Id);
@@ -84,7 +84,7 @@ namespace Inkluzitron.Modules.RoleMenu
             var replyBuilder = new EmbedBuilder();
             replyBuilder.WithTitle("Seznam zpráv pro výběr rolí");
 
-            var messages = DbContext.UserRoleMessage.AsAsyncEnumerable()
+            var messages = DbContext.RoleMenuMessages.AsAsyncEnumerable()
                 .OrderBy(m => m.GuildId).ThenBy(m => m.ChannelId);
 
             SocketTextChannel channel = null;
@@ -145,7 +145,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 CanSelectMultiple = true
             };
 
-            await DbContext.UserRoleMessage.AddAsync(data);
+            await DbContext.RoleMenuMessages.AddAsync(data);
             await DbContext.SaveChangesAsync();
 
             await UpdateMessageAsync(data, message);
@@ -268,7 +268,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 return;
             }
 
-            if (data.Roles.Any(r => r.Id == role.Id && r.Message == data))
+            if (data.Roles.Any(r => r.RoleId == role.Id && r.Message == data))
             {
                 await ReplyAsync($"Tato zpráva již obsahuje roli {role.Mention}");
                 return;
@@ -289,7 +289,7 @@ namespace Inkluzitron.Modules.RoleMenu
 
             data.Roles.Add(new RoleMenuMessageRole()
             {
-                Id = role.Id,
+                RoleId = role.Id,
                 Mention = role.Mention,
                 Description = desc,
                 Emote = emote
@@ -325,7 +325,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 return;
             }
 
-            var dbRole = data.Roles.Find(r => r.Id == role.Id && r.Message == data);
+            var dbRole = data.Roles.Find(r => r.RoleId == role.Id && r.Message == data);
             if (role == null)
             {
                 await ReplyAsync($"Tato zpráva neobsahuje roli {role.Mention}");
@@ -340,7 +340,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 emote[0].Equals('<') ? Emote.Parse(emote) : new Emoji(emote));
 
             // remove special role emote if it's not used elsewhere
-            if (emote.Contains($"role_{role.Id}") && !DbContext.UserRoleMessageItem.Any(r => r.Emote == emote))
+            if (emote.Contains($"role_{role.Id}") && !DbContext.RoleMenuMessageRoles.Any(r => r.Emote == emote))
             {
                 var emoteGuild = Client.GetGuild(RoleEmoteGuildId);
                 var deleted = emoteGuild.Emotes.FirstOrDefault(e => e.ToString() == emote && e.CreatorId == Client.CurrentUser.Id);
