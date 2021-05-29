@@ -81,6 +81,7 @@ namespace Inkluzitron
                 .AddSingleton<BotSettings>()
                 .AddSingleton(new FileCache(cacheDirLocation))
                 .AddSingleton<PointsService>()
+                .AddSingleton<UsersService>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
