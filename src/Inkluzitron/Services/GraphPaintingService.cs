@@ -5,73 +5,29 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Globalization;
-using Inkluzitron.Services;
 using Discord.WebSocket;
 using Inkluzitron.Utilities;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
 
-namespace Inkluzitron.Modules.BdsmTestOrg
+namespace Inkluzitron.Services
 {
-    public sealed class GraphPaintingService : IDisposable
+    public sealed class GraphPaintingService
     {
         private ImagesService ImagesService { get; }
 
-        public Color BackgroundColor { get; init; } = Color.Black;
-        public int CategoryBoxPadding { get; init; } = 20;
-        public int CategoryBoxHeight { get; init; } = 350;
+        public GraphPaintingService(ImagesService imagesService)
+            => ImagesService = imagesService;
 
-        public Font GridLinePercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush GridLinePercentageForegroundMajor { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
-        public Brush GridLinePercentageBackgroundMinor { get; init; } = new SolidBrush(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMinor { get; init; } = new Pen(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMajor { get; init; } = new Pen(Color.FromArgb(0x70AAAAAA));
-
-        public Font CategoryBoxHeadingFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush CategoryBoxBackground { get; init; } = new SolidBrush(Color.FromArgb(0x7F333333));
-        public Brush CategoryBoxHeadingForeground { get; init; } = new SolidBrush(Color.FromArgb(0x7FEEEEEE));
-
-        public int AvatarSize { get; init; } = 64;
-        public Font UsernameFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 20);
-        public Brush UsernameForeground { get; init; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
-        public Font AvatarPercentageFont { get; init; } = new Font(SystemFonts.DefaultFont.FontFamily, 15);
-        public Brush AvatarPercentageForeground { get; init; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
-
-        public int ColumnCount { get; init; } = 5;
-
-        public GraphPaintingService(ImagesService imagesService, FontService fontService)
+        public async Task<Bitmap> DrawAsync(SocketGuild guild, GraphPaintingStrategy strategy, IDictionary<string, List<GraphItem>> toplistResults)
         {
-            ImagesService = imagesService;
+            if (guild == null)
+                throw new ArgumentNullException(nameof(guild));
+            if (strategy == null)
+                throw new ArgumentNullException(nameof(strategy));
+            if (toplistResults is null)
+                throw new ArgumentNullException(nameof(toplistResults));
 
-            CategoryBoxHeadingFont?.Dispose();
-            GridLinePercentageFont?.Dispose();
-            UsernameFont?.Dispose();
-            AvatarPercentageFont?.Dispose();
-
-            CategoryBoxHeadingFont = new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold);
-            GridLinePercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
-            UsernameFont = new Font(fontService.OpenSansCondensedLight, 20);
-            AvatarPercentageFont = new Font(fontService.OpenSansCondensedLight, 20);
-        }
-
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            GridLinePercentageFont.Dispose();
-            GridLinePercentageForegroundMajor.Dispose();
-            GridLinePercentageBackgroundMinor.Dispose();
-            GridLinePenMinor.Dispose();
-            GridLinePenMajor.Dispose();
-            CategoryBoxHeadingFont.Dispose();
-            CategoryBoxBackground.Dispose();
-            CategoryBoxHeadingForeground.Dispose();
-            UsernameFont.Dispose();
-            UsernameForeground.Dispose();
-            AvatarPercentageFont.Dispose();
-            AvatarPercentageForeground.Dispose();
-        }
-
-        public async Task<Bitmap> DrawAsync(SocketGuild guild, IDictionary<string, List<QuizDoubleItem>> toplistResults)
-        {
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
             {
@@ -82,7 +38,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             // Download all needed avatars.
             using var avatars = new ValuesDisposingDictionary<ulong, Image>();
 
-            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.Parent.SubmittedById).Distinct())
+            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.UserId).Distinct())
             {
                 using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
                 using var rounded = rawAvatar.Frames[0].RoundImage();
@@ -93,24 +49,24 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
 
-            var categoryWidth = (3 + topList.Max(kvp => kvp.Value.Count)) * AvatarSize;
-            var categoryHeight = CategoryBoxHeight;
-            var columnCount = Math.Min(ColumnCount, toplistResults.Count);
+            var categoryWidth = (3 + topList.Max(kvp => kvp.Value.Count)) * strategy.AvatarSize;
+            var categoryHeight = strategy.CategoryBoxHeight;
+            var columnCount = Math.Min(strategy.ColumnCount, toplistResults.Count);
             var rowCount = (int)Math.Ceiling(topList.Count / (1f * columnCount));
-            var imageWidth = (2f * CategoryBoxPadding) + ((columnCount - 1) * CategoryBoxPadding) + (columnCount * categoryWidth);
-            var imageHeight = (2f * CategoryBoxPadding) + ((rowCount - 1) * CategoryBoxPadding) + (rowCount * categoryHeight);
+            var imageWidth = (2f * strategy.CategoryBoxPadding) + ((columnCount - 1) * strategy.CategoryBoxPadding) + (columnCount * categoryWidth);
+            var imageHeight = (2f * strategy.CategoryBoxPadding) + ((rowCount - 1) * strategy.CategoryBoxPadding) + (rowCount * categoryHeight);
             var image = new Bitmap((int)Math.Ceiling(imageWidth), (int)Math.Ceiling(imageHeight));
 
             using var g = Graphics.FromImage(image);
-            g.Clear(BackgroundColor);
+            g.Clear(strategy.BackgroundColor);
 
             for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
-                var x = CategoryBoxPadding + (columnIndex * (categoryWidth + CategoryBoxPadding));
+                var x = strategy.CategoryBoxPadding + (columnIndex * (categoryWidth + strategy.CategoryBoxPadding));
 
                 for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
                 {
-                    var y = CategoryBoxPadding + (rowIndex * (categoryHeight + CategoryBoxPadding));
+                    var y = strategy.CategoryBoxPadding + (rowIndex * (categoryHeight + strategy.CategoryBoxPadding));
 
                     var i = (rowIndex * columnCount) + columnIndex;
                     if (i >= topList.Count)
@@ -122,19 +78,19 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     var categoryRect = new RectangleF(x, y, categoryWidth, categoryHeight);
 
                     DrawCategory(
-                        g, categoryRect, topList[i].Key,
+                        g, strategy, categoryRect, topList[i].Key,
                         minValueInCategory, maxValueInCategory,
                         out var avatarsRect
                     );
 
                     DrawAvatars(
-                        g, avatarsRect, new Size(AvatarSize, AvatarSize),
+                        g, strategy, avatarsRect, new Size(strategy.AvatarSize, strategy.AvatarSize),
                         minValueInCategory,
                         maxValueInCategory,
                         topList[i].Value.Select(
                             x => (
-                                avatars[x.Parent.SubmittedById],
-                                x.Parent.SubmittedByName,
+                                avatars[x.UserId],
+                                x.UserDisplayName,
                                 Convert.ToSingle(x.Value)
                             )
                         )
@@ -145,109 +101,85 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             return image;
         }
 
-        static private (float, float) SmoothenRange(float minValue, float maxValue)
+        static private void DrawGridLine(Graphics g, GraphPaintingStrategy strategy, RectangleF dst, float y, float value, bool isMajor, float gridLineLabelPadding)
         {
-            minValue -= minValue % 0.1f; // round down to nearest multiple of 0.1
-            maxValue += 0.1f - (maxValue % 0.1f); // round up to nearest multiple of 0.9
-            return (minValue, maxValue);
-        }
-
-        static private float Clamp(float value, float min, float max)
-        {
-            if (value < min)
-                return min;
-            if (value > max)
-                return max;
-
-            return value;
-        }
-
-        private void DrawGridLine(Graphics g, RectangleF dst, float y, float value, bool isMajor, float gridLineLabelPadding)
-        {
-            var pen = isMajor ? GridLinePenMajor : GridLinePenMinor;
-            var textForeground = isMajor ? GridLinePercentageForegroundMajor : GridLinePercentageBackgroundMinor;
+            var pen = isMajor ? strategy.GridLinePenMajor : strategy.GridLinePenMinor;
+            var textForeground = isMajor ? strategy.GridLinePercentageForegroundMajor : strategy.GridLinePercentageBackgroundMinor;
 
             g.DrawLine(pen, dst.Left, y, dst.Right, y);
 
-            var str = value.ToString("P0", CultureInfo.InvariantCulture);
-            var strSize = g.MeasureString(str, GridLinePercentageFont);
-            g.DrawString(str, GridLinePercentageFont, textForeground, dst.Right + gridLineLabelPadding, y - (0.5f * strSize.Height));
+            var str = strategy.FormatGridLineValueLabel(value);
+            var strSize = g.MeasureString(str, strategy.GridLinePercentageFont);
+            g.DrawString(str, strategy.GridLinePercentageFont, textForeground, dst.Right + gridLineLabelPadding, y - (0.5f * strSize.Height));
         }
 
-        private void DrawCategoryGridLines(Graphics g, RectangleF dst, float minValue, float maxValue, out RectangleF avatarsArea)
+        static private void DrawCategoryGridLines(Graphics g, GraphPaintingStrategy strategy, RectangleF dst, float minValue, float maxValue, out RectangleF avatarsArea)
         {
-            (minValue, maxValue) = SmoothenRange(minValue, maxValue);
+            (minValue, maxValue) = strategy.SmoothenAxisLimits(minValue, maxValue);
 
             // Determine width of the column of grid line percentage labels.
             var gridLineLabelMaxWidth = new[] {
-                g.MeasureString(minValue.ToString("P0", CultureInfo.InvariantCulture), GridLinePercentageFont).Width,
-                g.MeasureString(maxValue.ToString("P0", CultureInfo.InvariantCulture), GridLinePercentageFont).Width
+                g.MeasureString(strategy.FormatGridLineValueLabel(minValue), strategy.GridLinePercentageFont).Width,
+                g.MeasureString(strategy.FormatGridLineValueLabel(maxValue), strategy.GridLinePercentageFont).Width
             }.Max();
 
             // Measure how wide is an 'X' and use this value as a spacer for these percentage labels.
-            var gridLineLabelPadding = g.MeasureString("X", GridLinePercentageFont).Width;
+            var gridLineLabelPadding = g.MeasureString("X", strategy.GridLinePercentageFont).Width;
 
             // Shrink the area where grid lines so that there's space left for percentage labels.
             dst.Width -= gridLineLabelMaxWidth - gridLineLabelPadding;
 
             // Determine the displayed ranged and adjust the number of grid lines so that the percentage values are nice.
-            var range = Clamp(maxValue - minValue, 0.1f, 1.0f);
-            var tenths = (int)Math.Round(range / 0.1f);
-            var innerGridLineCount = tenths switch
-            {
-                1 => 1,
-                2 => 3,
-                _ => tenths - 1
-            };
-            var step = range / (innerGridLineCount + 1);
+            var innerGridLineCount = strategy.CalculateGridLineCount(minValue, maxValue);
+            var step = (maxValue - minValue) / (innerGridLineCount + 1);
 
             // Finally, draw the grid lines.
-            DrawGridLine(g, dst, dst.Bottom, minValue, true, gridLineLabelPadding);
+            DrawGridLine(g, strategy, dst, dst.Bottom, minValue, true, gridLineLabelPadding);
 
             for (var i = 1; i <= innerGridLineCount; i++)
             {
                 float v = minValue + (i * step);
                 float y = dst.Bottom - (dst.Height * (v - minValue) / (maxValue - minValue));
 
-                DrawGridLine(g, dst, y, v, false, gridLineLabelPadding);
+                DrawGridLine(g, strategy, dst, y, v, false, gridLineLabelPadding);
             }
 
-            DrawGridLine(g, dst, dst.Top, maxValue, true, gridLineLabelPadding);
+            DrawGridLine(g, strategy, dst, dst.Top, maxValue, true, gridLineLabelPadding);
 
             // Return the area that has been drawn over with grid lines.
             avatarsArea = dst;
         }
 
-        private void DrawCategory(Graphics g, RectangleF dst, string categoryName, float minValue, float maxValue, out RectangleF avatarsArea)
+        static private void DrawCategory(Graphics g, GraphPaintingStrategy strategy, RectangleF dst, string categoryName, float minValue, float maxValue, out RectangleF avatarsArea)
         {
             // Initialize the dimensions of the category box and fill it.
             var graphArea = new RectangleF(dst.X, dst.Y, dst.Width, dst.Height);
-            g.FillRectangle(CategoryBoxBackground, graphArea);
+            g.FillRectangle(strategy.CategoryBoxBackground, graphArea);
 
             // Measure the category heading, draw it and shrink the graph area so that it does not overlap.
-            var headingSize = g.MeasureString(categoryName, CategoryBoxHeadingFont);
+            var headingSize = g.MeasureString(categoryName, strategy.CategoryBoxHeadingFont);
             var headingPadding = 0.2f * headingSize.Height;
             var headingHeightWithPadding = (2 * headingPadding) + headingSize.Height;
             graphArea.Y += headingHeightWithPadding;
             graphArea.Height -= headingHeightWithPadding;
 
             g.DrawString(
-                categoryName, CategoryBoxHeadingFont, CategoryBoxHeadingForeground,
+                categoryName, strategy.CategoryBoxHeadingFont, strategy.CategoryBoxHeadingForeground,
                 graphArea.X + (0.5f * graphArea.Width) - (0.5f * headingSize.Width),
                 graphArea.Top - headingSize.Height - headingPadding
             );
 
             // Reduce the width & center the graph area so that there is some (= 0.75*AvatarSize) padding left.
             var gridLinesArea = graphArea;
-            gridLinesArea.Inflate(-0.75f * AvatarSize, (-0.75f * AvatarSize) - (0.50f * headingSize.Height));
+            gridLinesArea.Inflate(-0.75f * strategy.AvatarSize, (-0.75f * strategy.AvatarSize) - (0.50f * headingSize.Height));
 
             // Draw grid lines over the established area.
-            DrawCategoryGridLines(g, gridLinesArea, minValue, maxValue, out avatarsArea);
+            DrawCategoryGridLines(g, strategy, gridLinesArea, minValue, maxValue, out avatarsArea);
         }
 
-        private void DrawAvatars(Graphics g, RectangleF avatarsArea, Size avatarSize, float minValue, float maxValue, IEnumerable<(Image, string, float)> data)
+        static private void DrawAvatars(Graphics g, GraphPaintingStrategy strategy, RectangleF avatarsArea, Size avatarSize, float minValue, float maxValue, IEnumerable<(Image, string, float)> data)
         {
-            (minValue, maxValue) = SmoothenRange(minValue, maxValue);
+            (minValue, maxValue) = strategy.SmoothenAxisLimits(minValue, maxValue);
 
             // Enumerate the items so that we know their count and establish the divisor.
             var datas = data.ToArray();
@@ -257,7 +189,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             // The avatars are drawn centered around the calculated coordinates.
             // By shrinking the drawing area width by AvatarSize/2 from both sides, we avoid drawing out of the grid lines area.
-            avatarsArea.Inflate(-0.5f * AvatarSize, 0);
+            avatarsArea.Inflate(-0.5f * strategy.AvatarSize, 0);
 
             var itemSpacingX = avatarsArea.Width / areaWidthDivisor;    // Establish the spacing between centers of drawn avatars
             var x = avatarsArea.Left + (itemSpacingX * areaWidthDivisor); // Find out the X coordinate of the rightmost rendered item.
@@ -284,10 +216,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
-                var unStrSize = g.MeasureAndShrinkText(ref un, UsernameFont, maxUsernameWidth);
+                var unStrSize = g.MeasureAndShrinkText(ref un, strategy.UsernameFont, maxUsernameWidth);
 
                 g.DrawString(
-                    un, UsernameFont, UsernameForeground,
+                    un, strategy.UsernameFont, strategy.UsernameForeground,
                     x - (0.5f * unStrSize.Width),
                     isAbove
                       ? y - (0.5f * avatarSize.Height) - (1.1f * unStrSize.Height)
@@ -295,14 +227,14 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 );
 
                 // Draw the percentage now
-                var pctg = (100 * value).ToString("N0");
-                var pctgStrSize = g.MeasureString(pctg, AvatarPercentageFont);
+                var userValueLabel = strategy.FormatUserValueLabel(value);
+                var userValueLabelSize = g.MeasureString(userValueLabel, strategy.AvatarPercentageFont);
                 g.DrawString(
-                    pctg, AvatarPercentageFont, AvatarPercentageForeground,
-                    x - (0.5f * pctgStrSize.Width),
+                    userValueLabel, strategy.AvatarPercentageFont, strategy.AvatarPercentageForeground,
+                    x - (0.5f * userValueLabelSize.Width),
                     isAbove
-                      ? y + (0.5f * avatarSize.Height) + (0.1f * pctgStrSize.Height)
-                      : y - (0.5f * avatarSize.Height) - (1.1f * pctgStrSize.Height)
+                      ? y + (0.5f * avatarSize.Height) + (0.1f * userValueLabelSize.Height)
+                      : y - (0.5f * avatarSize.Height) - (1.1f * userValueLabelSize.Height)
                 );
 
                 isAbove = !isAbove;

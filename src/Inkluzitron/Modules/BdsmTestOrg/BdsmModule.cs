@@ -22,13 +22,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
+using Inkluzitron.Models;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
     [Name("BDSMTest.org")]
     [Group("bdsm")]
     [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
-    public class BdsmModule : ModuleBase
+    public sealed class BdsmModule : ModuleBase, IDisposable
     {
         static private readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
 
@@ -38,12 +39,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private BdsmTestOrgSettings Settings { get; }
         private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
-        public UserBdsmTraitsService BdsmTraitsService { get; }
+        private UserBdsmTraitsService BdsmTraitsService { get; }
+        private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
-            UserBdsmTraitsService bdsmTraitsService)
+            UserBdsmTraitsService bdsmTraitsService, FontService fontService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
@@ -51,6 +53,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             GraphPainter = graphPainter;
             HttpClientFactory = factory;
             BdsmTraitsService = bdsmTraitsService;
+            GraphPaintingStrategy = new BdsmGraphPaintingStrategy(fontService);
+        }
+
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+            GraphPaintingStrategy.Dispose();
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -104,7 +113,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             using var imgFile = new TemporaryFile("png");
-            using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
+            using var img = await GraphPainter.DrawAsync(Context.Guild, GraphPaintingStrategy, resultsDict);
             img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
             await ReplyFileAsync(imgFile.Path);
         }
@@ -123,7 +132,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
                 if (!resultsGot) continue;
 
-                resultsLine = string.Join(", ", items.Select(i => $"**`{i.Parent.SubmittedByName}`** ({i.Value:P0})"));
+                resultsLine = string.Join(", ", items.Select(i => $"**`{i.UserDisplayName}`** ({i.Value:P0})"));
 
                 results.AppendFormat("**{0}**: ", trait);
                 results.AppendLine(resultsLine);
@@ -138,9 +147,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
         static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
-        private async Task<IDictionary<string, List<QuizDoubleItem>>> ProcessQueryAsync(params string[] query)
+        private async Task<IDictionary<string, List<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
-            var resultsDict = new ConcurrentDictionary<string, List<QuizDoubleItem>>();
+            var resultsDict = new ConcurrentDictionary<string, List<GraphItem>>();
             var positiveFilters = new ConcurrentDictionary<string, double>();
             var negativeFilters = new ConcurrentDictionary<string, double>();
             var explicitlyRequestedTraits = new HashSet<string>();
@@ -246,18 +255,24 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .OrderByDescending(row => row.Value)
                     .ThenByDescending(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
+                    .Select(i => new GraphItem {
+                        Category = i.Key,
+                        UserId = i.Parent.SubmittedById,
+                        UserDisplayName = i.Parent.SubmittedByName,
+                        Value = i.Value
+                    })
                     .ToListAsync();
             }
 
-            foreach (var testResult in resultsDict.Values.SelectMany(x => x).Select(x => x.Parent))
+            foreach (var testResult in resultsDict.Values.SelectMany(x => x))
             {
-                var guildMember = await Context.Guild.GetUserAsync(testResult.SubmittedById);
+                var guildMember = await Context.Guild.GetUserAsync(testResult.UserId);
                 if (guildMember == null)
                     continue;
 
-                testResult.SubmittedByName = guildMember.Nickname
+                testResult.UserDisplayName = guildMember.Nickname
                     ?? guildMember.Username
-                    ?? testResult.SubmittedByName;
+                    ?? testResult.UserDisplayName;
             }
 
             return resultsDict;

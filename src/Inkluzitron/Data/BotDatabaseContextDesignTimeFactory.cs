@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Design;
 namespace Inkluzitron.Data
 {
     // https://go.microsoft.com/fwlink/?linkid=851728
-    public class BloggingContextFactory : IDesignTimeDbContextFactory<BotDatabaseContext>
+    public class BotDatabaseContextDesignTimeFactory : IDesignTimeDbContextFactory<BotDatabaseContext>
     {
         public BotDatabaseContext CreateDbContext(string[] args)
         {
