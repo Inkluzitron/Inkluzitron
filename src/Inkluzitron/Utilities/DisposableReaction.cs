@@ -30,15 +30,7 @@ namespace Inkluzitron.Utilities
             return new DisposableReaction(message, emote, botUser);
         }
 
-        private bool _disposed;
         public async ValueTask DisposeAsync()
-        {
-            if (_disposed)
-                return;
-            else
-                _disposed = true;
-
-            await Message.RemoveReactionAsync(Emote, BotUser);
-        }
+            => await Message.RemoveReactionAsync(Emote, BotUser);
     }
 }
