@@ -21,7 +21,7 @@ namespace Inkluzitron.Modules
 
         [Command("send")]
         [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky.")]
-        public async Task SendAsync([Name("cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
+        public async Task SendAsync([Name("#cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
         {
             var guild = Context.Client.GetGuild(BotSettings.HomeGuildId);
             if (guild is null)
@@ -37,6 +37,14 @@ namespace Inkluzitron.Modules
                 return;
             }
 
+            await SendAsync(channel, messageText);
+        }
+
+
+        [Command("send")]
+        [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky.")]
+        public async Task SendAsync([Name("cílová roomka")] IMessageChannel channel, [Remainder][Name("zpráva")] string messageText = null)
+        {
             var attachments = Context.Message.Attachments;
             if (messageText == null && attachments.Count == 0)
             {
