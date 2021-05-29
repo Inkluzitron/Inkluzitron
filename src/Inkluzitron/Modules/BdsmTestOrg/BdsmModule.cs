@@ -288,7 +288,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
 
 
-            var user = await UsersService.GetUserDbEntityAsync(
+            var user = await UsersService.GetOrCreateUserDbEntityAsync(
                 Context.Message.Author);
 
             if (testResult.Gender != Gender.Unspecified)
