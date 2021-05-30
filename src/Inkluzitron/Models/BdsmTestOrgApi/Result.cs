@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using Inkluzitron.Enums;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 
@@ -16,8 +18,8 @@ namespace Inkluzitron.Models.BdsmTestOrgApi
         [JsonProperty("version")]
         public string Version { get; set; }
 
-        [JsonProperty("gender")]
-        public string Gender { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public Gender Gender { get; set; } = Gender.Unspecified;
 
         [JsonProperty("auth")]
         public bool RegisteredUser { get; set; }

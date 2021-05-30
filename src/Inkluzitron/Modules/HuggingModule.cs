@@ -52,22 +52,21 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            // iterate over users and find if someone has same name or nickname as message
-            var foundSomeone = false;
+            // iterate over users and find if someone has same name, nickname or ID as message
             foreach (var user in Context.Guild.Users)
             {
-                if (message == user.Nickname || message == user.Username)
+                if (message == user.Nickname || message == user.Username || message == user.Id.ToString())
                 {
-                    foundSomeone = true;
+                    userName = user.Nickname ?? user.Username;
                     await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{message}**"
+                      $"{Config["Hugging"]} **{userName}**"
                     );
+                    return;
                 }
             }
 
-            if (foundSomeone) return;
             await Context.Channel.SendMessageAsync(
-              $"Nastala politování hodná situace, nenašel jsem nikoho na ohugování... {Config["PepeHands"]}"
+              $"Nastala politováníhodná situace, nenašel jsem nikoho na ohugování... {Config["PepeHands"]}"
             );
         }
     }

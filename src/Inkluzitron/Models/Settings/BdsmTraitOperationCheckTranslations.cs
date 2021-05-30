@@ -13,6 +13,8 @@ namespace Inkluzitron.Models.Settings
         public string InCompliance { get; set; }
         public string RollSucceeded { get; set; }
         public string RollFailed { get; set; }
+        public string[] RollFailedLossGendered { get; set; }
+        public string[] RollFailedGainGendered { get; set; }
         public string Self { get; set; }
     }
 }

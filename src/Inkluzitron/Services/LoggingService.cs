@@ -35,8 +35,8 @@ namespace Inkluzitron.Services
                 {
                     messageText = Regex.Replace(
                         messageText,
-                        @"^(Executed \""send\"").+",
-                        "$1"
+                        @"(Error occurred executing \""send\"" for|Executed \""send\"").+",
+                        "$1 - anonymised"
                     );
                 }
 

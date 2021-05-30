@@ -29,6 +29,7 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
         private ImagesService ImagesService { get; }
+        private UsersService UsersService { get; }
 
         private Font PositionFont { get; }
         private Font NicknameFont { get; }
@@ -37,12 +38,13 @@ namespace Inkluzitron.Services
         private SolidBrush LightGrayBrush { get; }
         public BotSettings BotSettings { get; }
 
-        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ImagesService imagesService, BotSettings botSettings)
+        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ImagesService imagesService, BotSettings botSettings, UsersService usersService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
             BotSettings = botSettings;
+            UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
 
@@ -126,7 +128,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 if (isOnCooldownFunc(userEntity))
                     return;
 
@@ -142,24 +144,10 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 userEntity.Points += (decrement ? -1 : 1) * points;
                 await context.SaveChangesAsync();
             });
-        }
-
-        static private async Task<User> GetOrCreateUserEntityAsync(BotDatabaseContext context, ulong userId)
-        {
-            var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == userId);
-
-            if (userEntity != null)
-                return userEntity;
-
-            userEntity = new User() { Id = userId };
-            await context.AddAsync(userEntity);
-            await context.SaveChangesAsync();
-
-            return userEntity;
         }
 
         public async Task<int> GetUserPositionAsync(IUser user)
@@ -211,7 +199,7 @@ namespace Inkluzitron.Services
 
             using (var context = DatabaseFactory.Create())
             {
-                userEntity = await GetOrCreateUserEntityAsync(context, user.Id);
+                userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
                 position = await GetUserPositionAsync(context, user);
             }
 

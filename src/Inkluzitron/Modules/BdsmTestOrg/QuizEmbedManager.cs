@@ -44,22 +44,22 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var currentPageResultWasRemoved = false;
             if (metadata.UserId == user.Id && reaction.IsEqual(ReactionSettings.Remove))
             {
-                var result = await dbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId);
+                var result = await dbContext.BdsmTestOrgResults.FindAsync(metadata.ResultId);
                 if (result != null)
                 {
-                    dbContext.BdsmTestOrgQuizResults.Remove(result);
+                    dbContext.BdsmTestOrgResults.Remove(result);
                     await dbContext.SaveChangesAsync();
                     currentPageResultWasRemoved = true;
                 }
             }
 
             if (!currentPageResultWasRemoved)
-                currentPageResultWasRemoved = (await dbContext.BdsmTestOrgQuizResults.FindAsync(metadata.ResultId)) is null;
+                currentPageResultWasRemoved = (await dbContext.BdsmTestOrgResults.FindAsync(metadata.ResultId)) is null;
 
-            var quizResultsOfUser = dbContext.BdsmTestOrgQuizResults
+            var quizResultsOfUser = dbContext.BdsmTestOrgResults
                 .Include(x => x.Items)
                 .AsQueryable()
-                .Where(r => r.SubmittedById == metadata.UserId)
+                .Where(r => r.UserId == metadata.UserId)
                 .OrderByDescending(r => r.SubmittedAt);
 
             var count = await quizResultsOfUser.CountAsync();
