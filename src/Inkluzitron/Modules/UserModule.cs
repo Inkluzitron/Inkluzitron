@@ -6,8 +6,6 @@ using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -31,7 +29,6 @@ namespace Inkluzitron.Modules
         [Command("gender")]
         [Summary("Vypíše svoje nastavené pohlaví nebo pohlaví vybraného uživatele.")]
         public async Task ShowGenderAsync(IUser user = null)
-
         {
             var genderMsg = Configuration["UserModule:UserGenderMessage"];
             var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
@@ -61,35 +58,22 @@ namespace Inkluzitron.Modules
         [Command("gender set male")]
         [Alias("gender set m", "gender set muz")]
         [Summary("Nastaví svoje pohlaví jako muž.")]
-        public async Task SetGenderMaleAsync()
-
-        {
-            await SetGenderAsync(Gender.Male);
-
-        }
+        public Task SetGenderMaleAsync()
+            => SetGenderAsync(Gender.Male);
 
         [Command("gender set female")]
         [Alias("gender set f", "gender set zena", "gender set z")]
         [Summary("Nastaví svoje pohlaví jako žena.")]
-        public async Task SetGenderFemaleAsync()
-
-        {
-            await SetGenderAsync(Gender.Female);
-
-        }
+        public Task SetGenderFemaleAsync()
+            => SetGenderAsync(Gender.Female);
 
         [Command("gender unset")]
         [Alias("gender set other")]
         [Summary("Vymaže informaci o pohlaví.")]
-        public async Task UnsetGenderAsync()
-
-        {
-            await SetGenderAsync(Gender.Unspecified);
-
-        }
+        public Task UnsetGenderAsync()
+            => SetGenderAsync(Gender.Unspecified);
 
         public async Task SetGenderAsync(Gender gender)
-
         {
             await UsersService.SetUserGenderAsync(Context.User, gender);
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
