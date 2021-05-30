@@ -4,6 +4,8 @@ using GrapeCity.Documents.Imaging;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
+using Inkluzitron.Models.Settings;
 using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -34,13 +36,14 @@ namespace Inkluzitron.Services
         private Font TitleTextFont { get; }
         private SolidBrush WhiteBrush { get; }
         private SolidBrush LightGrayBrush { get; }
+        public BotSettings BotSettings { get; }
 
-        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
-            ImagesService imagesService, UsersService usersService)
+        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ImagesService imagesService, BotSettings botSettings, UsersService usersService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
+            BotSettings = botSettings;
             UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
@@ -51,6 +54,39 @@ namespace Inkluzitron.Services
             TitleTextFont = new Font(font, 20F);
             WhiteBrush = new SolidBrush(SysDraw.Color.White);
             LightGrayBrush = new SolidBrush(SysDraw.Color.LightGray);
+        }
+
+        private async Task<IUser> LookupUserAsync(ulong userId)
+        {
+            var guild = DiscordClient.GetGuild(BotSettings.HomeGuildId);
+
+            if (guild != null && await guild.GetUserAsync(userId) is SocketGuildUser guildUser)
+                return guildUser;
+            else if (await DiscordClient.Rest.GetUserAsync(userId) is IUser restUser)
+                return restUser;
+            else
+                return null;
+        }
+
+        public async Task<IReadOnlyList<GraphItem>> GetAllPointsAsync()
+        {
+            using var context = DatabaseFactory.Create();
+            var result = new List<GraphItem>();
+
+            await foreach (var userEntry in context.Users.AsQueryable().OrderBy(u => u.Points).AsAsyncEnumerable())
+            {
+                if (await LookupUserAsync(userEntry.Id) is not IUser user)
+                    continue;
+
+                result.Add(new GraphItem
+                {
+                    UserId = user.Id,
+                    UserDisplayName = user.GetDisplayName(),
+                    Value = userEntry.Points
+                });
+            }
+
+            return result;
         }
 
         private async Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)

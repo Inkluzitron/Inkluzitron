@@ -1,11 +1,12 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Inkluzitron.Contracts;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
-using System.Linq;
+using Inkluzitron.Utilities;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Points
@@ -18,16 +19,20 @@ namespace Inkluzitron.Modules.Points
     public class PointsModule : ModuleBase
     {
         private PointsService PointsService { get; }
+        private GraphPaintingService GraphPaintingService { get; }
+        private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
         private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
         private readonly int BoardPageLimit = 10;
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client,
-            ReactionSettings reactionSettings)
+
+        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy)
         {
             PointsService = pointsService;
             Client = client;
             ReactionSettings = reactionSettings;
+            GraphPaintingService = graphPaintingService;
+            GraphPaintingStrategy = graphPaintingStrategy;
         }
 
         [Command("")]
@@ -87,6 +92,23 @@ namespace Inkluzitron.Modules.Points
         {
             var pos = await PointsService.GetUserPositionAsync(user);
             await GetLeaderboardAsync(pos);
+        }
+
+        [Command("graph")]
+        [Summary("Graf všech uživatelů a jimi získaných bodů.")]
+        public async Task GetGraphAsync()
+        {
+            await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
+            var results = new Dictionary<string, IReadOnlyList<GraphItem>>
+            {
+                { "Body", await PointsService.GetAllPointsAsync() }
+            };
+
+            using var file = new TemporaryFile("png");
+            using (var graph = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, results))
+                graph.Save(file.Path);
+
+            await ReplyFileAsync(file.Path);
         }
     }
 }

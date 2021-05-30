@@ -19,6 +19,7 @@ using Inkluzitron.Models.BdsmTestOrgApi;
 using Inkluzitron.Enums;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
+using Inkluzitron.Models;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -28,27 +29,31 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     public class BdsmModule : ModuleBase
     {
         static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
+        static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
         private ReactionSettings ReactionSettings { get; }
         private BdsmTestOrgSettings Settings { get; }
-        private GraphPaintingService GraphPainter { get; }
         private IHttpClientFactory HttpClientFactory { get; }
+        private UserBdsmTraitsService BdsmTraitsService { get; }
+        private GraphPaintingService GraphPaintingService { get; }
+        private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
         private UsersService UsersService { get; }
-        public UserBdsmTraitsService BdsmTraitsService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
-            UserBdsmTraitsService bdsmTraitsService, UsersService usersService)
+            UserBdsmTraitsService bdsmTraitsService, UsersService usersService,
+            BdsmGraphPaintingStrategy graphPaintingStrategy)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
             Settings = bdsmTestOrgSettings;
-            GraphPainter = graphPainter;
             HttpClientFactory = factory;
             BdsmTraitsService = bdsmTraitsService;
+            GraphPaintingService = graphPainter;
+            GraphPaintingStrategy = graphPaintingStrategy;
             UsersService = usersService;
         }
 
@@ -65,21 +70,23 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("")]
-        [Summary("Zobrazí výsledky uživatele.")]
-        public async Task ShowUserResultsAsync()
+        [Summary("Zobrazí výsledky odesílatele nebo uživatele.")]
+        public async Task ShowUserResultsAsync([Name("koho")] IUser target = null)
         {
-            var authorId = Context.Message.Author.Id;
+            if (target is null)
+                target = Context.Message.Author;
+
             var quizResultsOfUser = DbContext.BdsmTestOrgResults.Include(x => x.Items)
-                .Where(x => x.UserId == authorId);
+                .Where(x => x.UserId == target.Id);
 
             var pageCount = await quizResultsOfUser.CountAsync();
             var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefaultAsync();
 
-            var embedBuilder = new EmbedBuilder().WithAuthor(Context.Message.Author);
+            var embedBuilder = new EmbedBuilder().WithAuthor(target);
 
             if (mostRecentResult is null)
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, Context.Message.Author);
+                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, target);
             else
                 embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(Settings, mostRecentResult, 1, pageCount);
 
@@ -92,6 +99,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         [Summary("Sestaví a zobrazí žebříček výsledků a vykreslí jej do grafu. Volitelně je možné výsledky filtrovat.")]
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
+            await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
             var resultsDict = await ProcessQueryAsync(categoriesQuery);
 
             if (resultsDict.Count == 0) return;
@@ -103,7 +111,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             using var imgFile = new TemporaryFile("png");
-            using var img = await GraphPainter.DrawAsync(Context.Guild, resultsDict);
+            using var img = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, resultsDict);
             img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
             await ReplyFileAsync(imgFile.Path);
         }
@@ -120,10 +128,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 string resultsLine;
 
                 var resultsGot = resultsDict.TryGetValue(trait, out var items) && items.Count > 0;
-                if (!resultsGot) continue;
+                if (!resultsGot)
+                    continue;
 
-                resultsLine = string.Join(", ", items.Select(i => $"**`{i.Parent.User.Name}`** ({i.Score:P0})"));
-
+                resultsLine = string.Join(", ", items.Select(i => $"**`{i.UserDisplayName}`** ({i.Value:P0})"));
                 results.AppendFormat("**{0}**: ", trait);
                 results.AppendLine(resultsLine);
             }
@@ -135,11 +143,9 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
-        static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
-
-        private async Task<IDictionary<string, List<BdsmTestOrgItem>>> ProcessQueryAsync(params string[] query)
+        private async Task<IDictionary<string, IReadOnlyList<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
-            var resultsDict = new ConcurrentDictionary<string, List<BdsmTestOrgItem>>();
+            var resultsDict = new ConcurrentDictionary<string, IReadOnlyList<GraphItem>>();
             var positiveFilters = new ConcurrentDictionary<BdsmTrait, double>();
             var negativeFilters = new ConcurrentDictionary<BdsmTrait, double>();
             var explicitlyRequestedTraits = new HashSet<BdsmTrait>();
@@ -234,18 +240,23 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     .OrderByDescending(row => row.Score)
                     .ThenByDescending(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
+                    .Select(i => new GraphItem {
+                        UserId = i.Parent.UserId,
+                        UserDisplayName = i.Parent.User.Name,
+                        Value = i.Score
+                    })
                     .ToListAsync();
             }
 
-            foreach (var testResult in resultsDict.Values.SelectMany(x => x).Select(x => x.Parent))
+            foreach (var testResult in resultsDict.Values.SelectMany(x => x))
             {
                 var guildMember = await Context.Guild.GetUserAsync(testResult.UserId);
                 if (guildMember == null)
                     continue;
 
-                testResult.User.Name = guildMember.Nickname
+                testResult.UserDisplayName= guildMember.Nickname
                     ?? guildMember.Username
-                    ?? testResult.User.Name;
+                    ?? testResult.UserDisplayName;
             }
 
             return resultsDict;
