@@ -8,7 +8,6 @@ using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules.Vote;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
