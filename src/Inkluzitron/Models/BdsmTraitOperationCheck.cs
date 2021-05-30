@@ -2,6 +2,7 @@
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
+using Inkluzitron.Services;
 using System;
 
 namespace Inkluzitron.Models
@@ -9,10 +10,13 @@ namespace Inkluzitron.Models
     public class BdsmTraitOperationCheck
     {
         private readonly BdsmTraitOperationCheckTranslations _translations;
+        private readonly UsersService _usersService;
 
-        public BdsmTraitOperationCheck(BdsmTraitOperationCheckTranslations translations)
+        public BdsmTraitOperationCheck(BdsmTraitOperationCheckTranslations translations,
+            UsersService usersService)
         {
             _translations = translations ?? throw new ArgumentNullException(nameof(translations));
+            _usersService = usersService;
         }
 
         public IUser User { get; set; }
@@ -64,11 +68,21 @@ namespace Inkluzitron.Models
                     return base.ToString();
             }
 
+            var userGender = _usersService.GetOrCreateUserDbEntityAsync(User)
+                .GetAwaiter().GetResult().Gender;
+
+            var targetGender = _usersService.GetOrCreateUserDbEntityAsync(Target)
+                .GetAwaiter().GetResult().Gender;
+
+
+
             return string.Format(
                 format,
                 User.GetDisplayName(true), UserSubmissiveness, UserDominance,
                 Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance,
-                RolledValue, RollMaximum, RequiredValue, SubstractedPoints
+                RolledValue, RollMaximum, RequiredValue, SubstractedPoints,
+                _translations.RollFailedLossGendered[(int)userGender],
+                _translations.RollFailedGainGendered[(int)targetGender]
             );
         }
     }

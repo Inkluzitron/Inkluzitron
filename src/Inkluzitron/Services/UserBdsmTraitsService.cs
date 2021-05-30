@@ -20,18 +20,22 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private BdsmTestOrgSettings Settings { get; }
         public BdsmTraitOperationCheckTranslations CheckTranslations { get; }
+        public UsersService UsersService { get; }
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
         public double WeakTraitThreshold => Settings.WeakTraitThreshold;
 
         public IMemoryCache Cache { get; }
 
-        public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings, BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache)
+        public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings,
+            BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache,
+            UsersService usersService)
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
             CheckTranslations = checkTranslations;
             Cache = cache;
+            UsersService = usersService;
         }
 
         public async Task<bool> TestExists(IUser user)
@@ -100,7 +104,7 @@ namespace Inkluzitron.Services
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var check = new BdsmTraitOperationCheck(CheckTranslations) { User = user, Target = target };
+            var check = new BdsmTraitOperationCheck(CheckTranslations, UsersService) { User = user, Target = target };
             SetLastOperationCheck(user, check);
 
             if (user.Equals(target))
