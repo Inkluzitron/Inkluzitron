@@ -74,8 +74,6 @@ namespace Inkluzitron.Models
             var targetGender = _usersService.GetOrCreateUserDbEntityAsync(Target)
                 .Result.Gender;
 
-
-
             return string.Format(
                 format,
                 User.GetDisplayName(true), UserSubmissiveness, UserDominance,
