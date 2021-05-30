@@ -90,11 +90,7 @@ namespace Inkluzitron
                 .AddLogging(config =>
                 {
                     config.AddConfiguration(configuration.GetSection("Logging"));
-                    config.AddSystemdConsole(opt =>
-                    {
-                        opt.IncludeScopes = true;
-                        opt.TimestampFormat = "dd. MM. yyyy HH:mm:ss\t";
-                    });
+                    config.AddConsole();
                 });
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
