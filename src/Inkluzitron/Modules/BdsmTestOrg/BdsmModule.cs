@@ -26,7 +26,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     [Name("BDSMTest.org")]
     [Group("bdsm")]
     [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
-    public sealed class BdsmModule : ModuleBase, IDisposable
+    public class BdsmModule : ModuleBase
     {
         static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
 
@@ -40,12 +40,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
         private UsersService UsersService { get; }
 
-
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
-            UserBdsmTraitsService bdsmTraitsService, FontService fontService,
-            UsersService usersService)
+            UserBdsmTraitsService bdsmTraitsService, UsersService usersService,
+            BdsmGraphPaintingStrategy graphPaintingStrategy)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
@@ -53,14 +52,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             HttpClientFactory = factory;
             BdsmTraitsService = bdsmTraitsService;
             GraphPaintingService = graphPainter;
-            GraphPaintingStrategy = new BdsmGraphPaintingStrategy(fontService);
+            GraphPaintingStrategy = graphPaintingStrategy;
             UsersService = usersService;
-        }
-
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            GraphPaintingStrategy.Dispose();
         }
 
         protected override void BeforeExecute(CommandInfo command)

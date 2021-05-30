@@ -6,7 +6,6 @@ using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -17,29 +16,23 @@ namespace Inkluzitron.Modules.Points
     [Alias("points")]
     [Summary("Body se počítají stejně jako u GrillBot. Za každou reakci uživatel obdrží 0 až 10 bodů, za zprávu 0 až 25 bodů. Po odeslání zprávy " +
         "bot počítá jedno minutový cooldown. U reakce je cooldown 30 vteřin.")]
-    public sealed class PointsModule : ModuleBase, IDisposable
+    public class PointsModule : ModuleBase
     {
         private PointsService PointsService { get; }
         private GraphPaintingService GraphPaintingService { get; }
+        private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
         private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
         private readonly int BoardPageLimit = 10;
 
-        private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService)
+        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy)
         {
             PointsService = pointsService;
             Client = client;
             ReactionSettings = reactionSettings;
             GraphPaintingService = graphPaintingService;
-            GraphPaintingStrategy = new PointsGraphPaintingStrategy();
-        }
-
-        public void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            GraphPaintingStrategy.Dispose();
+            GraphPaintingStrategy = graphPaintingStrategy;
         }
 
         [Command("")]

@@ -6,6 +6,8 @@ using Inkluzitron.Data;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
+using Inkluzitron.Modules.BdsmTestOrg;
+using Inkluzitron.Modules.Points;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -81,6 +83,8 @@ namespace Inkluzitron
                 .AddSingleton(new FileCache(cacheDirLocation))
                 .AddSingleton<PointsService>()
                 .AddSingleton<UsersService>()
+                .AddSingleton<PointsGraphPaintingStrategy>()
+                .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
