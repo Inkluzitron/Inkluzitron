@@ -28,7 +28,7 @@ namespace Inkluzitron.Modules
         [Command("pronouns")]
         [Alias("osloveni")]
         [Summary("Vypíše svoje preferované oslovení nebo oslovení vybraného uživatele.")]
-        public async Task ShowGenderAsync(IUser user = null)
+        public async Task ShowGenderAsync([Name("uživatel")]IUser user = null)
         {
             var genderMsg = Configuration["UserModule:UserPronounsMessage"];
             var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
