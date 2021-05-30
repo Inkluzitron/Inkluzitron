@@ -36,7 +36,9 @@ namespace Inkluzitron.Handlers
             {
                 string reply = "";
 
-                string moreInfo = $"\n*Pro vice informací zadej `{Configuration["Prefix"]}help {command.Value.Aliases.First().Split(' ', 2)[0]}`*";
+                string moreInfo = "";
+                if (command.IsSpecified)
+                    moreInfo = $"\n*Pro vice informací zadej `{Configuration["Prefix"]}help {command.Value.Aliases.First().Split(' ', 2)[0]}`*";
 
                 switch (result.Error.Value)
                 {
