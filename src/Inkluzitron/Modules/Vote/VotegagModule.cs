@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Vote
 {
+    [Name("Hlasování o umlčení uživatele")]
     public class VotegagModule : ModuleBase
     {
         private UsersService UsersService { get; }
