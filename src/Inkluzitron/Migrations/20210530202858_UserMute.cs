@@ -1,0 +1,24 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+namespace Inkluzitron.Migrations
+{
+    public partial class UserMute : Migration
+    {
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<DateTime>(
+                name: "MutedUntil",
+                table: "Users",
+                type: "TEXT",
+                nullable: true);
+        }
+
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "MutedUntil",
+                table: "Users");
+        }
+    }
+}
