@@ -4,6 +4,8 @@ using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -60,6 +62,15 @@ namespace Inkluzitron.Services
             var userEntity = await GetOrCreateUserDbEntityAsync(user);
 
             userEntity.Gender = gender;
+
+            await DbContext.SaveChangesAsync();
+        }
+
+        public async Task SetMutedUntilAsync(IUser user, DateTime? endDate)
+        {
+            var userEntity = await GetOrCreateUserDbEntityAsync(user);
+
+            userEntity.MutedUntil = endDate;
 
             await DbContext.SaveChangesAsync();
         }
