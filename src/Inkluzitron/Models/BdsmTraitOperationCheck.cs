@@ -69,10 +69,10 @@ namespace Inkluzitron.Models
             }
 
             var userGender = _usersService.GetOrCreateUserDbEntityAsync(User)
-                .GetAwaiter().GetResult().Gender;
+                .Result.Gender;
 
             var targetGender = _usersService.GetOrCreateUserDbEntityAsync(Target)
-                .GetAwaiter().GetResult().Gender;
+                .Result.Gender;
 
 
 

@@ -55,7 +55,7 @@ namespace Inkluzitron.Services
             return userEntity;
         }
 
-        public async Task SetUserGender(IUser user, Gender gender)
+        public async Task SetUserGenderAsync(IUser user, Gender gender)
         {
             var userEntity = await GetOrCreateUserDbEntityAsync(user);
 

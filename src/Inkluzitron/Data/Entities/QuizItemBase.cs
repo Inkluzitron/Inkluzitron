@@ -8,7 +8,7 @@ namespace Inkluzitron.Data.Entities
         [Key]
         public long Id { get; set; }
 
-        [ForeignKey("ParentId")]
+        [ForeignKey(nameof(ParentId))]
         public Result Parent { get; set; }
         public long ParentId { get; set; }
     }

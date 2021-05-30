@@ -12,7 +12,7 @@ namespace Inkluzitron.Data.Entities
         [Required]
         public DateTime SubmittedAt { get; set; }
 
-        [ForeignKey("UserId")]
+        [ForeignKey(nameof(UserId))]
         public User User { get; set; }
         public ulong UserId { get; set; }
     }
