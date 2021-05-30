@@ -31,7 +31,7 @@ namespace Inkluzitron.Services
                 var logger = LoggerFactory.CreateLogger(message.Source);
 
                 var messageText = message.Message;
-                if(messageText != null)
+                if (messageText != null)
                 {
                     messageText = Regex.Replace(
                         messageText,
@@ -46,13 +46,13 @@ namespace Inkluzitron.Services
                         logger.LogWarning(messageText);
                         break;
                     case LogSeverity.Warning when message.Exception != null:
-                        logger.LogWarning(message.Exception, messageText);
+                        logger.LogWarning(message.Exception, messageText ?? "");
                         break;
                     case LogSeverity.Critical:
-                        logger.LogCritical(message.Exception, messageText);
+                        logger.LogCritical(message.Exception, messageText ?? "");
                         break;
                     case LogSeverity.Error:
-                        logger.LogError(message.Exception, messageText);
+                        logger.LogError(message.Exception, messageText ?? "");
                         break;
                     default:
                         logger.LogInformation(messageText);
