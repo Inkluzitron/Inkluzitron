@@ -18,6 +18,8 @@ namespace Inkluzitron.Data.Entities
         [Required]
         public long Points { get; set; } = 0;
 
+        public DateTime? MutedUntil { get; set; }
+
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
 
