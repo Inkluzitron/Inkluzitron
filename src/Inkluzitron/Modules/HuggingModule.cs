@@ -66,7 +66,7 @@ namespace Inkluzitron.Modules
             }
 
             await Context.Channel.SendMessageAsync(
-              $"Nastala politování hodná situace, nenašel jsem nikoho na ohugování... {Config["PepeHands"]}"
+              $"Nastala politováníhodná situace, nenašel jsem nikoho na ohugování... {Config["PepeHands"]}"
             );
         }
     }
