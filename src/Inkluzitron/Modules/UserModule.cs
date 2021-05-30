@@ -1,5 +1,4 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
