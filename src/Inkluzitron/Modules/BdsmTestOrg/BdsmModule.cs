@@ -29,6 +29,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     public class BdsmModule : ModuleBase
     {
         static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
+        static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
@@ -69,7 +70,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("")]
-        [Summary("Zobrazí výsledky odesilatele nebo uživatele.")]
+        [Summary("Zobrazí výsledky odesílatele nebo uživatele.")]
         public async Task ShowUserResultsAsync([Name("koho")] IUser target = null)
         {
             if (target is null)
@@ -141,8 +142,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var parts = results.SplitToParts(DiscordConfig.MaxMessageSize);
             await ReplyAsync(parts, allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
-
-        static private readonly Regex ComparisonRegex = new(@"^([^<>]+)([<>])(\d+)$");
 
         private async Task<IDictionary<string, IReadOnlyList<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
