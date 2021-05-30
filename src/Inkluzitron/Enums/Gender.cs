@@ -6,15 +6,15 @@ namespace Inkluzitron.Enums
     public enum Gender
     {
         [EnumMember(Value = "O")]
-        [Display(Name = "nezvoleno")]
+        [Display(Name = "neutrální")]
         Unspecified,
 
         [EnumMember(Value = "M")]
-        [Display(Name = "muž")]
+        [Display(Name = "on")]
         Male,
 
         [EnumMember(Value = "F")]
-        [Display(Name = "žena")]
+        [Display(Name = "ona")]
         Female
     }
 }

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Inkluzitron.Modules
 {
     [Name("Nastavení uživatele")]
-    [Summary("Informace o pohlaví se používají pro správný výpis hlášek bota. Pohlaví je možné nastavit pomocí příkazů níže, nebo se nastaví automaticky po vložení BDSM testu.")]
+    [Summary("Nastavení oslovení se používá pro správný výpis hlášek bota. Oslovení je možné nastavit pomocí příkazů níže, nebo se nastaví automaticky po vložení BDSM testu.")]
     public class UserModule : ModuleBase
     {
         private UsersService UsersService { get; }
@@ -25,18 +25,25 @@ namespace Inkluzitron.Modules
             ReactionSettings = reactionSettings;
         }
 
-        [Command("gender")]
-        [Summary("Vypíše svoje nastavené pohlaví nebo pohlaví vybraného uživatele.")]
+        [Command("pronouns")]
+        [Alias("osloveni")]
+        [Summary("Vypíše svoje preferované oslovení nebo oslovení vybraného uživatele.")]
         public async Task ShowGenderAsync(IUser user = null)
         {
-            var genderMsg = Configuration["UserModule:UserGenderMessage"];
+            var genderMsg = Configuration["UserModule:UserPronounsMessage"];
             var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
 
             if (user == null) user = Context.User;
 
             if (user.IsBot)
             {
-                await ReplyAsync(string.Format(genderMsg, user.GetDisplayName(), "je bot"));
+                if(user.Id == Context.Client.CurrentUser.Id)
+                {
+                    await ReplyAsync(string.Format(genderMsg, user.GetDisplayName(), Configuration["UserModule:UserPronounsBotSelf"]));
+                    return;
+                }
+
+                await ReplyAsync(string.Format(genderMsg, user.GetDisplayName(), "je bot a nemá preferované oslovení."));
                 return;
             }
 
@@ -48,27 +55,27 @@ namespace Inkluzitron.Modules
             }
 
             var gender = userDb.Gender == Gender.Unspecified ?
-                "nemá zvolené pohlaví" :
-                $"je {userDb.Gender.GetDisplayName()}";
+                "nemá preferované oslovení." :
+                $"je {userDb.Gender.GetDisplayName()}.";
 
             await ReplyAsync(string.Format(genderMsg, user.GetDisplayName(), gender));
         }
 
-        [Command("gender set male")]
-        [Alias("gender set m", "gender set muz")]
-        [Summary("Nastaví svoje pohlaví jako muž.")]
+        [Command("pronouns set he")]
+        [Alias("pronouns set him", "pronouns set on", "osloveni set he", "osloveni set him", "osloveni set on")]
+        [Summary("Nastaví svoje preferované oslovení jako mužské - he/him, on.")]
         public Task SetGenderMaleAsync()
             => SetGenderAsync(Gender.Male);
 
-        [Command("gender set female")]
-        [Alias("gender set f", "gender set zena", "gender set z")]
-        [Summary("Nastaví svoje pohlaví jako žena.")]
+        [Command("pronouns set she")]
+        [Alias("pronouns set her", "pronouns set ona", "osloveni set she", "osloveni set her", "osloveni set ona")]
+        [Summary("Nastaví svoje preferované oslovení jako ženské - she/her, ona.")]
         public Task SetGenderFemaleAsync()
             => SetGenderAsync(Gender.Female);
 
-        [Command("gender unset")]
-        [Alias("gender set other")]
-        [Summary("Vymaže informaci o pohlaví.")]
+        [Command("pronouns unset")]
+        [Alias("pronouns set other", "osloveni unset", "osloveni set other")]
+        [Summary("Nastaví neutrální oslovení.")]
         public Task UnsetGenderAsync()
             => SetGenderAsync(Gender.Unspecified);
 
