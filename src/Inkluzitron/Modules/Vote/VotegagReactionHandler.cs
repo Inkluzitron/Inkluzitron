@@ -36,14 +36,14 @@ namespace Inkluzitron.Modules.Help
             BotSettings = botSettings;
 
             client.Ready += ClientReadyAsync;
-            client.ChannelCreated += UpdateChannelMutedRole;
+            client.ChannelCreated += UpdateChannelMutedRoleAsync;
         }
 
-        private async Task UpdateChannelMutedRole(SocketChannel channel)
+        private async Task UpdateChannelMutedRoleAsync(SocketChannel channel)
         {
             if (channel is not SocketGuildChannel guildChannel) return;
 
-            var muteRole = guildChannel.Guild.Roles.First(r => r.Id == VoteSettings.MuteRole);
+            var muteRole = guildChannel.Guild.GetRole(VoteSettings.MuteRoleId);
 
             var isPermSet = guildChannel.PermissionOverwrites.Any(o =>
                  o.TargetType == PermissionTarget.Role &&
@@ -61,9 +61,9 @@ namespace Inkluzitron.Modules.Help
         private async Task ClientReadyAsync()
         {
             var guild = Client.GetGuild(BotSettings.HomeGuildId);
-            var muteRole = guild.Roles.First(r => r.Id == VoteSettings.MuteRole);
+            var muteRole = guild.GetRole(VoteSettings.MuteRoleId);
 
-            await SetupMutedRole(guild);
+            await SetupMutedRoleAsync(guild);
 
             foreach (var user in guild.Users)
             {
@@ -87,18 +87,18 @@ namespace Inkluzitron.Modules.Help
             }
         }
 
-        private async Task SetupMutedRole(SocketGuild guild)
+        private async Task SetupMutedRoleAsync(SocketGuild guild)
         {
             foreach (var channel in guild.Channels)
             {
-                await UpdateChannelMutedRole(channel);
+                await UpdateChannelMutedRoleAsync(channel);
             }
         }
 
         private void ScheduleUnmute(SocketGuildUser user, DateTime endTime, SocketRole mutedRole)
         {
             Task.Delay(endTime - DateTime.Now).ContinueWith(_ =>
-                VotegagModule.UnmuteUser(user, UsersService, mutedRole));
+                VotegagModule.UnmuteUserAsync(user, UsersService, mutedRole));
         }
 
         public async Task<bool> HandleReactionChangedAsync(IUserMessage message, IEmote reaction, IUser user, ReactionEvent eventType)

@@ -58,16 +58,16 @@ namespace Inkluzitron.Modules.Vote
         static public string CreateCacheKey(ulong userId)
             => $"votegag_{userId}";
 
-        private async Task MuteUser(SocketGuildUser user, int minutes)
+        private async Task MuteUserAsync(SocketGuildUser user, int minutes)
         {
-            var muteRole = user.Guild.Roles.First(r => r.Id == VoteSettings.MuteRole);
+            var muteRole = user.Guild.GetRole(VoteSettings.MuteRoleId);
             await user.AddRoleAsync(muteRole);
 
             var mutedUntil = DateTime.Now.AddMinutes(minutes);
             await UsersService.SetMutedUntilAsync(user, mutedUntil);
         }
 
-        static public async Task UnmuteUser(SocketGuildUser user, UsersService usersService, SocketRole muteRole)
+        static public async Task UnmuteUserAsync(SocketGuildUser user, UsersService usersService, SocketRole muteRole)
         {
             await user.RemoveRoleAsync(muteRole);
 
@@ -75,7 +75,7 @@ namespace Inkluzitron.Modules.Vote
 
             try
             {
-                await user.SendMessageAsync("Tvé umlčení právě skončilo.");
+                await user.SendMessageAsync("Tvé umlčení právě skončilo. Nechť tvůj trest je pro ostatní výstrahou.");
             }
             catch (HttpException)
             {
@@ -84,6 +84,7 @@ namespace Inkluzitron.Modules.Vote
         }
 
         [Command("votegag")]
+        [RequireContext(ContextType.Guild)]
         [Summary("Zahájí hlasování o umlčení uživatele na stanovenou dobu v minutách (výchozí=30, min=5, max=240).")]
         public async Task StartVoteAsync([Name("uživatel")] IUser user, [Name("minut")] int minutes = 30)
         {
@@ -96,7 +97,7 @@ namespace Inkluzitron.Modules.Vote
                 return;
             }
 
-            if (Context.IsPrivate || Context.Guild.Id != BotSettings.HomeGuildId)
+            if (Context.Guild.Id != BotSettings.HomeGuildId)
             {
                 await ReplyAsync("Tento příkaz lze spustit jen na hlavním serveru.");
                 return;
@@ -188,7 +189,7 @@ namespace Inkluzitron.Modules.Vote
             await voteMessage.ModifyAsync(m => m.Content = $"{voteMessageContent}\n*Hlasování ukončeno, výsledek: <{resultMessage.GetJumpUrl()}>*");
 
             if (!success) return;
-            await MuteUser(guildUser, minutes);
+            await MuteUserAsync(guildUser, minutes);
             try
             {
                 await guildUser.SendMessageAsync($"Byl jsi umlčený na {minutes} minut " +
@@ -204,8 +205,8 @@ namespace Inkluzitron.Modules.Vote
             await Task.Delay(new TimeSpan(0, minutes, 0));
             // Unmute user
 
-            var muteRole = guildUser.Guild.Roles.First(r => r.Id == VoteSettings.MuteRole);
-            await UnmuteUser(guildUser, UsersService, muteRole);
+            var muteRole = guildUser.Guild.GetRole(VoteSettings.MuteRoleId);
+            await UnmuteUserAsync(guildUser, UsersService, muteRole);
         }
     }
 }
