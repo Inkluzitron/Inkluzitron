@@ -8,7 +8,7 @@ namespace Inkluzitron.Models.Settings
     {
         static private readonly string SettingsSectionName = "VoteModule";
 
-        public ulong MuteRole { get; set; }
+        public ulong MuteRoleId { get; set; }
         public IEmote MuteReactionFor { get; set; }
         public IEmote MuteReactionAgainst { get; set; }
         public int MuteVoteMinVotes { get; set; }
@@ -17,7 +17,7 @@ namespace Inkluzitron.Models.Settings
         public VoteSettings(IConfiguration config)
         {
             var section = config.GetSection(SettingsSectionName);
-            MuteRole = section.GetRequired<ulong>(nameof(MuteRole));
+            MuteRoleId = section.GetRequired<ulong>(nameof(MuteRoleId));
             MuteReactionFor = section.GetRequired<string>(nameof(MuteReactionFor)).ToDiscordEmote();
             MuteReactionAgainst = section.GetRequired<string>(nameof(MuteReactionAgainst)).ToDiscordEmote();
             MuteVoteMinVotes = section.GetRequired<int>(nameof(MuteVoteMinVotes));
