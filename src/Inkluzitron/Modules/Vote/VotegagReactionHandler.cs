@@ -55,13 +55,15 @@ namespace Inkluzitron.Modules.Help
             var rolePerms = new OverwritePermissions(sendMessages: PermValue.Deny);
 
             await guildChannel.AddPermissionOverwriteAsync(muteRole, rolePerms);
-            
         }
 
         private async Task ClientReadyAsync()
         {
             var guild = Client.GetGuild(BotSettings.HomeGuildId);
+            if (guild == null) return;
+
             var muteRole = guild.GetRole(VoteSettings.MuteRoleId);
+            if (muteRole == null) return;
 
             await SetupMutedRoleAsync(guild);
 
@@ -71,7 +73,7 @@ namespace Inkluzitron.Modules.Help
 
                 if (userDb == null || userDb.MutedUntil == null)
                 {
-                    if(user.Roles.Any(r => r.Id == muteRole.Id))
+                    if (user.Roles.Any(r => r.Id == muteRole.Id))
                         await user.RemoveRoleAsync(muteRole);
                     continue;
                 }
@@ -116,7 +118,7 @@ namespace Inkluzitron.Modules.Help
             if (!match.Success)
                 return false;
 
-            if(!reaction.IsEqual(VoteSettings.MuteReactionFor) && !reaction.IsEqual(VoteSettings.MuteReactionAgainst))
+            if (!reaction.IsEqual(VoteSettings.MuteReactionFor) && !reaction.IsEqual(VoteSettings.MuteReactionAgainst))
             {
                 await message.RemoveReactionAsync(reaction, user);
                 return true;
