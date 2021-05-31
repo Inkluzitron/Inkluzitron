@@ -22,7 +22,7 @@ namespace Inkluzitron.Modules.Vote
         private BotSettings BotSettings { get; }
         private IMemoryCache Cache { get; }
 
-        static private readonly TimeSpan VoteTime = new (0, 0, 30);
+        static private readonly TimeSpan VoteTime = new (0, 5, 0);
 
         public VotegagModule(UsersService usersService, VoteSettings voteSettings,
             BotSettings botSettings, IMemoryCache cache)
