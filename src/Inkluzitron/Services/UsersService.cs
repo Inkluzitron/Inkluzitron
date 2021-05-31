@@ -65,14 +65,5 @@ namespace Inkluzitron.Services
 
             await DbContext.SaveChangesAsync();
         }
-
-        public async Task SetMutedUntilAsync(IUser user, DateTime? endDate)
-        {
-            var userEntity = await GetOrCreateUserDbEntityAsync(user);
-
-            userEntity.MutedUntil = endDate;
-
-            await DbContext.SaveChangesAsync();
-        }
     }
 }
