@@ -107,6 +107,10 @@ namespace Inkluzitron.Services
                 u => DateTime.UtcNow.Subtract(u.LastReactionPointsIncrement ?? FallbackDateTime) < ReactionIncrementCooldown,
                 u => u.LastReactionPointsIncrement = DateTime.UtcNow
             );
+
+            var msg = await message.GetOrDownloadAsync();
+            if (msg == null || msg.Author == user) return;
+            await AddIncrementalPoints(msg.Author, 1, _ => false, _ => { });
         }
 
         public async Task IncrementAsync(SocketMessage message)
