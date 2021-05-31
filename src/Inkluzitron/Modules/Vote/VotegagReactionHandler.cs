@@ -122,7 +122,14 @@ namespace Inkluzitron.Modules.Help
                 return true;
             }
 
+            // Get tagged (target) user (exclude original author)
             var targetId = message.MentionedUserIds.First();
+            if(message.MentionedUserIds.Count > 1)
+            {
+                targetId = message.MentionedUserIds.First(
+                    i => i != (message.ReferencedMessage?.Author.Id ?? 0));
+            }
+
 
             if (!Cache.TryGetValue<DateTime>(VotegagModule.CreateCacheKey(targetId), out var voteEnd))
                 return false; // Check if vote exists
