@@ -33,9 +33,9 @@ namespace Inkluzitron.Modules.Vote
 
         static private string FormatPeople(int number)
         {
-            if (number == 1) return "člověk";
-            else if (number > 1 && number < 5) return "lidi";
-            return "lidí";
+            if (number == 1) return "hlas";
+            else if (number > 1 && number < 5) return "hlasy";
+            return "hlasů";
         }
 
         static public string GenerateVoteMessage(IUser target, int minutes, int minVotes, int votes, DateTime voteEnd)
@@ -46,8 +46,11 @@ namespace Inkluzitron.Modules.Vote
             var text = new StringBuilder(
                 $"Hlasování o umlčení {targetMention} na dobu **{minutes} minut**.\n");
 
-            text.Append($"S návrhem musí souhlasit alespoň {minVotes} {FormatPeople(minVotes)}");
-            if (votes != 0) text.Append($" ({votes} {FormatPeople(votes)} {(votes > 1 && votes < 5 ? "jsou" : "je")} pro)");
+            var forText = votes < 0 ? "proti" : "pro";
+            votes = Math.Abs(votes);
+
+            text.Append($"Pro návrh musí být alespoň {minVotes} {FormatPeople(minVotes)}");
+            if (votes != 0) text.Append($" (aktuálně {votes} {FormatPeople(votes)} {forText})");
             text.Append($".\n*Hlasování bude ukončeno v {voteEnd:HH:mm}.*");
 
             return text.ToString();
