@@ -22,8 +22,6 @@ namespace Inkluzitron.Modules.Vote
         private BotSettings BotSettings { get; }
         private IMemoryCache Cache { get; }
 
-        static private readonly TimeSpan VoteTime = new (0, 5, 0);
-
         public VotegagModule(UsersService usersService, VoteSettings voteSettings,
             BotSettings botSettings, IMemoryCache cache)
         {
@@ -85,15 +83,15 @@ namespace Inkluzitron.Modules.Vote
 
         [Command("votegag")]
         [RequireContext(ContextType.Guild)]
-        [Summary("Zahájí hlasování o umlčení uživatele na stanovenou dobu v minutách (výchozí=30, min=5, max=240).")]
+        [Summary("Zahájí hlasování o umlčení uživatele na stanovenou dobu v minutách (výchozí=30).")]
         public async Task StartVoteAsync([Name("uživatel")] IUser user, [Name("minut")] int minutes = 30)
         {
-            var minMinutes = 5;
-            var maxMinutes = 240;
+            var minMinutes = VoteSettings.MuteMinutesMin;
+            var maxMinutes = VoteSettings.MuteMinutesMax;
 
             if (minutes < minMinutes || minutes > maxMinutes)
             {
-                await ReplyAsync("Doba umlčení musí být v rozsahu 5-240 minut.");
+                await ReplyAsync($"Doba umlčení musí být v rozsahu {minMinutes}-{maxMinutes} minut.");
                 return;
             }
 
@@ -148,7 +146,7 @@ namespace Inkluzitron.Modules.Vote
             };
             mentions.UserIds.Add(guildUser.Id);
 
-            voteEnd = DateTime.Now.Add(VoteTime);
+            voteEnd = DateTime.Now.Add(VoteSettings.MuteVoteTimeout);
             Cache.Set(CreateCacheKey(user.Id), voteEnd);
 
             var minVotesCalculation = VoteSettings.MuteVoteMaxVotes -
@@ -160,7 +158,7 @@ namespace Inkluzitron.Modules.Vote
             var voteMessage = await ReplyAsync(GenerateVoteMessage(guildUser, minutes, minVotes, 0, voteEnd), allowedMentions:mentions);
             await voteMessage.AddReactionAsync(VoteSettings.MuteReactionFor);
             await voteMessage.AddReactionAsync(VoteSettings.MuteReactionAgainst);
-            await Task.Delay(VoteTime);
+            await Task.Delay(VoteSettings.MuteVoteTimeout);
 
             // Process result
 

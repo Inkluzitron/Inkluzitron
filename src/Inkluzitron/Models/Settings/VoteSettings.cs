@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Inkluzitron.Extensions;
 using Microsoft.Extensions.Configuration;
+using System;
 
 namespace Inkluzitron.Models.Settings
 {
@@ -13,6 +14,10 @@ namespace Inkluzitron.Models.Settings
         public IEmote MuteReactionAgainst { get; set; }
         public int MuteVoteMinVotes { get; set; }
         public int MuteVoteMaxVotes { get; set; }
+        public int MuteMinutesMin { get; set; }
+        public int MuteMinutesMax { get; set; }
+        public TimeSpan MuteVoteTimeout { get; set; }
+        public int MuteVoteTimeoutMinutes { get; set; }
 
         public VoteSettings(IConfiguration config)
         {
@@ -22,6 +27,10 @@ namespace Inkluzitron.Models.Settings
             MuteReactionAgainst = section.GetRequired<string>(nameof(MuteReactionAgainst)).ToDiscordEmote();
             MuteVoteMinVotes = section.GetRequired<int>(nameof(MuteVoteMinVotes));
             MuteVoteMaxVotes = section.GetRequired<int>(nameof(MuteVoteMaxVotes));
+            MuteMinutesMin = section.GetRequired<int>(nameof(MuteMinutesMin));
+            MuteMinutesMax = section.GetRequired<int>(nameof(MuteMinutesMax));
+            MuteVoteTimeoutMinutes = section.GetRequired<int>(nameof(MuteVoteTimeoutMinutes));
+            MuteVoteTimeout = new TimeSpan(0, MuteVoteTimeoutMinutes, 0);
         }
     }
 }
