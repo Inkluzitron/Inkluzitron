@@ -308,7 +308,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResultDb = new BdsmTestOrgResult
             {
                 SubmittedAt = testResult.Date,
-                User = user,
+                UserId = user.Id,
                 Link = link
             };
 

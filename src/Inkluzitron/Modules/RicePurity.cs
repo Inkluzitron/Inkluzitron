@@ -56,7 +56,7 @@ namespace Inkluzitron.Modules
             var testResultDb = new RicePurityResult
             {
                 Score = points,
-                User = user,
+                UserId = user.Id,
                 SubmittedAt = DateTime.Now
             };
 
