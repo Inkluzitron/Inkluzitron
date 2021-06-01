@@ -85,7 +85,6 @@ namespace Inkluzitron
                 .AddSingleton<UsersService>()
                 .AddSingleton<PointsGraphPaintingStrategy>()
                 .AddSingleton<BdsmGraphPaintingStrategy>()
-                .AddSingleton<VoteSettings>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
