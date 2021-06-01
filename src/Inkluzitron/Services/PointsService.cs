@@ -14,7 +14,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 using SysDraw = System.Drawing;
 
@@ -47,6 +46,7 @@ namespace Inkluzitron.Services
             UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
+            DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
 
             const string font = "Comic Sans MS";
             PositionFont = new Font(font, 45F);
@@ -111,6 +111,17 @@ namespace Inkluzitron.Services
             var msg = await message.GetOrDownloadAsync();
             if (msg == null || msg.Author == user) return;
             await AddIncrementalPoints(msg.Author, 1, _ => false, _ => { });
+        }
+
+        private async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            if (channel is not IGuildChannel) return;
+
+            var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+
+            var msg = await message.GetOrDownloadAsync();
+            if (msg == null || msg.Author == user) return;
+            await AddIncrementalPoints(msg.Author, -1, _ => false, _ => { });
         }
 
         public async Task IncrementAsync(SocketMessage message)
