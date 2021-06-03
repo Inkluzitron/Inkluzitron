@@ -110,7 +110,7 @@ namespace Inkluzitron.Services
 
             var msg = await message.GetOrDownloadAsync();
             if (msg == null || msg.Author == user) return;
-            await AddIncrementalPoints(msg.Author, 1, _ => false, _ => { });
+            await AddIncrementalPoints(msg.Author, BotSettings.PointsKarmaIncrement, _ => false, _ => { });
         }
 
         private async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
@@ -121,7 +121,7 @@ namespace Inkluzitron.Services
 
             var msg = await message.GetOrDownloadAsync();
             if (msg == null || msg.Author == user) return;
-            await AddIncrementalPoints(msg.Author, -1, _ => false, _ => { });
+            await AddIncrementalPoints(msg.Author, -BotSettings.PointsKarmaIncrement, _ => false, _ => { });
         }
 
         public async Task IncrementAsync(SocketMessage message)
