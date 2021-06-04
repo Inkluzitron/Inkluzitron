@@ -50,7 +50,7 @@ namespace Inkluzitron.Services
         // TODO: Fix properly
         public async Task<User> GetOrCreateUserDbEntityAsync(IUser user, BotDatabaseContext context)
         {
-            var userEntity = await GetUserDbEntityAsync(user);
+            var userEntity = await GetUserDbEntityAsync(user, context);
 
             if (userEntity != null)
                 return userEntity;
