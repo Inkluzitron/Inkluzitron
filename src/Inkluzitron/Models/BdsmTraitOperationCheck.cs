@@ -1,8 +1,8 @@
 ﻿using Discord;
+using Inkluzitron.Data;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
-using Inkluzitron.Services;
 using System;
 
 namespace Inkluzitron.Models
@@ -10,13 +10,13 @@ namespace Inkluzitron.Models
     public class BdsmTraitOperationCheck
     {
         private readonly BdsmTraitOperationCheckTranslations _translations;
-        private readonly UsersService _usersService;
+        private readonly BotDatabaseContext _dbContext;
 
         public BdsmTraitOperationCheck(BdsmTraitOperationCheckTranslations translations,
-            UsersService usersService)
+            BotDatabaseContext dbContext)
         {
             _translations = translations ?? throw new ArgumentNullException(nameof(translations));
-            _usersService = usersService;
+            _dbContext = dbContext;
         }
 
         public IUser User { get; set; }
@@ -68,10 +68,10 @@ namespace Inkluzitron.Models
                     return base.ToString();
             }
 
-            var userGender = _usersService.GetOrCreateUserDbEntityAsync(User)
+            var userGender = _dbContext.GetOrCreateUserEntityAsync(User)
                 .Result.Gender;
 
-            var targetGender = _usersService.GetOrCreateUserDbEntityAsync(Target)
+            var targetGender = _dbContext.GetOrCreateUserEntityAsync(Target)
                 .Result.Gender;
 
             return string.Format(
