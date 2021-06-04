@@ -17,6 +17,9 @@ namespace Inkluzitron.Extensions
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
 
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
             var displayName = user.GetDisplayName();
             var userEntity = await context.Users.AsQueryable()
                 .FirstOrDefaultAsync(o => o.Id == user.Id);
@@ -37,6 +40,9 @@ namespace Inkluzitron.Extensions
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
+
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
 
             var userEntity = await context.GetUserEntityAsync(user);
 
