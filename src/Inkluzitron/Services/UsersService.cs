@@ -22,23 +22,33 @@ namespace Inkluzitron.Services
             DbContext = DatabaseFactory.Create();
         }
 
-        public async Task<User> GetUserDbEntityAsync(IUser user)
+        public Task<User> GetUserDbEntityAsync(IUser user)
+            => GetUserDbEntityAsync(user, DbContext);
+
+        // Quick fix for user entity manipulation outside of this db context
+        // TODO: Fix properly
+        public async Task<User> GetUserDbEntityAsync(IUser user, BotDatabaseContext context)
         {
             var displayName = user.GetDisplayName();
-            var userEntity = await DbContext.Users.AsQueryable()
+            var userEntity = await context.Users.AsQueryable()
                 .FirstOrDefaultAsync(o => o.Id == user.Id);
 
             // Update cached displayname
             if (userEntity != null && userEntity.Name != displayName)
             {
                 userEntity.Name = displayName;
-                await DbContext.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
 
             return userEntity;
         }
 
-        public async Task<User> GetOrCreateUserDbEntityAsync(IUser user)
+        public Task<User> GetOrCreateUserDbEntityAsync(IUser user)
+            => GetOrCreateUserDbEntityAsync(user, DbContext);
+
+        // Quick fix for user entity manipulation outside of this db context
+        // TODO: Fix properly
+        public async Task<User> GetOrCreateUserDbEntityAsync(IUser user, BotDatabaseContext context)
         {
             var userEntity = await GetUserDbEntityAsync(user);
 
@@ -51,8 +61,8 @@ namespace Inkluzitron.Services
                 Name = user.GetDisplayName()
             };
 
-            await DbContext.AddAsync(userEntity);
-            await DbContext.SaveChangesAsync();
+            await context.AddAsync(userEntity);
+            await context.SaveChangesAsync();
 
             return userEntity;
         }
