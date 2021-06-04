@@ -1,5 +1,4 @@
 ﻿using Discord;
-using Inkluzitron.Data;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
@@ -10,13 +9,15 @@ namespace Inkluzitron.Models
     public class BdsmTraitOperationCheck
     {
         private readonly BdsmTraitOperationCheckTranslations _translations;
-        private readonly BotDatabaseContext _dbContext;
+        private readonly Gender _userGender;
+        private readonly Gender _targetGender;
 
         public BdsmTraitOperationCheck(BdsmTraitOperationCheckTranslations translations,
-            BotDatabaseContext dbContext)
+            Gender userGender, Gender targetGender)
         {
             _translations = translations ?? throw new ArgumentNullException(nameof(translations));
-            _dbContext = dbContext;
+            _userGender = userGender;
+            _targetGender = targetGender;
         }
 
         public IUser User { get; set; }
@@ -68,19 +69,13 @@ namespace Inkluzitron.Models
                     return base.ToString();
             }
 
-            var userGender = _dbContext.GetOrCreateUserEntityAsync(User)
-                .Result.Gender;
-
-            var targetGender = _dbContext.GetOrCreateUserEntityAsync(Target)
-                .Result.Gender;
-
             return string.Format(
                 format,
                 User.GetDisplayName(true), UserSubmissiveness, UserDominance,
                 Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue, SubstractedPoints,
-                _translations.RollFailedLossGendered[(int)userGender],
-                _translations.RollFailedGainGendered[(int)targetGender]
+                _translations.RollFailedLossGendered[(int)_userGender],
+                _translations.RollFailedGainGendered[(int)_targetGender]
             );
         }
     }

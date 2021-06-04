@@ -99,7 +99,16 @@ namespace Inkluzitron.Services
                 throw new ArgumentNullException(nameof(target));
 
             using var dbContext = DatabaseFactory.Create();
-            var check = new BdsmTraitOperationCheck(CheckTranslations, dbContext) { User = user, Target = target };
+
+            var userDb = await dbContext.GetOrCreateUserEntityAsync(user);
+            var targetDb = await dbContext.GetOrCreateUserEntityAsync(target);
+
+            var check = new BdsmTraitOperationCheck(CheckTranslations, userDb.Gender, targetDb.Gender)
+            {
+                User = user,
+                Target = target
+            };
+
             SetLastOperationCheck(user, check);
 
             if (user.Equals(target))
