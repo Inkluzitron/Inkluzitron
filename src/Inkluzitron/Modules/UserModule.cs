@@ -1,9 +1,9 @@
 ﻿using Discord;
 using Discord.Commands;
+using Inkluzitron.Data;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
-using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 
@@ -13,16 +13,29 @@ namespace Inkluzitron.Modules
     [Summary("Nastavení oslovení se používá pro správný výpis hlášek bota. Oslovení je možné nastavit pomocí příkazů níže, nebo se nastaví automaticky po vložení BDSM testu.")]
     public class UserModule : ModuleBase
     {
-        private UsersService UsersService { get; }
         private ReactionSettings ReactionSettings { get; }
         private IConfiguration Configuration { get; }
+        private DatabaseFactory DatabaseFactory { get; }
+        private BotDatabaseContext DbContext { get; set; }
 
-        public UserModule(UsersService usersService, IConfiguration configuration,
-            ReactionSettings reactionSettings)
+        public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
+            DatabaseFactory databaseFactory)
         {
-            UsersService = usersService;
             Configuration = configuration;
             ReactionSettings = reactionSettings;
+            DatabaseFactory = databaseFactory;
+        }
+
+        protected override void BeforeExecute(CommandInfo command)
+        {
+            DbContext = DatabaseFactory.Create();
+            base.BeforeExecute(command);
+        }
+
+        protected override void AfterExecute(CommandInfo command)
+        {
+            DbContext?.Dispose();
+            base.AfterExecute(command);
         }
 
         [Command("pronouns")]
@@ -47,7 +60,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var userDb = await UsersService.GetUserDbEntityAsync(user);
+            var userDb = await DbContext.GetUserEntityAsync(user);
             if (userDb == null)
             {
                 await ReplyAsync(string.Format(notFoundMsg, user.GetDisplayName()));
@@ -81,7 +94,9 @@ namespace Inkluzitron.Modules
 
         public async Task SetGenderAsync(Gender gender)
         {
-            await UsersService.SetUserGenderAsync(Context.User, gender);
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+            user.Gender = gender;
+            await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }

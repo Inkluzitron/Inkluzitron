@@ -82,7 +82,6 @@ namespace Inkluzitron
                 .AddSingleton<BotSettings>()
                 .AddSingleton(new FileCache(cacheDirLocation))
                 .AddSingleton<PointsService>()
-                .AddSingleton<UsersService>()
                 .AddSingleton<PointsGraphPaintingStrategy>()
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddHttpClient()
