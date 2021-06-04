@@ -39,12 +39,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private UserBdsmTraitsService BdsmTraitsService { get; }
         private GraphPaintingService GraphPaintingService { get; }
         private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
-        private UsersService UsersService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
-            UserBdsmTraitsService bdsmTraitsService, UsersService usersService,
+            UserBdsmTraitsService bdsmTraitsService,
             BdsmGraphPaintingStrategy graphPaintingStrategy)
         {
             DatabaseFactory = databaseFactory;
@@ -54,7 +53,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             BdsmTraitsService = bdsmTraitsService;
             GraphPaintingService = graphPainter;
             GraphPaintingStrategy = graphPaintingStrategy;
-            UsersService = usersService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -299,8 +297,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
 
 
-            var user = await UsersService.GetOrCreateUserDbEntityAsync(
-                Context.Message.Author);
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.Message.Author);
 
             if (testResult.Gender != Gender.Unspecified)
                 user.Gender = testResult.Gender;
