@@ -20,6 +20,7 @@ using Inkluzitron.Enums;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 using Inkluzitron.Models;
+using System.Diagnostics;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -144,99 +145,94 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private async Task<IDictionary<string, IReadOnlyList<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
             var resultsDict = new ConcurrentDictionary<string, IReadOnlyList<GraphItem>>();
-            var positiveFilters = new ConcurrentDictionary<BdsmTrait, double>();
-            var negativeFilters = new ConcurrentDictionary<BdsmTrait, double>();
-            var explicitlyRequestedTraits = new HashSet<BdsmTrait>();
+
+            var traitsToShow = new HashSet<BdsmTrait>();
+            var traitsToHide = new HashSet<BdsmTrait>();
+
+            var greaterThanFilters = new ConcurrentDictionary<BdsmTrait, double>();
+            var lowerThanFilters = new ConcurrentDictionary<BdsmTrait, double>();
 
             var availableTraits = Enum.GetValues<BdsmTrait>();
 
             foreach (var rawQueryItem in query)
             {
-                var isNegativeQuery = false;
-                var threshold = Settings.StrongTraitThreshold;
+                Action<BdsmTrait> traitAcceptor;
                 var queryItem = rawQueryItem;
 
-                if (queryItem.StartsWith('+') || queryItem.StartsWith('-'))
-                {
-                    isNegativeQuery = queryItem.StartsWith('-');
-                    queryItem = queryItem[1..];
-                }
-                else if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
+                if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
                 {
                     queryItem = m.Groups[1].Value;
-                    isNegativeQuery = m.Groups[2].Value == "<";
-                    threshold = int.Parse(m.Groups[3].Value) / 100.0;
+                    var threshold = int.Parse(m.Groups[3].Value) / 100.0;
                     if (threshold < 0)
                         threshold = 0;
                     else if (threshold > 1)
                         threshold = 1;
-                }
 
-                var matchesFound = 0;
-                BdsmTrait? lastMatch = null;
+                    if (m.Groups[2].Value == "<")
+                        traitAcceptor = t => lowerThanFilters.TryAdd(t, threshold);
+                    else
+                        traitAcceptor = t => greaterThanFilters.TryAdd(t, threshold);
+                }
+                else if (queryItem.StartsWith('-'))
+                {
+                    queryItem = queryItem[1..];
+                    traitAcceptor = t => traitsToHide.Add(t);
+                }
+                else if (queryItem.StartsWith('+'))
+                {
+                    queryItem = queryItem[1..];
+                    traitAcceptor = t => traitsToShow.Add(t);
+                }
+                else
+                {
+                    traitAcceptor = t => traitsToShow.Add(t);
+                }
 
                 foreach (var trait in availableTraits)
                 {
                     if (!trait.GetDisplayName().Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (isNegativeQuery)
-                    {
-                        if (explicitlyRequestedTraits.Contains(trait))
-                            continue;
-
-                        if (negativeFilters.TryAdd(trait, threshold))
-                        {
-                            matchesFound++;
-                            lastMatch = trait;
-                        }
-                    }
-                    else
-                    {
-                        if (positiveFilters.TryAdd(trait, threshold))
-                        {
-                            matchesFound++;
-                            lastMatch = trait;
-                        }
-                    }
-                }
-
-                if (matchesFound == 0)
-                {
-                    await ReplyAsync($"{Settings.BadFilterQueryMessage}: {rawQueryItem}");
-                    return resultsDict;
-                }
-                else if (matchesFound == 1)
-                {
-                    explicitlyRequestedTraits.Add(lastMatch.Value);
+                    traitAcceptor(trait);
                 }
             }
 
-            if (positiveFilters.IsEmpty)
+            if (traitsToShow.Count == 0)
             {
-                foreach (var traitName in availableTraits)
-                    positiveFilters.TryAdd(traitName, Settings.StrongTraitThreshold);
+                foreach (var traitName in availableTraits.Where(t => !traitsToHide.Contains(t)))
+                    traitsToShow.Add(traitName);
             }
 
-            var relevantResults = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
+            var dataSource = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
 
-            foreach (var (trait, threshold) in negativeFilters)
-                relevantResults = relevantResults.Where(r => r.Items.All(i => i.Trait != trait || i.Score < threshold));
+            foreach (var (trait, threshold) in lowerThanFilters)
+                dataSource = dataSource.Where(r => r.Items.All(i => i.Trait != trait || i.Score < threshold));
 
-            var relevantItems = relevantResults.Join(
+            foreach (var (trait, threshold) in greaterThanFilters)
+                dataSource = dataSource.Where(r => r.Items.All(i => i.Trait != trait || i.Score >= threshold));
+
+            var relevantItems = dataSource.Join(
                     DbContext.BdsmTestOrgItems.Include(i => i.Parent).ThenInclude(r => r.User),
                     x => x.Id,
                     y => y.Parent.Id,
                     (_, r) => r
                 );
 
-            foreach (var (trait, threshold) in positiveFilters)
+            if (greaterThanFilters.IsEmpty && lowerThanFilters.IsEmpty)
+            {
+                relevantItems = relevantItems.Where(i => i.Score > Settings.StrongTraitThreshold);
+            }
+            else
+            {
+                relevantItems = relevantItems.Where(i => i.Score > 0);
+            }
+
+            foreach (var trait in traitsToShow)
             {
                 resultsDict[trait.GetDisplayName()] = await relevantItems
                     .Where(i => i.Trait == trait)
-                    .Where(i => i.Score > threshold)
                     .OrderByDescending(row => row.Score)
-                    .ThenByDescending(row => row.Parent.SubmittedAt)
+                    .ThenBy(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
                     .Select(i => new GraphItem {
                         UserId = i.Parent.UserId,
@@ -252,7 +248,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 if (guildMember == null)
                     continue;
 
-                testResult.UserDisplayName= guildMember.Nickname
+                testResult.UserDisplayName = guildMember.Nickname
                     ?? guildMember.Username
                     ?? testResult.UserDisplayName;
             }
