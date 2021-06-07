@@ -361,7 +361,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
             var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
             var message = status ? Settings.ConsentRegistered : Settings.ConsentNotRegistered;
-            await ReplyAsync(string.Format(message, target.GetDisplayName()));
+            await ReplyAsync(string.Format(message, target.GetDisplayName(true)));
         }
 
         [Command("consent grant")]
