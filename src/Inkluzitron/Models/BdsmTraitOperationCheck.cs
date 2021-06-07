@@ -23,7 +23,9 @@ namespace Inkluzitron.Models
         public IUser User { get; set; }
         public IUser Target { get; set; }
         public BdsmTraitOperationCheckResult Result { get; set; }
-        public bool IsSuccessful => Result != BdsmTraitOperationCheckResult.RollFailed;
+
+        public bool Backfired => Result == BdsmTraitOperationCheckResult.RollFailed;
+        public bool CanProceedNormally => !Backfired && Result != BdsmTraitOperationCheckResult.TargetDidNotConsent;
 
         public int UserSubmissiveness { get; set; }
         public int UserDominance { get; set; }
@@ -33,7 +35,7 @@ namespace Inkluzitron.Models
         public int RolledValue { get; set; }
         public int RollMaximum { get; set; }
         public int RequiredValue { get; set; }
-        public int SubstractedPoints => IsSuccessful ? 0 : RequiredValue - RolledValue;
+        public int PointsToSubtract => Backfired ? RequiredValue - RolledValue : 0;
 
         public override string ToString()
         {
@@ -42,19 +44,19 @@ namespace Inkluzitron.Models
             switch (Result)
             {
                 case BdsmTraitOperationCheckResult.UserHasNoTest:
-                    return string.Format(_translations.MissingTest, User.Username);
+                    return string.Format(_translations.MissingTest, User.GetDisplayName(true));
 
                 case BdsmTraitOperationCheckResult.TargetHasNoTest:
-                    return string.Format(_translations.MissingTest, Target.Username);
+                    return string.Format(_translations.MissingTest, Target.GetDisplayName(true));
 
                 case BdsmTraitOperationCheckResult.Self:
-                    return string.Format(_translations.Self, User.Username);
+                    return string.Format(_translations.Self, User.GetDisplayName(true));
 
                 case BdsmTraitOperationCheckResult.InCompliance:
                     return string.Format(
                         _translations.InCompliance,
-                        User.Username, UserSubmissiveness, UserDominance,
-                        Target.Username, TargetSubmissiveness, TargetDominance
+                        User.GetDisplayName(true), UserSubmissiveness, UserDominance,
+                        Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance
                     );
 
                 case BdsmTraitOperationCheckResult.RollSucceeded:
@@ -65,6 +67,9 @@ namespace Inkluzitron.Models
                     format = _translations.RollFailed;
                     break;
 
+                case BdsmTraitOperationCheckResult.TargetDidNotConsent:
+                    return string.Format(_translations.MissingConsentGendered[(int)_targetGender], Target.GetDisplayName(true));
+
                 default:
                     return base.ToString();
             }
@@ -73,7 +78,7 @@ namespace Inkluzitron.Models
                 format,
                 User.GetDisplayName(true), UserSubmissiveness, UserDominance,
                 Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance,
-                RolledValue, RollMaximum, RequiredValue, SubstractedPoints,
+                RolledValue, RollMaximum, RequiredValue, PointsToSubtract,
                 _translations.RollFailedLossGendered[(int)_userGender],
                 _translations.RollFailedGainGendered[(int)_targetGender]
             );

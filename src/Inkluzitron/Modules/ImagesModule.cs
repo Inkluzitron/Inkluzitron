@@ -125,11 +125,15 @@ namespace Inkluzitron.Modules
             {
                 var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
 
-                if (!check.IsSuccessful)
+                if (check.Backfired)
                 {
-                    await PointsService.AddPointsAsync(Context.User, check.SubstractedPoints, decrement:true);
-                    await PointsService.AddPointsAsync(target, check.SubstractedPoints);
+                    await PointsService.AddPointsAsync(Context.User, check.PointsToSubtract, decrement: true);
+                    await PointsService.AddPointsAsync(target, check.PointsToSubtract);
                     target = Context.User;
+                }
+                else if (!check.CanProceedNormally) {
+                    await ReplyAsync(check.ToString());
+                    return null;
                 }
 
                 if (showRollInfo)

@@ -143,6 +143,9 @@ namespace Inkluzitron.Migrations
                     b.Property<ulong>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("CommandConsents")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Gender")
                         .IsRequired()
                         .HasColumnType("TEXT");

@@ -7,6 +7,7 @@
         Self,
         InCompliance,
         RollSucceeded,
-        RollFailed
+        RollFailed,
+        TargetDidNotConsent
     }
 }

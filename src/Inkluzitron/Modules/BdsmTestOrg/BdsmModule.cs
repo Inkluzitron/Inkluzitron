@@ -20,13 +20,16 @@ using Inkluzitron.Enums;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 using Inkluzitron.Models;
-using System.Diagnostics;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
     [Name("BDSMTest.org")]
     [Group("bdsm")]
-    [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
+    [Summary("Dotaz na kategorie se může skládat z následujících kritérií:\n" +
+        "• `dom sub` == `+dom +sub` -> + zobrazí kategorie\n" +
+        "• `+brat -tamer` -> - potlačí kategorie\n" +
+        "• `brat>50` -> zobrazí jen uživatele s vyšší nebo rovnou hodnotou v kategorii\n" +
+        "• `brat<50` -> zobrazí jen uživatele s nižší hodnotou v kategorii")]
     public class BdsmModule : ModuleBase
     {
         static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
@@ -188,20 +191,30 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                     traitAcceptor = t => traitsToShow.Add(t);
                 }
 
+                var somethingFound = false;
                 foreach (var trait in availableTraits)
                 {
                     if (!trait.GetDisplayName().Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
+                    somethingFound = true;
                     traitAcceptor(trait);
+                }
+
+                if (!somethingFound)
+                {
+                    await ReplyAsync($"{Settings.BadFilterQueryMessage} {rawQueryItem}");
+                    return resultsDict;
                 }
             }
 
             if (traitsToShow.Count == 0)
             {
-                foreach (var traitName in availableTraits.Where(t => !traitsToHide.Contains(t)))
+                foreach (var traitName in availableTraits)
                     traitsToShow.Add(traitName);
             }
+
+            traitsToShow.ExceptWith(traitsToHide);
 
             var dataSource = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
 
@@ -291,8 +304,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var responseData = await response.Content.ReadAsStringAsync();
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
-
-
             var user = await DbContext.GetOrCreateUserEntityAsync(Context.Message.Author);
 
             if (testResult.Gender != Gender.Unspecified)
@@ -338,6 +349,35 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             await ReplyAsync(lastCheck.ToString());
+        }
+
+        [Command("consent")]
+        [Summary("Vypíše stav souhlasu být cílem obrázkových BDSM příkazů.")]
+        public async Task ShowConsentAsync([Name("koho")] IUser target = null)
+        {
+            if (target is null)
+                target = Context.User;
+
+            var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
+            var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
+            var message = status ? Settings.ConsentRegistered : Settings.ConsentNotRegistered;
+            await ReplyAsync(string.Format(message, target.GetDisplayName()));
+        }
+
+        [Command("consent grant")]
+        [Summary("Udělí souhlas být cílem obrázkových BDSM příkazů.")]
+        public Task GrantConsentAsync()
+            => UpdateConsentAsync(c => c | CommandConsent.BdsmImageCommands);
+
+        [Command("consent revoke")]
+        [Summary("Odvolá souhlas být cílem obrázkových BDSM příkazů.")]
+        public Task RevokeConsentAsync()
+            => UpdateConsentAsync(c => c & ~CommandConsent.BdsmImageCommands);
+
+        private async Task UpdateConsentAsync(Func<CommandConsent, CommandConsent> consentUpdaterFunc)
+        {
+            await DbContext.UpdateCommandConsentAsync(Context.User, consentUpdaterFunc);
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }
 }
