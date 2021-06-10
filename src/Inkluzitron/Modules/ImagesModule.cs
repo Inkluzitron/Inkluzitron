@@ -127,7 +127,7 @@ namespace Inkluzitron.Modules
 
                 if (!check.IsSuccessful)
                 {
-                    await PointsService.AddPointsAsync(Context.User, check.SubstractedPoints, decrement:true);
+                    await PointsService.AddPointsAsync(Context.User, -check.SubstractedPoints);
                     await PointsService.AddPointsAsync(target, check.SubstractedPoints);
                     target = Context.User;
                 }

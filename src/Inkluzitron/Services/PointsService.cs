@@ -109,7 +109,7 @@ namespace Inkluzitron.Services
 
             var msg = await message.GetOrDownloadAsync();
             if (msg == null || msg.Author == user) return;
-            await AddIncrementalPoints(msg.Author, BotSettings.PointsKarmaIncrement, _ => false, _ => { });
+            await AddPointsAsync(msg.Author, BotSettings.PointsKarmaIncrement);
         }
 
         private async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
@@ -120,7 +120,8 @@ namespace Inkluzitron.Services
 
             var msg = await message.GetOrDownloadAsync();
             if (msg == null || msg.Author == user) return;
-            await AddIncrementalPoints(msg.Author, -BotSettings.PointsKarmaIncrement, _ => false, _ => { });
+
+            await AddPointsAsync(msg.Author, -BotSettings.PointsKarmaIncrement);
         }
 
         public async Task IncrementAsync(SocketMessage message)
@@ -152,14 +153,14 @@ namespace Inkluzitron.Services
             });
         }
 
-        public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
+        public async Task AddPointsAsync(IUser user, int points)
         {
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var userEntity = await context.GetOrCreateUserEntityAsync(user);
-                userEntity.Points += (decrement ? -1 : 1) * points;
+                userEntity.Points += points;
                 await context.SaveChangesAsync();
             });
         }
