@@ -28,7 +28,6 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
         private ImagesService ImagesService { get; }
-        private UsersService UsersService { get; }
 
         private Font PositionFont { get; }
         private Font NicknameFont { get; }
@@ -37,13 +36,13 @@ namespace Inkluzitron.Services
         private SolidBrush LightGrayBrush { get; }
         public BotSettings BotSettings { get; }
 
-        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient, ImagesService imagesService, BotSettings botSettings, UsersService usersService)
+        public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
+            ImagesService imagesService, BotSettings botSettings)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
             BotSettings = botSettings;
-            UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
             DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
@@ -143,7 +142,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
+                var userEntity = await context.GetOrCreateUserEntityAsync(user);
                 if (isOnCooldownFunc(userEntity))
                     return;
 
@@ -159,7 +158,7 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
+                var userEntity = await context.GetOrCreateUserEntityAsync(user);
                 userEntity.Points += (decrement ? -1 : 1) * points;
                 await context.SaveChangesAsync();
             });
@@ -214,7 +213,7 @@ namespace Inkluzitron.Services
 
             using (var context = DatabaseFactory.Create())
             {
-                userEntity = await UsersService.GetOrCreateUserDbEntityAsync(user);
+                userEntity = await context.GetOrCreateUserEntityAsync(user);
                 position = await GetUserPositionAsync(context, user);
             }
 

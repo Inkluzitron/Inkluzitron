@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Inkluzitron.Data;
-using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
@@ -8,9 +7,7 @@ using Inkluzitron.Models.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
@@ -20,7 +17,6 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private BdsmTestOrgSettings Settings { get; }
         public BdsmTraitOperationCheckTranslations CheckTranslations { get; }
-        public UsersService UsersService { get; }
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
         public double WeakTraitThreshold => Settings.WeakTraitThreshold;
@@ -28,14 +24,12 @@ namespace Inkluzitron.Services
         public IMemoryCache Cache { get; }
 
         public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings,
-            BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache,
-            UsersService usersService)
+            BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache)
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
             CheckTranslations = checkTranslations;
             Cache = cache;
-            UsersService = usersService;
         }
 
         public async Task<bool> TestExists(IUser user)
@@ -104,7 +98,17 @@ namespace Inkluzitron.Services
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            var check = new BdsmTraitOperationCheck(CheckTranslations, UsersService) { User = user, Target = target };
+            using var dbContext = DatabaseFactory.Create();
+
+            var userDb = await dbContext.GetOrCreateUserEntityAsync(user);
+            var targetDb = await dbContext.GetOrCreateUserEntityAsync(target);
+
+            var check = new BdsmTraitOperationCheck(CheckTranslations, userDb.Gender, targetDb.Gender)
+            {
+                User = user,
+                Target = target
+            };
+
             SetLastOperationCheck(user, check);
 
             if (user.Equals(target))
