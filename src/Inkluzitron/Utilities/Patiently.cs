@@ -45,7 +45,7 @@ namespace Inkluzitron.Utilities
                 }
             }
 
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Failed to handle database concurrency, operation was not successful and/or somehow did not throw.");
         }
     }
 }
