@@ -45,6 +45,7 @@ namespace Inkluzitron.Services
             BotSettings = botSettings;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
+            DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
 
             const string font = "Comic Sans MS";
             PositionFont = new Font(font, 45F);
@@ -105,6 +106,22 @@ namespace Inkluzitron.Services
                 u => DateTime.UtcNow.Subtract(u.LastReactionPointsIncrement ?? FallbackDateTime) < ReactionIncrementCooldown,
                 u => u.LastReactionPointsIncrement = DateTime.UtcNow
             );
+
+            var msg = await message.GetOrDownloadAsync();
+            if (msg == null || msg.Author == user) return;
+            await AddPointsAsync(msg.Author, BotSettings.PointsKarmaIncrement);
+        }
+
+        private async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            if (channel is not IGuildChannel) return;
+
+            var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+
+            var msg = await message.GetOrDownloadAsync();
+            if (msg == null || msg.Author == user) return;
+
+            await AddPointsAsync(msg.Author, -BotSettings.PointsKarmaIncrement);
         }
 
         public async Task IncrementAsync(SocketMessage message)
@@ -136,14 +153,14 @@ namespace Inkluzitron.Services
             });
         }
 
-        public async Task AddPointsAsync(IUser user, int points, bool decrement = false)
+        public async Task AddPointsAsync(IUser user, int points)
         {
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var userEntity = await context.GetOrCreateUserEntityAsync(user);
-                userEntity.Points += (decrement ? -1 : 1) * points;
+                userEntity.Points += points;
                 await context.SaveChangesAsync();
             });
         }

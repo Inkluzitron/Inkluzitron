@@ -1,4 +1,4 @@
-﻿using Discord;
+using Discord;
 using Discord.Commands;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
@@ -127,7 +127,7 @@ namespace Inkluzitron.Modules
 
                 if (check.Backfired)
                 {
-                    await PointsService.AddPointsAsync(Context.User, check.PointsToSubtract, decrement: true);
+                    await PointsService.AddPointsAsync(Context.User, -check.PointsToSubtract);
                     await PointsService.AddPointsAsync(target, check.PointsToSubtract);
                     target = Context.User;
                 }
