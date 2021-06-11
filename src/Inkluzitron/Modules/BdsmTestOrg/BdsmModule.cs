@@ -25,7 +25,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 {
     [Name("BDSMTest.org")]
     [Group("bdsm")]
-    [Summary("Dotaz na kategorie může mít následující podoby:\n`dom sub` == `dom>50 sub>50` == `+dom +sub`\n`dom -switch` == `dom switch<50`")]
+    [Summary("Dotaz na kategorie se může skládat z následujících kritérií:\n" +
+        "• `dom sub` == `+dom +sub` -> + zobrazí kategorie\n" +
+        "• `+brat -tamer` -> - potlačí kategorie\n" +
+        "• `brat>50` -> zobrazí jen uživatele s vyšší nebo rovnou hodnotou v kategorii\n" +
+        "• `brat<50` -> zobrazí jen uživatele s nižší hodnotou v kategorii")]
     public class BdsmModule : ModuleBase
     {
         static public readonly Regex TestResultLinkRegex = new(@"^https?://bdsmtest\.org/r/([\d\w]+)");
@@ -144,99 +148,104 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private async Task<IDictionary<string, IReadOnlyList<GraphItem>>> ProcessQueryAsync(params string[] query)
         {
             var resultsDict = new ConcurrentDictionary<string, IReadOnlyList<GraphItem>>();
-            var positiveFilters = new ConcurrentDictionary<BdsmTrait, double>();
-            var negativeFilters = new ConcurrentDictionary<BdsmTrait, double>();
-            var explicitlyRequestedTraits = new HashSet<BdsmTrait>();
+
+            var traitsToShow = new HashSet<BdsmTrait>();
+            var traitsToHide = new HashSet<BdsmTrait>();
+
+            var greaterThanFilters = new ConcurrentDictionary<BdsmTrait, double>();
+            var lowerThanFilters = new ConcurrentDictionary<BdsmTrait, double>();
 
             var availableTraits = Enum.GetValues<BdsmTrait>();
 
             foreach (var rawQueryItem in query)
             {
-                var isNegativeQuery = false;
-                var threshold = Settings.StrongTraitThreshold;
+                Action<BdsmTrait> traitAcceptor;
                 var queryItem = rawQueryItem;
 
-                if (queryItem.StartsWith('+') || queryItem.StartsWith('-'))
-                {
-                    isNegativeQuery = queryItem.StartsWith('-');
-                    queryItem = queryItem[1..];
-                }
-                else if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
+                if (ComparisonRegex.Match(queryItem) is Match m && m.Success)
                 {
                     queryItem = m.Groups[1].Value;
-                    isNegativeQuery = m.Groups[2].Value == "<";
-                    threshold = int.Parse(m.Groups[3].Value) / 100.0;
+                    var threshold = int.Parse(m.Groups[3].Value) / 100.0;
                     if (threshold < 0)
                         threshold = 0;
                     else if (threshold > 1)
                         threshold = 1;
+
+                    if (m.Groups[2].Value == "<")
+                        traitAcceptor = t => lowerThanFilters.TryAdd(t, threshold);
+                    else
+                        traitAcceptor = t => greaterThanFilters.TryAdd(t, threshold);
+                }
+                else if (queryItem.StartsWith('-'))
+                {
+                    queryItem = queryItem[1..];
+                    traitAcceptor = t => traitsToHide.Add(t);
+                }
+                else if (queryItem.StartsWith('+'))
+                {
+                    queryItem = queryItem[1..];
+                    traitAcceptor = t => traitsToShow.Add(t);
+                }
+                else
+                {
+                    traitAcceptor = t => traitsToShow.Add(t);
                 }
 
-                var matchesFound = 0;
-                BdsmTrait? lastMatch = null;
-
+                var somethingFound = false;
                 foreach (var trait in availableTraits)
                 {
                     if (!trait.GetDisplayName().Contains(queryItem, StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    if (isNegativeQuery)
-                    {
-                        if (explicitlyRequestedTraits.Contains(trait))
-                            continue;
-
-                        if (negativeFilters.TryAdd(trait, threshold))
-                        {
-                            matchesFound++;
-                            lastMatch = trait;
-                        }
-                    }
-                    else
-                    {
-                        if (positiveFilters.TryAdd(trait, threshold))
-                        {
-                            matchesFound++;
-                            lastMatch = trait;
-                        }
-                    }
+                    somethingFound = true;
+                    traitAcceptor(trait);
                 }
 
-                if (matchesFound == 0)
+                if (!somethingFound)
                 {
-                    await ReplyAsync($"{Settings.BadFilterQueryMessage}: {rawQueryItem}");
+                    await ReplyAsync($"{Settings.BadFilterQueryMessage} {rawQueryItem}");
                     return resultsDict;
                 }
-                else if (matchesFound == 1)
-                {
-                    explicitlyRequestedTraits.Add(lastMatch.Value);
-                }
             }
 
-            if (positiveFilters.IsEmpty)
+            if (traitsToShow.Count == 0)
             {
                 foreach (var traitName in availableTraits)
-                    positiveFilters.TryAdd(traitName, Settings.StrongTraitThreshold);
+                    traitsToShow.Add(traitName);
             }
 
-            var relevantResults = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
+            traitsToShow.ExceptWith(traitsToHide);
 
-            foreach (var (trait, threshold) in negativeFilters)
-                relevantResults = relevantResults.Where(r => r.Items.All(i => i.Trait != trait || i.Score < threshold));
+            var dataSource = DbContext.BdsmTestOrgResults.Include(i => i.Items).AsQueryable();
 
-            var relevantItems = relevantResults.Join(
+            foreach (var (trait, threshold) in lowerThanFilters)
+                dataSource = dataSource.Where(r => r.Items.All(i => i.Trait != trait || i.Score < threshold));
+
+            foreach (var (trait, threshold) in greaterThanFilters)
+                dataSource = dataSource.Where(r => r.Items.All(i => i.Trait != trait || i.Score >= threshold));
+
+            var relevantItems = dataSource.Join(
                     DbContext.BdsmTestOrgItems.Include(i => i.Parent).ThenInclude(r => r.User),
                     x => x.Id,
                     y => y.Parent.Id,
                     (_, r) => r
                 );
 
-            foreach (var (trait, threshold) in positiveFilters)
+            if (greaterThanFilters.IsEmpty && lowerThanFilters.IsEmpty)
+            {
+                relevantItems = relevantItems.Where(i => i.Score > Settings.StrongTraitThreshold);
+            }
+            else
+            {
+                relevantItems = relevantItems.Where(i => i.Score > 0);
+            }
+
+            foreach (var trait in traitsToShow)
             {
                 resultsDict[trait.GetDisplayName()] = await relevantItems
                     .Where(i => i.Trait == trait)
-                    .Where(i => i.Score > threshold)
                     .OrderByDescending(row => row.Score)
-                    .ThenByDescending(row => row.Parent.SubmittedAt)
+                    .ThenBy(row => row.Parent.SubmittedAt)
                     .Take(Settings.MaximumMatchCount)
                     .Select(i => new GraphItem {
                         UserId = i.Parent.UserId,
@@ -252,7 +261,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 if (guildMember == null)
                     continue;
 
-                testResult.UserDisplayName= guildMember.Nickname
+                testResult.UserDisplayName = guildMember.Nickname
                     ?? guildMember.Username
                     ?? testResult.UserDisplayName;
             }
@@ -295,8 +304,6 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             var responseData = await response.Content.ReadAsStringAsync();
             var testResult = JsonConvert.DeserializeObject<Result>(responseData);
-
-
             var user = await DbContext.GetOrCreateUserEntityAsync(Context.Message.Author);
 
             if (testResult.Gender != Gender.Unspecified)
@@ -342,6 +349,35 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             await ReplyAsync(lastCheck.ToString());
+        }
+
+        [Command("consent")]
+        [Summary("Vypíše stav souhlasu být cílem obrázkových BDSM příkazů.")]
+        public async Task ShowConsentAsync([Name("koho")] IUser target = null)
+        {
+            if (target is null)
+                target = Context.User;
+
+            var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
+            var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
+            var message = status ? Settings.ConsentRegistered : Settings.ConsentNotRegistered;
+            await ReplyAsync(string.Format(message, target.GetDisplayName(true)));
+        }
+
+        [Command("consent grant")]
+        [Summary("Udělí souhlas být cílem obrázkových BDSM příkazů.")]
+        public Task GrantConsentAsync()
+            => UpdateConsentAsync(c => c | CommandConsent.BdsmImageCommands);
+
+        [Command("consent revoke")]
+        [Summary("Odvolá souhlas být cílem obrázkových BDSM příkazů.")]
+        public Task RevokeConsentAsync()
+            => UpdateConsentAsync(c => c & ~CommandConsent.BdsmImageCommands);
+
+        private async Task UpdateConsentAsync(Func<CommandConsent, CommandConsent> consentUpdaterFunc)
+        {
+            await DbContext.UpdateCommandConsentAsync(Context.User, consentUpdaterFunc);
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }
 }

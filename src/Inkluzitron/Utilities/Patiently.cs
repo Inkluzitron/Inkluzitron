@@ -4,12 +4,12 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Utilities
 {
-    public class Patiently
+    static public class Patiently
     {
         private const int Patience = 10;
-        private static readonly TimeSpan BackOffDelay = TimeSpan.FromMilliseconds(200);
+        static private readonly TimeSpan BackOffDelay = TimeSpan.FromMilliseconds(200);
 
-        public static async Task HandleDbConcurrency(Func<Task> concurrentDbTaskFunc)
+        static public async Task HandleDbConcurrency(Func<Task> concurrentDbTaskFunc)
         {
             if (concurrentDbTaskFunc is null)
                 throw new ArgumentNullException(nameof(concurrentDbTaskFunc));
@@ -21,15 +21,31 @@ namespace Inkluzitron.Utilities
                     await concurrentDbTaskFunc();
                     return;
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (DbUpdateConcurrencyException) when (attemptNumber != Patience)
                 {
-                    if (attemptNumber == Patience)
-                        throw;
-
-                    attemptNumber++;
                     await Task.Delay(BackOffDelay);
                 }
             }
+        }
+
+        static public async Task<T> HandleDbConcurrency<T>(Func<Task<T>> concurrentDbTaskFunc)
+        {
+            if (concurrentDbTaskFunc is null)
+                throw new ArgumentNullException(nameof(concurrentDbTaskFunc));
+
+            for (var attemptNumber = 1; attemptNumber <= Patience; attemptNumber++)
+            {
+                try
+                {
+                    return await concurrentDbTaskFunc();
+                }
+                catch (DbUpdateConcurrencyException) when (attemptNumber != Patience)
+                {
+                    await Task.Delay(BackOffDelay);
+                }
+            }
+
+            throw new InvalidOperationException("Failed to handle database concurrency, operation was not successful and/or somehow did not throw.");
         }
     }
 }
