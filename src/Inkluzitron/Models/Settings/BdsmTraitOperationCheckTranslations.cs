@@ -9,7 +9,8 @@ namespace Inkluzitron.Models.Settings
             config.GetSection(nameof(BdsmTraitOperationCheckTranslations)).Bind(this);
         }
 
-        public string[] MissingConsentGendered { get; set; }
+        public string[] MissingUserConsentGendered { get; set; }
+        public string[] MissingTargetConsentGendered { get; set; }
         public string MissingTest { get; set; }
         public string InCompliance { get; set; }
         public string RollSucceeded { get; set; }

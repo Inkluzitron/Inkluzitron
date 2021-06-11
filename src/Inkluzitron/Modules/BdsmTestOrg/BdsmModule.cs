@@ -352,7 +352,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("consent")]
-        [Summary("Vypíše stav souhlasu být cílem obrázkových BDSM příkazů.")]
+        [Summary("Vypíše stav souhlasu s používáním obrázkových BDSM příkazů.")]
         public async Task ShowConsentAsync([Name("koho")] IUser target = null)
         {
             if (target is null)
@@ -365,12 +365,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("consent grant")]
-        [Summary("Udělí souhlas být cílem obrázkových BDSM příkazů.")]
+        [Summary("Udělí souhlas s používáním obrázkových BDSM příkazů.")]
         public Task GrantConsentAsync()
             => UpdateConsentAsync(c => c | CommandConsent.BdsmImageCommands);
 
         [Command("consent revoke")]
-        [Summary("Odvolá souhlas být cílem obrázkových BDSM příkazů.")]
+        [Summary("Odvolá souhlas s používáním obrázkových BDSM příkazů.")]
         public Task RevokeConsentAsync()
             => UpdateConsentAsync(c => c & ~CommandConsent.BdsmImageCommands);
 
