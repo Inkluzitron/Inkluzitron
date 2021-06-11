@@ -117,6 +117,12 @@ namespace Inkluzitron.Services
                 return check;
             }
 
+            if (!userDb.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
+            {
+                check.Result = BdsmTraitOperationCheckResult.UserDidNotConsent;
+                return check;
+            }
+
             if (!targetDb.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
             {
                 check.Result = BdsmTraitOperationCheckResult.TargetDidNotConsent;
