@@ -50,7 +50,7 @@ namespace Inkluzitron.Services
                 .OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefaultAsync(r => r.UserId == user.Id))?
                 .Items
-                .FirstOrDefault(i => i.Trait == trait);
+                .Find(i => i.Trait == trait);
 
             return userTrait?.Score ?? 0;
         }
@@ -114,6 +114,12 @@ namespace Inkluzitron.Services
             if (user.Equals(target))
             {
                 check.Result = BdsmTraitOperationCheckResult.Self;
+                return check;
+            }
+
+            if (!targetDb.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
+            {
+                check.Result = BdsmTraitOperationCheckResult.TargetDidNotConsent;
                 return check;
             }
 

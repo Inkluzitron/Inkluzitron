@@ -25,7 +25,6 @@ namespace Inkluzitron.Modules.Points
         private ReactionSettings ReactionSettings { get; }
         private readonly int BoardPageLimit = 10;
 
-
         public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy)
         {
             PointsService = pointsService;
@@ -94,7 +93,7 @@ namespace Inkluzitron.Modules.Points
             await GetLeaderboardAsync(pos);
         }
 
-        [Command("graph")]
+        [Command("graph"), Alias("stats")]
         [Summary("Graf všech uživatelů a jimi získaných bodů.")]
         public async Task GetGraphAsync()
         {

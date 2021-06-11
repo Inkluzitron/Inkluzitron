@@ -23,5 +23,10 @@ namespace Inkluzitron.Data.Entities
 
         [Timestamp]
         public byte[] Timestamp { get; set; }
+
+        public CommandConsent CommandConsents { get; set; } = CommandConsent.None;
+
+        public bool HasGivenConsentTo(CommandConsent consentKind)
+            => (CommandConsents & consentKind) == consentKind;
     }
 }
