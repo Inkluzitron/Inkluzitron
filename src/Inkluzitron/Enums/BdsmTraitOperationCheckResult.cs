@@ -8,6 +8,7 @@
         InCompliance,
         RollSucceeded,
         RollFailed,
+        UserDidNotConsent,
         TargetDidNotConsent
     }
 }
