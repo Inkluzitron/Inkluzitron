@@ -38,13 +38,13 @@ namespace Inkluzitron.Services
             // Download all needed avatars.
             using var avatars = new ValuesDisposingDictionary<ulong, Image>();
 
-            foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.UserId).Distinct())
+            /* TODO foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.UserId).Distinct())
             {
                 using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
                 using var rounded = rawAvatar.Frames[0].RoundImage();
 
                 avatars[userId] = rounded.ResizeImage(ImagesService.DefaultAvatarSize);
-            }
+            }*/
 
             // Obtain all quiz results to be displayed and sort them by category name.
             var topList = toplistResults.OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -216,7 +216,7 @@ namespace Inkluzitron.Services
 
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 var un = username;
-                var unStrSize = g.MeasureAndShrinkText(ref un, strategy.UsernameFont, maxUsernameWidth);
+                var unStrSize = SizeF.Empty;//TODOg.MeasureAndShrinkText(ref un, strategy.UsernameFont, maxUsernameWidth);
 
                 g.DrawString(
                     un, strategy.UsernameFont, strategy.UsernameForeground,

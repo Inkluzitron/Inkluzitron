@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using GrapeCity.Documents.Imaging;
+using ImageMagick;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
@@ -10,16 +10,12 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using SysDraw = System.Drawing;
 
 namespace Inkluzitron.Services
 {
-    public class PointsService : IDisposable
+    public class PointsService
     {
         static private readonly DateTime FallbackDateTime = new(2000, 1, 1);
         static private readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
@@ -29,11 +25,12 @@ namespace Inkluzitron.Services
         private DiscordSocketClient DiscordClient { get; }
         private ImagesService ImagesService { get; }
 
-        private Font PositionFont { get; }
-        private Font NicknameFont { get; }
-        private Font TitleTextFont { get; }
-        private SolidBrush WhiteBrush { get; }
-        private SolidBrush LightGrayBrush { get; }
+        private DrawableFont DataFont { get; }
+        private DrawableFontPointSize DataSize { get; }
+        private DrawableFont NicknameFont { get; }
+        private DrawableFontPointSize NicknameSize { get; }
+        private DrawableFont LabelFont { get; }
+        private DrawableFontPointSize LabelSize { get; }
         public BotSettings BotSettings { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
@@ -48,11 +45,12 @@ namespace Inkluzitron.Services
             DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
 
             const string font = "Comic Sans MS";
-            PositionFont = new Font(font, 45F);
-            NicknameFont = new Font(font, 40F);
-            TitleTextFont = new Font(font, 20F);
-            WhiteBrush = new SolidBrush(SysDraw.Color.White);
-            LightGrayBrush = new SolidBrush(SysDraw.Color.LightGray);
+            DataFont = new DrawableFont(font);
+            DataSize = new DrawableFontPointSize(55);
+            NicknameFont = new DrawableFont(font);
+            NicknameSize = new DrawableFontPointSize(50);
+            LabelFont = new DrawableFont(font);
+            LabelSize = new DrawableFontPointSize(24);
         }
 
         private async Task<IUser> LookupUserAsync(ulong userId)
@@ -223,77 +221,81 @@ namespace Inkluzitron.Services
             if (profilePicture.IsAnimated)
             {
                 var tmpFile = new TemporaryFile("gif");
-                using var gifWriter = new GcGifWriter(tmpFile.Path);
-                using var gcBitmap = new GcBitmap();
+                using var output = new MagickImageCollection();
 
                 foreach (var frame in profilePicture.Frames)
                 {
-                    using var roundedProfilePicture = frame.RoundImage();
-                    using var baseImage = RenderPointsBaseFrame(userEntity, position, user);
+                    using var avatar = frame.ToPng();
+                    avatar.RoundImage();
+                    avatar.Resize(160, 160);
 
-                    using var graphics = Graphics.FromImage(baseImage);
-                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    graphics.DrawImage(roundedProfilePicture, 70, 70, 160, 160);
+                    var baseImage = RenderPointsBaseFrame(userEntity, position, user);
 
-                    using var destinationStream = new MemoryStream();
-                    baseImage.Save(destinationStream, SysDraw.Imaging.ImageFormat.Png);
-                    destinationStream.Seek(0, SeekOrigin.Begin);
-
-                    gcBitmap.Load(destinationStream);
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: profilePicture.GifDelay.Value);
+                    baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
+                    baseImage.AnimationDelay = frame.AnimationDelay;
+                    output.Add(baseImage);
                 }
 
+                output.Optimize();
+                output.OptimizeTransparency();
+                output.Write(tmpFile.Path, MagickFormat.Gif);
                 return tmpFile;
             }
             else
             {
-                var baseImage = RenderPointsBaseFrame(userEntity, position, user);
-                using var graphics = Graphics.FromImage(baseImage);
-                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using var baseImage = RenderPointsBaseFrame(userEntity, position, user);
 
-                using var roundedImage = profilePicture.Frames[0].RoundImage();
-                graphics.DrawImage(roundedImage, 70, 70, 160, 160);
+                using var avatar = profilePicture.Frames[0];
+                avatar.RoundImage();
+                avatar.Resize(160, 160);
+                baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
 
                 var tmpFile = new TemporaryFile("png");
-                baseImage.Save(tmpFile.Path, SysDraw.Imaging.ImageFormat.Png);
+                baseImage.Write(tmpFile.Path, MagickFormat.Png);
 
                 return tmpFile;
             }
         }
 
-        private SysDraw.Image RenderPointsBaseFrame(User userEntity, int position, IUser user)
+        private MagickImage RenderPointsBaseFrame(User userEntity, int position, IUser user)
         {
-            var bitmap = new Bitmap(1000, 300);
-            bitmap.MakeTransparent();
+            var image = new MagickImage(MagickColors.Transparent, 1000, 300);
 
-            using var graphics = Graphics.FromImage(bitmap);
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-            graphics.RenderRectangle(new Rectangle(0, 0, bitmap.Width, bitmap.Height), SysDraw.Color.FromArgb(35, 39, 42), 15);
-            graphics.RenderRectangle(new Rectangle(50, 50, 900, 200), SysDraw.Color.FromArgb(100, 0, 0, 0), 15);
-
-            var positionTextSize = graphics.MeasureString($"#{position}", PositionFont);
-            graphics.DrawString("BODY", TitleTextFont, WhiteBrush, new PointF(250, 180));
-            graphics.DrawString(userEntity.Points.ToString(), PositionFont, LightGrayBrush, new PointF(340, 150));
-            var positionTitleTextSize = graphics.MeasureString("POZICE", TitleTextFont);
-            graphics.DrawString("POZICE", TitleTextFont, WhiteBrush, new PointF(900 - positionTextSize.Width - positionTitleTextSize.Width, 180));
-            graphics.DrawString($"#{position}", PositionFont, WhiteBrush, new PointF(910 - positionTextSize.Width, 150));
-
+            var positionText = $"#{position}";
             var nickname = user.GetDisplayName();
-            graphics.MeasureAndShrinkText(ref nickname, NicknameFont, 725, appendEllipsis: true);
-            graphics.DrawString(nickname, NicknameFont, WhiteBrush, new PointF(250, 60));
-            return bitmap;
-        }
 
-        public void Dispose()
-        {
-            PositionFont.Dispose();
-            NicknameFont.Dispose();
-            TitleTextFont.Dispose();
-            WhiteBrush.Dispose();
-            LightGrayBrush.Dispose();
+            var drawable = new Drawables()
+                .FillColor(MagickColor.FromRgba(35, 39, 42, 255))
+                .RoundRectangle(0, 0, image.Width, image.Height, 15, 15)
+                .FillColor(MagickColor.FromRgba(0, 0, 0, 100))
+                .RoundRectangle(50, 50, image.Width - 50, image.Height - 50, 15, 15)
+                .FillColor(MagickColors.LightGray)
+                .Font(DataFont)
+                .FontPointSize(DataSize)
+                .Text(330, 218, userEntity.Points.ToString())
+                .TextAlignment(TextAlignment.Right)
+                .Text(920, 218, positionText);
 
-            GC.SuppressFinalize(this);
+            var positionTextMetrics = drawable.FontTypeMetrics(positionText);
+
+            drawable
+                .Font(NicknameFont)
+                .FontPointSize(NicknameSize)
+                .FontTypeMetricsAndShrink(ref nickname, 670, appendEllipsis: true);
+
+            drawable
+                .Font(LabelFont)
+                .FontPointSize(LabelSize)
+                .FillColor(MagickColors.White)
+                .Text(900 - positionTextMetrics.TextWidth, 210, "POZICE")
+                .TextAlignment(TextAlignment.Left)
+                .Text(250, 210, "BODY")
+                .Font(NicknameFont)
+                .FontPointSize(NicknameSize)
+                .Text(250, 120, nickname)
+                .Draw(image);
+
+            return image;
         }
     }
 }
