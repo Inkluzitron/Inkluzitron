@@ -48,7 +48,7 @@ namespace Inkluzitron.Services
             DataFont = new DrawableFont(font);
             DataSize = new DrawableFontPointSize(55);
             NicknameFont = new DrawableFont(font);
-            NicknameSize = new DrawableFontPointSize(50);
+            NicknameSize = new DrawableFontPointSize(40);
             LabelFont = new DrawableFont(font);
             LabelSize = new DrawableFontPointSize(24);
         }
@@ -225,7 +225,7 @@ namespace Inkluzitron.Services
 
                 foreach (var frame in profilePicture.Frames)
                 {
-                    using var avatar = frame.ToPng();
+                    using var avatar = frame.ToGenericAlphaImage();
                     avatar.RoundImage();
                     avatar.Resize(160, 160);
 
@@ -279,21 +279,15 @@ namespace Inkluzitron.Services
             var positionTextMetrics = drawable.FontTypeMetrics(positionText);
 
             drawable
-                .Font(NicknameFont)
-                .FontPointSize(NicknameSize)
-                .FontTypeMetricsAndShrink(ref nickname, 670, appendEllipsis: true);
-
-            drawable
                 .Font(LabelFont)
                 .FontPointSize(LabelSize)
                 .FillColor(MagickColors.White)
                 .Text(900 - positionTextMetrics.TextWidth, 210, "POZICE")
                 .TextAlignment(TextAlignment.Left)
                 .Text(250, 210, "BODY")
-                .Font(NicknameFont)
-                .FontPointSize(NicknameSize)
-                .Text(250, 120, nickname)
                 .Draw(image);
+
+            image.DrawEnhancedText(nickname, 250, 70, MagickColors.White, NicknameFont, NicknameSize.PointSize, 670);
 
             return image;
         }
