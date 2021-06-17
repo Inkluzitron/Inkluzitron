@@ -15,14 +15,11 @@ using Inkluzitron.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using SysDrawImage = System.Drawing.Image;
-using SysImgFormat = System.Drawing.Imaging.ImageFormat;
-using SysImgFrameDimension = System.Drawing.Imaging.FrameDimension;
 
 namespace Inkluzitron.Services
 {
@@ -55,7 +52,7 @@ namespace Inkluzitron.Services
             using var roundedFallbackAvatar = MiscellaneousResources.FallbackAvatar;//.RoundImage(); TODO
             var resizedFallbackAvatar = roundedFallbackAvatar;//.ResizeImage(desiredSize.Width, desiredSize.Height); TODO
             using var stream = new MemoryStream();
-            resizedFallbackAvatar.Save(stream, SysImgFormat.Png);
+            // TODO resizedFallbackAvatar.Save(stream);
             return AvatarImageWrapper.FromImage(new MagickImageCollection(stream), 1, "png");
         }
 
@@ -89,7 +86,7 @@ namespace Inkluzitron.Services
 
             if (!cacheObject.TryFind(out var filePath))
             {
-                var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
+                var avatarUrl = user.GetUserOrDefaultAvatarUrl(Discord.ImageFormat.Auto, discordSize);
                 using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
                 using var rawProfileImage = new MagickImageCollection(memStream);
 
