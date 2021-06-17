@@ -1,8 +1,8 @@
-﻿using Inkluzitron.Models;
+﻿using ImageMagick;
+using Inkluzitron.Models;
 using Inkluzitron.Services;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 
 namespace Inkluzitron.Modules.Points
@@ -11,12 +11,14 @@ namespace Inkluzitron.Modules.Points
     {
         public PointsGraphPaintingStrategy()
             : base(
-                  new Font("Comic Sans MS", 15),
-                  new Font("Comic Sans MS", 20, FontStyle.Bold),
-                  new Font("Comic Sans MS", 20),
-                  new Font("Comic Sans MS", 15)
+                  new DrawableFont("Comic Sans MS"),
+                  new DrawableFont("Comic Sans MS") { Weight = FontWeight.Bold },
+                  new DrawableFont("Comic Sans MS"),
+                  new DrawableFont("Comic Sans MS")
             )
         {
+            GridLinePercentageFontSize = 15;
+            UserValueLabelFontSize = 15;
             CategoryBoxHeight = 1024;
         }
 
