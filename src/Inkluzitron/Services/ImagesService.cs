@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using GrapeCity.Documents.Imaging;
+using ImageMagick;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Resources.Bonk;
@@ -51,9 +52,11 @@ namespace Inkluzitron.Services
         {
             var desiredSize = size ?? DefaultAvatarSize;
 
-            using var roundedFallbackAvatar = MiscellaneousResources.FallbackAvatar.RoundImage();
-            var resizedFallbackAvatar = roundedFallbackAvatar.ResizeImage(desiredSize.Width, desiredSize.Height);
-            return AvatarImageWrapper.FromImage(resizedFallbackAvatar, 1, "png");
+            using var roundedFallbackAvatar = MiscellaneousResources.FallbackAvatar;//.RoundImage(); TODO
+            var resizedFallbackAvatar = roundedFallbackAvatar;//.ResizeImage(desiredSize.Width, desiredSize.Height); TODO
+            using var stream = new MemoryStream();
+            resizedFallbackAvatar.Save(stream, SysImgFormat.Png);
+            return AvatarImageWrapper.FromImage(new MagickImageCollection(stream), 1, "png");
         }
 
         public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, Size? size = null)
@@ -88,19 +91,19 @@ namespace Inkluzitron.Services
             {
                 var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
                 using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
-                using var rawProfileImage = SysDrawImage.FromStream(memStream);
+                using var rawProfileImage = new MagickImageCollection(memStream);
 
-                isAnimated = rawProfileImage.FrameDimensionsList.Contains(SysImgFrameDimension.Time.Guid);
+                isAnimated = rawProfileImage.Count > 1;
                 extension = isAnimated.Value ? "gif" : "png";
-                var format = isAnimated.Value ? SysImgFormat.Gif : SysImgFormat.Png;
+                var format = isAnimated.Value ? MagickFormat.Gif : MagickFormat.Png;
 
                 filePath = cacheObject.GetPathForWriting(extension);
-                rawProfileImage.Save(filePath, format);
+                rawProfileImage.Write(filePath, format);
             }
 
             var fileInfo = new FileInfo(filePath);
-            var image = SysDrawImage.FromFile(filePath);
-            isAnimated ??= image.FrameDimensionsList.Contains(SysImgFrameDimension.Time.Guid);
+            var image = new MagickImageCollection(filePath);
+            isAnimated ??= image.Count > 1;
             extension ??= Path.GetExtension(filePath)[1..];
 
             if (isAnimated.Value)
@@ -108,7 +111,7 @@ namespace Inkluzitron.Services
             else
                 return AvatarImageWrapper.FromImage(image, fileInfo.Length, extension);
         }
-
+        /*
         // Taken from https://github.com/sinus-x/rubbergoddess
         public async Task<string> WhipAsync(IUser target, bool self)
         {
@@ -508,5 +511,6 @@ namespace Inkluzitron.Services
             graphics.DrawImage(body, new Point(0, 0));
             return (body as SysDrawImage).CropImage(new Rectangle(0, 115, 512, 397));
         }
+        */
     }
 }
