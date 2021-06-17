@@ -104,8 +104,8 @@ namespace Inkluzitron.Modules.Points
             };
 
             using var file = new TemporaryFile("png");
-            using (var graph = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, results))
-                graph.Save(file.Path);
+            using var graph = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, results);
+            graph.Write(file.Path, ImageMagick.MagickFormat.Png);
 
             await ReplyFileAsync(file.Path);
         }

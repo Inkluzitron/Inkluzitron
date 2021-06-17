@@ -114,7 +114,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             using var imgFile = new TemporaryFile("png");
             using var img = await GraphPaintingService.DrawAsync(Context.Guild, GraphPaintingStrategy, resultsDict);
-            img.Save(imgFile.Path, System.Drawing.Imaging.ImageFormat.Png);
+            img.Write(imgFile.Path, ImageMagick.MagickFormat.Png);
             await ReplyFileAsync(imgFile.Path);
         }
 

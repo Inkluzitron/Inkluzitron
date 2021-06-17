@@ -1,34 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
+﻿using System.Collections.Generic;
+using ImageMagick;
 using Inkluzitron.Models;
 
 namespace Inkluzitron.Services
 {
-    public abstract class GraphPaintingStrategy : IDisposable
+    public abstract class GraphPaintingStrategy
     {
-        private bool _disposed;
-
         public int ColumnCount { get; init; } = 5;
-        public Color BackgroundColor { get; set; } = Color.Black;
+        public MagickColor BackgroundColor { get; set; } = MagickColors.Black;
         public int CategoryBoxPadding { get; set; } = 20;
         public int CategoryBoxHeight { get; set; } = 350;
 
-        public Font GridLinePercentageFont { get; set; }
-        public Brush GridLinePercentageForegroundMajor { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
-        public Brush GridLinePercentageBackgroundMinor { get; set; } = new SolidBrush(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMinor { get; set; } = new Pen(Color.FromArgb(0x32AAAAAA));
-        public Pen GridLinePenMajor { get; set; } = new Pen(Color.FromArgb(0x70AAAAAA));
+        public DrawableFont GridLinePercentageFont { get; set; }
+        public double GridLinePercentageFontSize { get; set; } = 20;
+        public MagickColor GridLinePercentageForegroundMajor { get; set; } = new MagickColor("#AAAAAA70");
+        public MagickColor GridLinePercentageBackgroundMinor { get; set; } = new MagickColor("#AAAAAA32");
+        public MagickColor GridLineColorMinor { get; set; } = new MagickColor("#AAAAAA32");
+        public MagickColor GridLineColorMajor { get; set; } = new MagickColor("#AAAAAA70");
 
-        public Font CategoryBoxHeadingFont { get; set; }
-        public Brush CategoryBoxBackground { get; set; } = new SolidBrush(Color.FromArgb(0x7F333333));
-        public Brush CategoryBoxHeadingForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FEEEEEE));
+        public DrawableFont CategoryBoxHeadingFont { get; set; }
+        public double CategoryBoxHeadingFontSize { get; set; } = 20;
+        public MagickColor CategoryBoxBackground { get; set; } = new MagickColor("#3333337F");
+        public MagickColor CategoryBoxHeadingForeground { get; set; } = new MagickColor("#EEEEEE7F");
 
         public int AvatarSize { get; set; } = 64;
-        public Font UsernameFont { get; set; }
-        public Brush UsernameForeground { get; set; } = new SolidBrush(Color.FromArgb(0x7FFFFFDD));
-        public Font UserValueLabelFont { get; set; }
-        public Brush UserValueLabelForeground { get; set; } = new SolidBrush(Color.FromArgb(0x70AAAAAA));
+        public DrawableFont UsernameFont { get; set; }
+        public double UsernameFontSize { get; set; } = 20;
+        public MagickColor UsernameForeground { get; set; } = new MagickColor("#FFFFDD7F");
+        public DrawableFont UserValueLabelFont { get; set; }
+        public double UserValueLabelFontSize { get; set; } = 20;
+        public MagickColor UserValueLabelForeground { get; set; } = new MagickColor("#AAAAAA70");
 
         public abstract int CalculateColumnCount(IDictionary<string, List<GraphItem>> results);
         public abstract int CalculateRowCount(IDictionary<string, List<GraphItem>> results);
@@ -38,42 +39,12 @@ namespace Inkluzitron.Services
         public abstract string FormatGridLineValueLabel(float value);
         public abstract string FormatUserValueLabel(float value);
 
-        protected GraphPaintingStrategy(Font gridLinePercentrageFont, Font categoryBoxHeadingFont, Font usernameFont, Font avatarPercentageFont)
+        protected GraphPaintingStrategy(DrawableFont gridLinePercentrageFont, DrawableFont categoryBoxHeadingFont, DrawableFont usernameFont, DrawableFont avatarPercentageFont)
         {
             GridLinePercentageFont = gridLinePercentrageFont;
             CategoryBoxHeadingFont = categoryBoxHeadingFont;
             UsernameFont = usernameFont;
             UserValueLabelFont = avatarPercentageFont;
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed)
-                return;
-
-            if (disposing)
-            {
-                GridLinePercentageFont?.Dispose();
-                GridLinePercentageForegroundMajor?.Dispose();
-                GridLinePercentageBackgroundMinor?.Dispose();
-                GridLinePenMinor?.Dispose();
-                GridLinePenMajor?.Dispose();
-                CategoryBoxHeadingFont?.Dispose();
-                CategoryBoxBackground?.Dispose();
-                CategoryBoxHeadingForeground?.Dispose();
-                UsernameFont?.Dispose();
-                UsernameForeground?.Dispose();
-                UserValueLabelFont?.Dispose();
-                UserValueLabelForeground?.Dispose();
-            }
-
-            _disposed = true;
         }
 
         static protected float Clamp(float value, float min, float max)

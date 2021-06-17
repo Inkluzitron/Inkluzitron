@@ -14,8 +14,6 @@ using Inkluzitron.Resources.Whip;
 using Inkluzitron.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -25,7 +23,7 @@ namespace Inkluzitron.Services
 {
     public class ImagesService
     {
-        static public readonly Size DefaultAvatarSize = new(100, 100);
+        static public readonly IMagickGeometry DefaultAvatarSize = new MagickGeometry(100, 100);
 
         private DiscordSocketClient Client { get; }
         private FileCache Cache { get; }
@@ -38,14 +36,14 @@ namespace Inkluzitron.Services
             HttpClientFactory = httpClientFactory;
         }
 
-        static private List<Bitmap> GetBitmapsFromResources<TResources>()
+        static private List<IMagickImage<byte>> GetBitmapsFromResources<TResources>()
             => typeof(TResources).GetProperties()
-                .Where(o => o.PropertyType == typeof(Bitmap))
-                .Select(o => o.GetValue(null, null) as Bitmap)
+                .Where(o => o.PropertyType == typeof(IMagickImage<byte>))
+                .Select(o => o.GetValue(null, null) as IMagickImage<byte>)
                 .Where(o => o != null)
                 .ToList();
 
-        static private AvatarImageWrapper CreateFallbackAvatarWrapper(Size? size = null)
+        static private AvatarImageWrapper CreateFallbackAvatarWrapper(MagickGeometry size = null)
         {
             var desiredSize = size ?? DefaultAvatarSize;
 
@@ -56,7 +54,7 @@ namespace Inkluzitron.Services
             return AvatarImageWrapper.FromImage(new MagickImageCollection(stream), 1, "png");
         }
 
-        public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, Size? size = null)
+        public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, MagickGeometry size = null)
         {
             if (guild == null)
                 throw new ArgumentNullException(nameof(guild));
@@ -70,7 +68,7 @@ namespace Inkluzitron.Services
                 return await GetAvatarAsync(user, discordSize, size);
         }
 
-        public async Task<AvatarImageWrapper> GetAvatarAsync(IUser user, ushort discordSize = 128, Size? size = null)
+        public async Task<AvatarImageWrapper> GetAvatarAsync(IUser user, ushort discordSize = 128, MagickGeometry size = null)
         {
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
@@ -86,7 +84,7 @@ namespace Inkluzitron.Services
 
             if (!cacheObject.TryFind(out var filePath))
             {
-                var avatarUrl = user.GetUserOrDefaultAvatarUrl(Discord.ImageFormat.Auto, discordSize);
+                var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
                 using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
                 using var rawProfileImage = new MagickImageCollection(memStream);
 

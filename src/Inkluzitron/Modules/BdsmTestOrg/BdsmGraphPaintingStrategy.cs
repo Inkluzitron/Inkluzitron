@@ -1,20 +1,20 @@
-﻿using Inkluzitron.Models;
+﻿using ImageMagick;
+using Inkluzitron.Models;
 using Inkluzitron.Services;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
     public class BdsmGraphPaintingStrategy : GraphPaintingStrategy
     {
-        public BdsmGraphPaintingStrategy(FontService fontService)
+        public BdsmGraphPaintingStrategy()
             : base(
-                  new Font(fontService.OpenSansCondensedLight, 20),
-                  new Font(fontService.OpenSansCondensed, 20, FontStyle.Bold),
-                  new Font(fontService.OpenSansCondensedLight, 20),
-                  new Font(fontService.OpenSansCondensedLight, 20)
+                  new DrawableFont("Comic Sans MS"),
+                  new DrawableFont("Comic Sans MS") { Weight = FontWeight.Bold },
+                  new DrawableFont("Comic Sans MS"),
+                  new DrawableFont("Comic Sans MS")
             )
         {
         }
