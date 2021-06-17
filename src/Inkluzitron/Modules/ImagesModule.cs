@@ -11,7 +11,8 @@ namespace Inkluzitron.Modules
     [Summary("Za každý příkaz v této kategorii je možné napsat libovolnou zprávu.\nTyto příkazy jdou použít jako odpověď na zprávu, podobně jako $mock.\nTaké pozor, na koho příkazy používáte. Některé spicy příkazy jsou závislé na výsledku BDSM testu.")]
     public class ImagesModule : ModuleBase
     {
-        private ImagesService ImagesService { get; }
+        // TODO
+        /*private ImagesService ImagesService { get; }
         private UserBdsmTraitsService UserBdsmTraits { get; }
         private PointsService PointsService { get; }
 
@@ -144,6 +145,6 @@ namespace Inkluzitron.Modules
 
             await ReplyFileAsync(imagePath, messageText);
             return null;
-        }
+        }*/
     }
 }
