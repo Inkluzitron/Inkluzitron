@@ -43,12 +43,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private UserBdsmTraitsService BdsmTraitsService { get; }
         private GraphPaintingService GraphPaintingService { get; }
         private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
+        private UsersService UsersService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
             UserBdsmTraitsService bdsmTraitsService,
-            BdsmGraphPaintingStrategy graphPaintingStrategy)
+            BdsmGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
@@ -57,6 +58,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             BdsmTraitsService = bdsmTraitsService;
             GraphPaintingService = graphPainter;
             GraphPaintingStrategy = graphPaintingStrategy;
+            UsersService = usersService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -96,8 +98,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await message.AddReactionsAsync(ReactionSettings.PaginationReactionsWithRemoval);
         }
 
-        [Command("stats")]
-        [Alias("gdo", "kdo", "graph")]
+        [Command("graph")]
+        [Alias("gdo", "kdo", "stats")]
         [Summary("Sestaví a zobrazí žebříček výsledků a vykreslí jej do grafu. Volitelně je možné výsledky filtrovat.")]
         public async Task DrawStatsGraphAsync([Name("kritéria...")][Optional] params string[] categoriesQuery)
         {
@@ -257,13 +259,11 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             foreach (var testResult in resultsDict.Values.SelectMany(x => x))
             {
-                var guildMember = await Context.Guild.GetUserAsync(testResult.UserId);
-                if (guildMember == null)
+                var displayName = await UsersService.GetDisplayNameAsync(testResult.UserId);
+                if (displayName == null)
                     continue;
 
-                testResult.UserDisplayName = guildMember.Nickname
-                    ?? guildMember.Username
-                    ?? testResult.UserDisplayName;
+                testResult.UserDisplayName = displayName;
             }
 
             return resultsDict;
@@ -361,7 +361,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
             var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
             var message = status ? Settings.ConsentRegistered : Settings.ConsentNotRegistered;
-            await ReplyAsync(string.Format(message, target.GetDisplayName(true)));
+            await ReplyAsync(string.Format(message, await UsersService.GetDisplayNameAsync(target)));
         }
 
         [Command("consent grant")]

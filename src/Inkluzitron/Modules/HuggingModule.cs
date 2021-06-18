@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Modules
@@ -9,10 +10,12 @@ namespace Inkluzitron.Modules
     public class HuggingModule : ModuleBase
     {
         private IConfiguration Config { get; }
+        private UsersService UsersService { get; }
 
-        public HuggingModule(IConfiguration config)
+        public HuggingModule(IConfiguration config, UsersService usersService)
         {
             Config = config;
+            UsersService = usersService;
         }
 
         [Command("hug")]
@@ -27,7 +30,7 @@ namespace Inkluzitron.Modules
             {
                 if (Context.User is SocketGuildUser user)
                 {
-                    userName = user.Nickname ?? user.Username;
+                    userName = await UsersService.GetDisplayNameAsync(user);
                     await Context.Channel.SendMessageAsync(
                       $"{Config["Hugging"]} **{userName}**"
                     );
@@ -43,7 +46,7 @@ namespace Inkluzitron.Modules
                 {
                     if (user is not SocketGuildUser usr) continue;
 
-                    userName = usr.Nickname ?? usr.Username;
+                    userName = await UsersService.GetDisplayNameAsync(usr);
                     await Context.Channel.SendMessageAsync(
                       $"{Config["Hugging"]} **{userName}**"
                     );
@@ -55,9 +58,9 @@ namespace Inkluzitron.Modules
             // iterate over users and find if someone has same name, nickname or ID as message
             foreach (var user in Context.Guild.Users)
             {
-                if (message == user.Nickname || message == user.Username || message == user.Id.ToString())
+                userName = await UsersService.GetDisplayNameAsync(user);
+                if (message == userName || message == user.Id.ToString())
                 {
-                    userName = user.Nickname ?? user.Username;
                     await Context.Channel.SendMessageAsync(
                       $"{Config["Hugging"]} **{userName}**"
                     );

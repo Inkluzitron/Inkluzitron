@@ -2,10 +2,12 @@
 using Discord.WebSocket;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
+using Inkluzitron.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Points
 {
@@ -13,7 +15,14 @@ namespace Inkluzitron.Modules.Points
     {
         static private readonly NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
 
-        public PointsEmbed WithBoard(
+        private UsersService UsersService { get; }
+
+        public PointsEmbed(UsersService usersService)
+        {
+            UsersService = usersService;
+        }
+
+        public async Task<PointsEmbed> WithBoard(
             Dictionary<int, User> board, DiscordSocketClient client,
             IUser user, int count, int start = 0, int limit = 10)
         {
@@ -38,7 +47,7 @@ namespace Inkluzitron.Modules.Points
             {
                 position.Append("**").Append(item.Key).AppendLine(".**");
                 var userData = client.GetUser(item.Value.Id);
-                users.AppendLine(userData == null ? "*neznámý*" : userData.GetDisplayName());
+                users.AppendLine(userData == null ? "*neznámý*" : await UsersService.GetDisplayNameAsync(userData));
 
                 points.AppendLine(item.Value.Points.ToString("N0", NumberFormat));
             }
