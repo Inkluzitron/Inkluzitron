@@ -55,18 +55,18 @@ namespace Inkluzitron.Modules
             {
                 if(user.Id == Context.Client.CurrentUser.Id)
                 {
-                    await ReplyAsync(string.Format(genderMsg, await UsersService.GetDisplayNameAsync(user), Configuration["UserModule:UserPronounsBotSelf"]));
+                    await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), Configuration["UserModule:UserPronounsBotSelf"]));
                     return;
                 }
 
-                await ReplyAsync(string.Format(genderMsg, await UsersService.GetDisplayNameAsync(user), "je bot a nemá preferované oslovení."));
+                await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), "je bot a nemá preferované oslovení."));
                 return;
             }
 
             var userDb = await DbContext.GetUserEntityAsync(user);
             if (userDb == null)
             {
-                await ReplyAsync(string.Format(notFoundMsg, await UsersService.GetDisplayNameAsync(user)));
+                await ReplyAsync(string.Format(notFoundMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
                 return;
             }
 
@@ -74,7 +74,7 @@ namespace Inkluzitron.Modules
                 "nemá preferované oslovení." :
                 $"je {userDb.Gender.GetDisplayName()}.";
 
-            await ReplyAsync(string.Format(genderMsg, await UsersService.GetDisplayNameAsync(user), gender));
+            await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), gender));
         }
 
         [Command("pronouns set he")]
