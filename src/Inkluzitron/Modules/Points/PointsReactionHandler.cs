@@ -15,14 +15,16 @@ namespace Inkluzitron.Modules.Points
         private PointsService PointsService { get; }
         private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
+        private UsersService UsersService { get; }
         private readonly int BoardPageLimit = 10;
 
         public PointsReactionHandler(PointsService pointsService, DiscordSocketClient client,
-            ReactionSettings reactionSettings)
+            ReactionSettings reactionSettings, UsersService usersService)
         {
             PointsService = pointsService;
             Client = client;
             ReactionSettings = reactionSettings;
+            UsersService = usersService;
         }
 
         public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
@@ -67,9 +69,9 @@ namespace Inkluzitron.Modules.Points
             {
                 var board = await PointsService.GetLeaderboardAsync(newStart, BoardPageLimit);
 
-                var newEmbed = new PointsEmbed()
+                var newEmbed = (await new PointsEmbed(UsersService)
                     .WithBoard(board, Client, context.Client.CurrentUser, count, newStart, BoardPageLimit)
-                    .Build();
+                    ).Build();
 
                 await message.ModifyAsync(msg => msg.Embed = newEmbed);
             }

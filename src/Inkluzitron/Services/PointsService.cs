@@ -31,10 +31,11 @@ namespace Inkluzitron.Services
         private DrawableFontPointSize NicknameSize { get; }
         private DrawableFont LabelFont { get; }
         private DrawableFontPointSize LabelSize { get; }
-        public BotSettings BotSettings { get; }
+        private BotSettings BotSettings { get; }
+        private UsersService UsersService { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
-            ImagesService imagesService, BotSettings botSettings)
+            ImagesService imagesService, BotSettings botSettings, UsersService usersService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
@@ -51,6 +52,7 @@ namespace Inkluzitron.Services
             NicknameSize = new DrawableFontPointSize(40);
             LabelFont = new DrawableFont(font);
             LabelSize = new DrawableFontPointSize(24);
+            UsersService = usersService;
         }
 
         private async Task<IUser> LookupUserAsync(ulong userId)
@@ -78,7 +80,7 @@ namespace Inkluzitron.Services
                 result.Add(new GraphItem
                 {
                     UserId = user.Id,
-                    UserDisplayName = user.GetDisplayName(),
+                    UserDisplayName = await UsersService.GetDisplayNameAsync(user),
                     Value = userEntry.Points
                 });
             }
@@ -229,7 +231,7 @@ namespace Inkluzitron.Services
                     avatar.RoundImage();
                     avatar.Resize(160, 160);
 
-                    var baseImage = RenderPointsBaseFrame(userEntity, position, user);
+                    var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
 
                     baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
                     baseImage.AnimationDelay = frame.AnimationDelay;
@@ -243,7 +245,7 @@ namespace Inkluzitron.Services
             }
             else
             {
-                using var baseImage = RenderPointsBaseFrame(userEntity, position, user);
+                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
 
                 using var avatar = profilePicture.Frames[0];
                 avatar.RoundImage();
@@ -257,12 +259,12 @@ namespace Inkluzitron.Services
             }
         }
 
-        private MagickImage RenderPointsBaseFrame(User userEntity, int position, IUser user)
+        private async Task<MagickImage> RenderPointsBaseFrame(User userEntity, int position, IUser user)
         {
             var image = new MagickImage(MagickColors.Transparent, 1000, 300);
 
             var positionText = $"#{position}";
-            var nickname = user.GetDisplayName();
+            var nickname = await UsersService.GetDisplayNameAsync(user);
 
             var drawable = new Drawables()
                 .FillColor(MagickColor.FromRgba(35, 39, 42, 255))

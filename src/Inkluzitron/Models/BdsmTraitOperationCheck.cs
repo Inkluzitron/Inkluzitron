@@ -20,8 +20,8 @@ namespace Inkluzitron.Models
             _targetGender = targetGender;
         }
 
-        public IUser User { get; set; }
-        public IUser Target { get; set; }
+        public string UserDisplayName { get; set; }
+        public string TargetDisplayName { get; set; }
         public BdsmTraitOperationCheckResult Result { get; set; }
 
         public bool Backfired => Result == BdsmTraitOperationCheckResult.RollFailed;
@@ -46,19 +46,19 @@ namespace Inkluzitron.Models
             switch (Result)
             {
                 case BdsmTraitOperationCheckResult.UserHasNoTest:
-                    return string.Format(_translations.MissingTest, User.GetDisplayName(true));
+                    return string.Format(_translations.MissingTest, UserDisplayName);
 
                 case BdsmTraitOperationCheckResult.TargetHasNoTest:
-                    return string.Format(_translations.MissingTest, Target.GetDisplayName(true));
+                    return string.Format(_translations.MissingTest, TargetDisplayName);
 
                 case BdsmTraitOperationCheckResult.Self:
-                    return string.Format(_translations.Self, User.GetDisplayName(true));
+                    return string.Format(_translations.Self, UserDisplayName);
 
                 case BdsmTraitOperationCheckResult.InCompliance:
                     return string.Format(
                         _translations.InCompliance,
-                        User.GetDisplayName(true), UserSubmissiveness, UserDominance,
-                        Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance
+                        UserDisplayName, UserSubmissiveness, UserDominance,
+                        TargetDisplayName, TargetSubmissiveness, TargetDominance
                     );
 
                 case BdsmTraitOperationCheckResult.RollSucceeded:
@@ -73,7 +73,7 @@ namespace Inkluzitron.Models
                     return _translations.MissingUserConsentGendered[(int)_userGender];
 
                 case BdsmTraitOperationCheckResult.TargetDidNotConsent:
-                    return string.Format(_translations.MissingTargetConsentGendered[(int)_targetGender], Target.GetDisplayName(true));
+                    return string.Format(_translations.MissingTargetConsentGendered[(int)_targetGender], TargetDisplayName);
 
                 default:
                     return base.ToString();
@@ -81,8 +81,8 @@ namespace Inkluzitron.Models
 
             return string.Format(
                 format,
-                User.GetDisplayName(true), UserSubmissiveness, UserDominance,
-                Target.GetDisplayName(true), TargetSubmissiveness, TargetDominance,
+                UserDisplayName, UserSubmissiveness, UserDominance,
+                TargetDisplayName, TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue, PointsToSubtract,
                 _translations.RollFailedLossGendered[(int)_userGender],
                 _translations.RollFailedGainGendered[(int)_targetGender]

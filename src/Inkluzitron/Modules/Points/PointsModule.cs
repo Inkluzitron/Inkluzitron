@@ -23,15 +23,17 @@ namespace Inkluzitron.Modules.Points
         private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
         private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
+        private UsersService UsersService { get; }
         private readonly int BoardPageLimit = 10;
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy)
+        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
         {
             PointsService = pointsService;
             Client = client;
             ReactionSettings = reactionSettings;
             GraphPaintingService = graphPaintingService;
             GraphPaintingStrategy = graphPaintingStrategy;
+            UsersService = usersService;
         }
 
         [Command("")]
@@ -51,7 +53,7 @@ namespace Inkluzitron.Modules.Points
 
             if (points == null)
             {
-                await ReplyAsync($"Uživatel `{member.GetDisplayName()}` ještě nemá žádné body.");
+                await ReplyAsync($"Uživatel `{ await UsersService.GetDisplayNameAsync(member)}` ještě nemá žádné body.");
                 return;
             }
 
@@ -77,8 +79,8 @@ namespace Inkluzitron.Modules.Points
             start -= start % BoardPageLimit;
 
             var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit);
-            var embed = new PointsEmbed().WithBoard(
-                board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit);
+            var embed = await (new PointsEmbed(UsersService).WithBoard(
+                board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit));
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);

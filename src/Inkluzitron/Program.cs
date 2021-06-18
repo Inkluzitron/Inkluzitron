@@ -83,6 +83,7 @@ namespace Inkluzitron
                 .AddSingleton<PointsService>()
                 .AddSingleton<PointsGraphPaintingStrategy>()
                 .AddSingleton<BdsmGraphPaintingStrategy>()
+                .AddSingleton<UsersService>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
