@@ -13,14 +13,14 @@ namespace Inkluzitron.Services
 
         public DrawableFont GridLinePercentageFont { get; set; }
         public double GridLinePercentageFontSize { get; set; } = 20;
-        public MagickColor GridLinePercentageForegroundMajor { get; set; } = new MagickColor("#AAAAAA70");
-        public MagickColor GridLinePercentageBackgroundMinor { get; set; } = new MagickColor("#AAAAAA32");
+        public MagickColor GridLinePercentageForegroundMajor { get; set; } = new MagickColor("#AAAAAA60");
+        public MagickColor GridLinePercentageForegroundMinor { get; set; } = new MagickColor("#AAAAAA32");
         public MagickColor GridLineColorMinor { get; set; } = new MagickColor("#AAAAAA32");
-        public MagickColor GridLineColorMajor { get; set; } = new MagickColor("#AAAAAA70");
+        public MagickColor GridLineColorMajor { get; set; } = new MagickColor("#AAAAAA60");
 
         public DrawableFont CategoryBoxHeadingFont { get; set; }
         public double CategoryBoxHeadingFontSize { get; set; } = 20;
-        public MagickColor CategoryBoxBackground { get; set; } = new MagickColor("#3333337F");
+        public MagickColor CategoryBoxBackground { get; set; } = new MagickColor("#33333399");
         public MagickColor CategoryBoxHeadingForeground { get; set; } = new MagickColor("#EEEEEE7F");
 
         public int AvatarSize { get; set; } = 64;

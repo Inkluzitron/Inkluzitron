@@ -1,9 +1,7 @@
-﻿using Inkluzitron.Data.Entities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Globalization;
 using Discord.WebSocket;
 using Inkluzitron.Utilities;
 using Inkluzitron.Extensions;
@@ -42,7 +40,7 @@ namespace Inkluzitron.Services
             {
                 using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
                 var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
-                avatar.Resize(ImagesService.DefaultAvatarSize);
+                avatar.Resize(strategy.AvatarSize, strategy.AvatarSize);
                 avatar.RoundImage();
                 avatars[userId] = avatar;
             }
@@ -57,8 +55,6 @@ namespace Inkluzitron.Services
             var imageWidth = (2f * strategy.CategoryBoxPadding) + ((columnCount - 1) * strategy.CategoryBoxPadding) + (columnCount * categoryWidth);
             var imageHeight = (2f * strategy.CategoryBoxPadding) + ((rowCount - 1) * strategy.CategoryBoxPadding) + (rowCount * categoryHeight);
             var image = new MagickImage(strategy.BackgroundColor, (int)Math.Ceiling(imageWidth), (int)Math.Ceiling(imageHeight));
-
-            var drawable = new Drawables();
 
             for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
@@ -104,15 +100,16 @@ namespace Inkluzitron.Services
         static private IDrawables<byte> DrawGridLine(IDrawables<byte> drawable, GraphPaintingStrategy strategy, IMagickGeometry dst, float y, float value, bool isMajor, double gridLineLabelPadding)
         {
             var lineColor = isMajor ? strategy.GridLineColorMajor : strategy.GridLineColorMinor;
-            var textForeground = isMajor ? strategy.GridLinePercentageForegroundMajor : strategy.GridLinePercentageBackgroundMinor;
+            var textForeground = isMajor ? strategy.GridLinePercentageForegroundMajor : strategy.GridLinePercentageForegroundMinor;
             var str = strategy.FormatGridLineValueLabel(value);
             var strMetrics = drawable.FontTypeMetrics(str);
 
             return drawable
                 .StrokeColor(lineColor)
                 .Line(dst.X, y, dst.X + dst.Width, y)
+                .StrokeColor(MagickColors.Transparent)
                 .FillColor(textForeground)
-                .Text(dst.X + dst.Width + gridLineLabelPadding, y + (0.5f * strMetrics.TextHeight), str);
+                .Text(dst.X + dst.Width + gridLineLabelPadding, y + (0.3f * strMetrics.TextHeight), str);
         }
 
         static private void DrawCategoryGridLines(IMagickImage<byte> image, GraphPaintingStrategy strategy, IMagickGeometry dst, float minValue, float maxValue, out IMagickGeometry avatarsArea)
@@ -120,6 +117,7 @@ namespace Inkluzitron.Services
             (minValue, maxValue) = strategy.SmoothenAxisLimits(minValue, maxValue);
 
             var drawable = new Drawables()
+                .Density(100)
                 .Font(strategy.GridLinePercentageFont)
                 .FontPointSize(strategy.GridLinePercentageFontSize);
 
@@ -163,6 +161,7 @@ namespace Inkluzitron.Services
             var graphArea = new MagickGeometry(dst.X, dst.Y, dst.Width, dst.Height);
 
             var drawable = new Drawables()
+                .Density(100)
                 .FillColor(strategy.CategoryBoxBackground)
                 .Rectangle(graphArea.X, graphArea.Y, graphArea.X + graphArea.Width, graphArea.Y + graphArea.Height)
                 .FillColor(strategy.CategoryBoxHeadingForeground)
@@ -189,7 +188,7 @@ namespace Inkluzitron.Services
             gridLinesArea.X += (int)(0.75f * strategy.AvatarSize);
             gridLinesArea.Width -= (int)(0.75f * strategy.AvatarSize * 2);
             gridLinesArea.Y -= (int)((-0.75f * strategy.AvatarSize) - (0.50f * headingSize.TextHeight));
-            gridLinesArea.Height += (int)((-0.75f * strategy.AvatarSize) - (0.50f * headingSize.TextHeight) * 2);
+            gridLinesArea.Height += (int)(((-0.75f * strategy.AvatarSize) - (0.50f * headingSize.TextHeight)) * 2);
 
             // Draw grid lines over the established area.
             DrawCategoryGridLines(image, strategy, gridLinesArea, minValue, maxValue, out avatarsArea);
@@ -221,29 +220,34 @@ namespace Inkluzitron.Services
             var i = datas.Length;
             var maxUsernameWidth = (int)(1.5 * avatarSize.Width);
 
+            var nicknameDrawable = new Drawables()
+                .Font(strategy.UsernameFont)
+                .FontPointSize(strategy.UsernameFontSize);
+
             foreach ((var picture, var username, var value) in datas.Reverse())
             {
                 var y = avatarsArea.Y + avatarsArea.Height - (int)(avatarsArea.Height * (value - minValue) / (maxValue - minValue));
                 
-                image.Composite(picture, Gravity.Center, x, y, CompositeOperator.Over);
-                //x - (0.5f * avatarSize.Width),
-                //y - (0.5f * avatarSize.Height),
+                image.Composite(picture, x - avatarSize.Width / 2, y - avatarSize.Height / 2, CompositeOperator.Over);
+
+                var nickHeight = nicknameDrawable.FontTypeMetrics(username).TextHeight;
 
                 // Try shrink the username if it does not fit, give up when you reach 5 characters.
                 image.DrawEnhancedText(
                     username,
+                    Gravity.Center,
                     (int)(x - 0.5 * maxUsernameWidth),
                     isAbove
-                      ? (int)(y - (0.5f * avatarSize.Height) - (1.1f * strategy.UsernameFontSize))
-                      : (int)(y + (0.5f * avatarSize.Height) + (0.1f * strategy.UsernameFontSize)),
+                        ? (int)(y - (0.6 * avatarSize.Height) - (1.1 * nickHeight))
+                        : (int)(y + (0.4 * avatarSize.Height) + (0.4 * nickHeight)),
                     strategy.UsernameForeground,
                     strategy.UsernameFont,
                     strategy.UsernameFontSize,
-                    maxUsernameWidth,
-                    ellipsize: false);
+                    maxUsernameWidth);
 
                 // Draw the percentage now
                 var drawable = new Drawables()
+                    .Density(100)
                     .Font(strategy.UserValueLabelFont)
                     .FontPointSize(strategy.UserValueLabelFontSize)
                     .FillColor(strategy.UserValueLabelForeground)
@@ -256,8 +260,8 @@ namespace Inkluzitron.Services
                     .Text(
                         x,
                         isAbove
-                            ? y + (0.5f * avatarSize.Height) + (0.1f * userValueLabelSize.TextHeight)
-                            : y - (0.5f * avatarSize.Height) - (1.1f * userValueLabelSize.TextHeight),
+                            ? y + (0.4 * avatarSize.Height) + userValueLabelSize.TextHeight
+                            : y - (0.6 * avatarSize.Height) - (0.1 * userValueLabelSize.TextHeight),
                         userValueLabel)
                     .Draw(image);
 
