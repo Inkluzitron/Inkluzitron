@@ -24,6 +24,7 @@ namespace Inkluzitron.Services
     public class ImagesService : IDisposable
     {
         static public readonly IMagickGeometry DefaultAvatarSize = new MagickGeometry(100, 100);
+        static private readonly int AvatarFramesUpperLimit = 50;
 
         private DiscordSocketClient Client { get; }
         private FileCache Cache { get; }
@@ -35,6 +36,7 @@ namespace Inkluzitron.Services
         private MagickImage PeepoloveHandsFrame { get; }
         private MagickImage PeepoangryFrame { get; }
         public IHttpClientFactory HttpClientFactory { get; }
+
 
         public ImagesService(DiscordSocketClient client, FileCache fileCache, IHttpClientFactory httpClientFactory)
         {
@@ -142,7 +144,8 @@ namespace Inkluzitron.Services
 
             var fileInfo = new FileInfo(filePath);
             var image = new MagickImageCollection(filePath);
-            isAnimated ??= image.Count > 1;
+            // Limit maximum number of frames to optimize performance
+            isAnimated = image.Count > 1 && image.Count <= AvatarFramesUpperLimit;
             extension ??= Path.GetExtension(filePath)[1..];
 
             if (isAnimated.Value)
@@ -169,7 +172,7 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            var avatar = rawAvatar.Frames[0];
             avatar.Resize(100, 100);
             avatar.RoundImage();
 
@@ -232,7 +235,7 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            var avatar = rawAvatar.Frames[0];
             avatar.Resize(100, 100);
             avatar.RoundImage();
 
@@ -300,14 +303,14 @@ namespace Inkluzitron.Services
             {
                 using var collection = new MagickImageCollection();
 
-                foreach (var avatarFrameOriginal in avatar.Frames)
+                foreach (var avatarFrame in avatar.Frames)
                 {
-                    using var avatarFrame = avatarFrameOriginal.ToGenericAlphaImage();
                     avatarFrame.Resize(64, 64);
                     avatarFrame.RoundImage();
                     var frame = RenderPeepoangryFrame(avatarFrame);
 
-                    frame.AnimationDelay = avatarFrameOriginal.AnimationDelay;
+                    frame.AnimationDelay = avatarFrame.AnimationDelay;
+                    frame.GifDisposeMethod = GifDisposeMethod.Background;
                     collection.Add(frame);
                 }
 
@@ -355,7 +358,7 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting(".gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            var avatar = rawAvatar.Frames[0];
             avatar.Resize(100, 100);
             avatar.RoundImage();
 
@@ -427,7 +430,7 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            var avatar = rawAvatar.Frames[0];
             avatar.Resize(100, 100);
             avatar.RoundImage();
 
@@ -504,12 +507,12 @@ namespace Inkluzitron.Services
 
                 foreach (var userFrame in avatar.Frames)
                 {
-                    using var avatarFrame = userFrame.ToGenericAlphaImage();
-                    avatarFrame.Resize(180, 180);
-                    avatarFrame.RoundImage();
-                    var frame = RenderPeepoloveFrame(avatarFrame);
+                    userFrame.Resize(180, 180);
+                    userFrame.RoundImage();
+                    var frame = RenderPeepoloveFrame(userFrame);
 
                     frame.AnimationDelay = userFrame.AnimationDelay;
+                    frame.GifDisposeMethod = GifDisposeMethod.Background;
                     collection.Add(frame);
                 }
 

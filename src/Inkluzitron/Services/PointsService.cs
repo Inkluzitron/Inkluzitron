@@ -227,21 +227,20 @@ namespace Inkluzitron.Services
                 var tmpFile = new TemporaryFile("gif");
                 using var output = new MagickImageCollection();
 
-                foreach (var frame in profilePicture.Frames)
+                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
+                foreach (var frameAvatar in profilePicture.Frames)
                 {
-                    using var avatar = frame.ToGenericAlphaImage();
-                    avatar.RoundImage();
-                    avatar.Resize(160, 160);
+                    frameAvatar.Resize(160, 160);
+                    frameAvatar.RoundImage();
 
-                    var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
-
-                    baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
-                    baseImage.AnimationDelay = frame.AnimationDelay;
-                    output.Add(baseImage);
+                    var frame = baseImage.Clone();
+                    frame.Composite(frameAvatar, 70, 70, CompositeOperator.Over);
+                    frame.AnimationDelay = frameAvatar.AnimationDelay;
+                    frame.GifDisposeMethod = GifDisposeMethod.Background;
+                    output.Add(frame);
                 }
 
-                output.Optimize();
-                output.OptimizeTransparency();
+                output.Coalesce();
                 output.Write(tmpFile.Path, MagickFormat.Gif);
                 return tmpFile;
             }
@@ -249,9 +248,9 @@ namespace Inkluzitron.Services
             {
                 using var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
 
-                using var avatar = profilePicture.Frames[0];
-                avatar.RoundImage();
+                var avatar = profilePicture.Frames[0];
                 avatar.Resize(160, 160);
+                avatar.RoundImage();
                 baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
 
                 var tmpFile = new TemporaryFile("png");

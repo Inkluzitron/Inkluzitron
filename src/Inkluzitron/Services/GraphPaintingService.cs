@@ -39,7 +39,7 @@ namespace Inkluzitron.Services
             foreach (var userId in toplistResults.SelectMany(x => x.Value).Select(x => x.UserId).Distinct())
             {
                 using var rawAvatar = await ImagesService.GetAvatarAsync(guild, userId);
-                var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+                var avatar = rawAvatar.Frames[0].Clone();
                 avatar.Resize(strategy.AvatarSize, strategy.AvatarSize);
                 avatar.RoundImage();
                 avatars[userId] = avatar;
