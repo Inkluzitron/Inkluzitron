@@ -1,4 +1,5 @@
 ﻿using ImageMagick;
+using System.Security;
 
 namespace Inkluzitron.Extensions
 {
@@ -41,6 +42,10 @@ namespace Inkluzitron.Extensions
             //settings.SetDefine("pango:wrap", "char");
             if (ellipsize)
                 settings.SetDefine("pango:ellipsize", "end");
+
+            // Escape text for use in pango markup language
+            // For some reason the text must be excaped twice otherwise it will not work
+            text = SecurityElement.Escape(SecurityElement.Escape(text));
 
             using var textArea = new MagickImage($@"pango:<span
                 size=""{fontPointSize * 1000}""
