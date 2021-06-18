@@ -1,14 +1,13 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using ImageMagick;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -219,30 +218,25 @@ namespace Inkluzitron.Modules.RoleMenu
             var emote = emoteGuild.Emotes.FirstOrDefault(e => e.Name == name);
             if (emote != null) return emote.ToString();
 
-            var bitmap = new Bitmap(64, 64, PixelFormat.Format32bppArgb);
-            var graphics = Graphics.FromImage(bitmap);
-            graphics.FillEllipse(
-                new SolidBrush(System.Drawing.Color.FromArgb(
-                    role.Color.R, role.Color.G, role.Color.B)),
-                0, 0, bitmap.Width, bitmap.Height);
+            using var image = new MagickImage(MagickColors.Transparent, 64, 64);
+            new Drawables()
+                .FillColor(new MagickColor(role.Color.R, role.Color.G, role.Color.B))
+                .Circle(image.Width / 2, image.Height / 2, 0, image.Height / 2)
+                .Draw(image);
 
-            //bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
-            bitmap.Save("temp.png");
+            var stream = new MemoryStream();
+            image.Write(stream, MagickFormat.Png);
+            stream.Seek(0, SeekOrigin.Begin);
 
-            var file = File.OpenRead("temp.png");
-            var image = new Discord.Image(file);
+            using var discordImage = new Image(stream);
             try
             {
-                emote = await emoteGuild.CreateEmoteAsync(name, image);
+                emote = await emoteGuild.CreateEmoteAsync(name, discordImage);
                 return emote.ToString();
             }
             catch (Exception)
             {
                 return null;
-            }
-            finally
-            {
-                file.Close();
             }
         }
 
