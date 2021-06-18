@@ -6,6 +6,3 @@ services:
         container_name: Inkluzitron
         env_file:
             - environment.env
-        volumes:
-            - /home/janch32/inkluzitron:/data
-        mem_limit: 500m
