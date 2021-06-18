@@ -22,7 +22,7 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var displayName = user.GetDisplayName(true);
+            var displayName = user.Username; // TODO Bad
 
             // Update cached displayname
             var result = await Patiently.HandleDbConcurrency(async () => {
@@ -58,7 +58,7 @@ namespace Inkluzitron.Extensions
             userEntity = new User()
             {
                 Id = user.Id,
-                Name = user.GetDisplayName(true)
+                Name = user.Username // TODO Bad
             };
 
             await context.AddAsync(userEntity);

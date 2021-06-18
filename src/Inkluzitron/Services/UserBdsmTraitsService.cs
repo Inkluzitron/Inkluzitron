@@ -16,6 +16,7 @@ namespace Inkluzitron.Services
     {
         private DatabaseFactory DatabaseFactory { get; }
         private BdsmTestOrgSettings Settings { get; }
+        private UsersService UsersService { get; }
         public BdsmTraitOperationCheckTranslations CheckTranslations { get; }
 
         public double StrongTraitThreshold => Settings.StrongTraitThreshold;
@@ -24,12 +25,13 @@ namespace Inkluzitron.Services
         public IMemoryCache Cache { get; }
 
         public UserBdsmTraitsService(DatabaseFactory databaseFactory, BdsmTestOrgSettings settings,
-            BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache)
+            BdsmTraitOperationCheckTranslations checkTranslations, IMemoryCache cache, UsersService usersService)
         {
             DatabaseFactory = databaseFactory;
             Settings = settings;
             CheckTranslations = checkTranslations;
             Cache = cache;
+            UsersService = usersService;
         }
 
         public async Task<bool> TestExists(IUser user)
@@ -105,8 +107,8 @@ namespace Inkluzitron.Services
 
             var check = new BdsmTraitOperationCheck(CheckTranslations, userDb.Gender, targetDb.Gender)
             {
-                User = user,
-                Target = target
+                UserDisplayName = await UsersService.GetDisplayNameAsync(user),
+                TargetDisplayName = await UsersService.GetDisplayNameAsync(target)
             };
 
             SetLastOperationCheck(user, check);
