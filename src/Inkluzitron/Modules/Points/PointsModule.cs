@@ -53,7 +53,7 @@ namespace Inkluzitron.Modules.Points
 
             if (points == null)
             {
-                await ReplyAsync($"Uživatel `{ await UsersService.GetDisplayNameAsync(member)}` ještě nemá žádné body.");
+                await ReplyAsync($"Uživatel `{ Format.Sanitize(await UsersService.GetDisplayNameAsync(member))}` ještě nemá žádné body.");
                 return;
             }
 

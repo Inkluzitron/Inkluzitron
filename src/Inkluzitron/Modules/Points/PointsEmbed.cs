@@ -47,7 +47,7 @@ namespace Inkluzitron.Modules.Points
             {
                 position.Append("**").Append(item.Key).AppendLine(".**");
                 var userData = client.GetUser(item.Value.Id);
-                users.AppendLine(userData == null ? "*neznámý*" : await UsersService.GetDisplayNameAsync(userData));
+                users.AppendLine(userData == null ? "*neznámý*" : Format.Sanitize(await UsersService.GetDisplayNameAsync(userData)));
 
                 points.AppendLine(item.Value.Points.ToString("N0", NumberFormat));
             }

@@ -107,8 +107,8 @@ namespace Inkluzitron.Services
 
             var check = new BdsmTraitOperationCheck(CheckTranslations, userDb.Gender, targetDb.Gender)
             {
-                UserDisplayName = await UsersService.GetDisplayNameAsync(user),
-                TargetDisplayName = await UsersService.GetDisplayNameAsync(target)
+                UserDisplayName = Format.Sanitize(await UsersService.GetDisplayNameAsync(user)),
+                TargetDisplayName = Format.Sanitize(await UsersService.GetDisplayNameAsync(target))
             };
 
             SetLastOperationCheck(user, check);

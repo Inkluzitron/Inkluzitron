@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Services;
@@ -32,7 +33,7 @@ namespace Inkluzitron.Modules
                 {
                     userName = await UsersService.GetDisplayNameAsync(user);
                     await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{userName}**"
+                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
                     );
                 }
 
@@ -48,7 +49,7 @@ namespace Inkluzitron.Modules
 
                     userName = await UsersService.GetDisplayNameAsync(usr);
                     await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{userName}**"
+                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
                     );
                 }
 
@@ -62,7 +63,7 @@ namespace Inkluzitron.Modules
                 if (message == userName || message == user.Id.ToString())
                 {
                     await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{userName}**"
+                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
                     );
                     return;
                 }
