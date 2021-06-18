@@ -7,19 +7,15 @@ namespace Inkluzitron.Extensions
     {
         static public void RoundImage(this IMagickImage<byte> image)
         {
+
             using var mask = new MagickImage(MagickColors.Transparent, image.Width, image.Height);
             new Drawables()
                 .FillColor(MagickColors.White)
                 .Circle(image.Width / 2, image.Height / 2, image.Width / 2, 0)
                 .Draw(mask);
-            image.Composite(mask, CompositeOperator.Multiply);
-        }
 
-        static public IMagickImage<byte> ToGenericAlphaImage(this IMagickImage<byte> image)
-        {
-            var pngImage = new MagickImage(MagickColors.Transparent, image.Width, image.Height);
-            pngImage.Composite(image, CompositeOperator.Src);
-            return pngImage;
+            image.Alpha(AlphaOption.On);
+            image.Composite(mask, CompositeOperator.Multiply);
         }
 
         static public void DrawEnhancedText(
@@ -56,8 +52,8 @@ namespace Inkluzitron.Extensions
                 foreground=""white""
                 >{text}</span>", settings);
 
-            using var colored = new MagickImage(MagickColors.Transparent, textArea.Width, textArea.Height);
-            new Drawables().FillColor(foreground).Rectangle(0, 0, colored.Width, colored.Height).Draw(colored);
+            using var colored = new MagickImage(foreground, textArea.Width, textArea.Height);
+            colored.Alpha(AlphaOption.On);
             colored.Composite(textArea, CompositeOperator.Multiply, Channels.Alpha);
 
             image.Composite(colored, x, y, CompositeOperator.Over);
