@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using GrapeCity.Documents.Imaging;
 using ImageMagick;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
@@ -14,6 +13,7 @@ using Inkluzitron.Resources.Whip;
 using Inkluzitron.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -21,12 +21,19 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
-    public class ImagesService
+    public class ImagesService : IDisposable
     {
         static public readonly IMagickGeometry DefaultAvatarSize = new MagickGeometry(100, 100);
 
         private DiscordSocketClient Client { get; }
         private FileCache Cache { get; }
+        private MagickImageCollection WhipFrames { get; }
+        private MagickImageCollection BonkFrames { get; }
+        private MagickImageCollection PatFrames { get; }
+        private MagickImageCollection SpankFrames { get; }
+        private MagickImage PeepoloveBodyFrame { get; }
+        private MagickImage PeepoloveHandsFrame { get; }
+        private MagickImage PeepoangryFrame { get; }
         public IHttpClientFactory HttpClientFactory { get; }
 
         public ImagesService(DiscordSocketClient client, FileCache fileCache, IHttpClientFactory httpClientFactory)
@@ -34,24 +41,61 @@ namespace Inkluzitron.Services
             Client = client;
             Cache = fileCache;
             HttpClientFactory = httpClientFactory;
+
+            // TODO Change image resources from Bitmap to byte[] or ImageMagick type
+            WhipFrames = GetFramesFromResources<WhipResources>();
+            BonkFrames = GetFramesFromResources<BonkResources>();
+            PatFrames = GetFramesFromResources<PatResources>();
+            SpankFrames = GetFramesFromResources<SpankResources>();
+
+            PeepoloveBodyFrame = BitmapToMagickImage(PeepoloveResources.body);
+            PeepoloveHandsFrame = BitmapToMagickImage(PeepoloveResources.hands);
+            PeepoangryFrame = BitmapToMagickImage(PeepoangryResources.peepoangry);
         }
 
-        static private List<IMagickImage<byte>> GetBitmapsFromResources<TResources>()
+        static private MagickImage BitmapToMagickImage(Bitmap bitmap, System.Drawing.Imaging.ImageFormat format = null)
+        {
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, format ?? System.Drawing.Imaging.ImageFormat.Png);
+            stream.Seek(0, SeekOrigin.Begin);
+            return new MagickImage(stream);
+        }
+
+        static private MagickImageCollection GetFramesFromResources<TResources>()
+        {
+            var collection = new MagickImageCollection();
+
+            var bitmaps = GetBitmapsFromResources<TResources>();
+            foreach (var bitmap in bitmaps)
+            {
+                collection.Add(BitmapToMagickImage(bitmap));
+            }
+
+            return collection;
+        }
+
+        static private List<Bitmap> GetBitmapsFromResources<TResources>()
             => typeof(TResources).GetProperties()
-                .Where(o => o.PropertyType == typeof(IMagickImage<byte>))
-                .Select(o => o.GetValue(null, null) as IMagickImage<byte>)
+                .Where(o => o.PropertyType == typeof(Bitmap))
+                .Select(o => o.GetValue(null, null) as Bitmap)
                 .Where(o => o != null)
                 .ToList();
 
-        static private AvatarImageWrapper CreateFallbackAvatarWrapper(MagickGeometry size = null)
+        static private AvatarImageWrapper CreateFallbackAvatarWrapper(IMagickGeometry size = null)
         {
-            var desiredSize = size ?? DefaultAvatarSize;
+            if(size == null) size = DefaultAvatarSize;
 
-            using var roundedFallbackAvatar = MiscellaneousResources.FallbackAvatar;//.RoundImage(); TODO
-            var resizedFallbackAvatar = roundedFallbackAvatar;//.ResizeImage(desiredSize.Width, desiredSize.Height); TODO
+            using var bitmap = MiscellaneousResources.FallbackAvatar;
             using var stream = new MemoryStream();
-            // TODO resizedFallbackAvatar.Save(stream);
-            return AvatarImageWrapper.FromImage(new MagickImageCollection(stream), 1, "png");
+            bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            stream.Seek(0, SeekOrigin.Begin);
+            var fallbackAvatar = new MagickImageCollection(stream);
+            foreach (var frame in fallbackAvatar)
+            {
+                frame.Resize(size.Width, size.Height);
+            }
+
+            return AvatarImageWrapper.FromImage(fallbackAvatar, 1, "png");
         }
 
         public async Task<AvatarImageWrapper> GetAvatarAsync(SocketGuild guild, ulong userId, ushort discordSize = 128, MagickGeometry size = null)
@@ -106,7 +150,7 @@ namespace Inkluzitron.Services
             else
                 return AvatarImageWrapper.FromImage(image, fileInfo.Length, extension);
         }
-        /*
+        
         // Taken from https://github.com/sinus-x/rubbergoddess
         public async Task<string> WhipAsync(IUser target, bool self)
         {
@@ -125,52 +169,49 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var roundedAvatar = rawAvatar.Frames[0].RoundImage();
-            using var avatar = roundedAvatar.ResizeImage(100, 100);
+            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            avatar.Resize(100, 100);
+            avatar.RoundImage();
 
-            using var gifWriter = new GcGifWriter(filePath);
-            using var gcBitmap = new GcBitmap();
+            using var collection = new MagickImageCollection();
 
             if (self)
-                avatar.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                avatar.Flop();
 
-            var frames = GetBitmapsFromResources<WhipResources>();
+            var frames = WhipFrames;
             for (int i = 0; i < frames.Count; i++)
             {
                 var frame = frames[i];
-                using var whipFrame = RenderWhipFrame(avatar, frame, i);
+                var whipFrame = RenderWhipFrame(avatar, frame, i);
 
                 if (self)
-                    whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    whipFrame.Flop();
 
-                using var ms = new MemoryStream();
-                whipFrame.Save(ms, SysImgFormat.Png);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                gcBitmap.Load(ms);
-                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor);
+                whipFrame.AnimationDelay = 2;
+                whipFrame.GifDisposeMethod = GifDisposeMethod.Background;
+                collection.Add(whipFrame);
             }
+
+            collection.Coalesce();
+            collection.Write(filePath, MagickFormat.Gif);
 
             return filePath;
         }
 
-        static private Bitmap RenderWhipFrame(SysDrawImage avatar, Bitmap frame, int index)
+        static private IMagickImage<byte> RenderWhipFrame(IMagickImage<byte> avatar, IMagickImage<byte> sourceFrame, int index)
         {
             var deformation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 5, 9, 6, 4, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             var translation = new[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-            var bitmap = new Bitmap(250, 145);
-            bitmap.MakeTransparent();
+            var frame = new MagickImage(MagickColors.Transparent, 250, 145);
 
-            using var frameAvatar = avatar.ResizeImage(100 - deformation[index], 100);
+            using var frameAvatar = avatar.Clone();
+            frameAvatar.InterpolativeResize(100 - deformation[index], 100, PixelInterpolateMethod.Bilinear);
 
-            using var g = Graphics.FromImage(bitmap);
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            frame.Composite(sourceFrame, 0, -10, CompositeOperator.Over);
+            frame.Composite(frameAvatar, 135 + deformation[index] + translation[index], 30, CompositeOperator.Over);
 
-            g.DrawImage(frameAvatar, 135 + deformation[index] + translation[index], 30);
-            g.DrawImage(frame, 0, -10);
-
-            return bitmap;
+            return frame;
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
@@ -191,50 +232,48 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var roundedAvatar = rawAvatar.Frames[0].RoundImage();
-            using var avatar = roundedAvatar.ResizeImage(100, 100);
+            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            avatar.Resize(100, 100);
+            avatar.RoundImage();
 
-            using var gifWriter = new GcGifWriter(filePath);
-            using var gcBitmap = new GcBitmap();
+            using var collection = new MagickImageCollection();
 
             if (self)
-                avatar.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                avatar.Flop();
 
-            var frames = GetBitmapsFromResources<BonkResources>();
+            var frames = BonkFrames;
             for (int i = 0; i < frames.Count; i++)
             {
                 var frame = frames[i];
-                using var bonkFrame = RenderBonkFrame(avatar, frame, i);
+                var bonkFrame = RenderBonkFrame(avatar, frame, i);
 
                 if (self)
-                    bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    bonkFrame.Flop();
 
-                using var ms = new MemoryStream();
-                bonkFrame.Save(ms, SysImgFormat.Png);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                gcBitmap.Load(ms);
-                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 3);
+                bonkFrame.AnimationDelay = 3;
+                bonkFrame.GifDisposeMethod = GifDisposeMethod.Background;
+                collection.Add(bonkFrame);
             }
+
+            collection.Coalesce();
+            collection.Write(filePath, MagickFormat.Gif);
 
             return filePath;
         }
 
-        static private Bitmap RenderBonkFrame(SysDrawImage avatar, Bitmap frame, int index)
+        static private IMagickImage<byte> RenderBonkFrame(IMagickImage<byte> avatar, IMagickImage<byte> sourceFrame, int index)
         {
-            var bitmap = new Bitmap(250, 170);
-            bitmap.MakeTransparent();
-
             var deformation = new[] { 0, 0, 0, 0, 5, 20, 15, 5 };
-            using var frameAvatar = avatar.ResizeImage(110, 100 - deformation[index]);
 
-            using var g = Graphics.FromImage(bitmap);
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var frame = new MagickImage(MagickColors.Transparent, 250, 170);
 
-            g.DrawImage(frameAvatar, 100, 60 + deformation[index]);
-            g.DrawImage(frame, 0, 0);
+            using var frameAvatar = avatar.Clone();
+            frameAvatar.InterpolativeResize(110, 100 - deformation[index], PixelInterpolateMethod.Bilinear);
 
-            return bitmap;
+            frame.Composite(frameAvatar, 100, 60 + deformation[index], CompositeOperator.Over);
+            frame.Composite(sourceFrame, 0, 0, CompositeOperator.Over);
+
+            return frame;
         }
 
         // Taken from https://github.com/Misha12/GrillBot
@@ -259,43 +298,43 @@ namespace Inkluzitron.Services
 
             if (isAnimated)
             {
-                using var gifWriter = new GcGifWriter(filePath);
-                using var gcBitmap = new GcBitmap();
+                using var collection = new MagickImageCollection();
 
-                foreach (var userFrame in avatar.Frames)
+                foreach (var avatarFrameOriginal in avatar.Frames)
                 {
-                    using var roundedUserFrame = userFrame.RoundImage();
-                    using var frame = RenderPeepoangryFrame(roundedUserFrame);
+                    using var avatarFrame = avatarFrameOriginal.ToGenericAlphaImage();
+                    avatarFrame.Resize(64, 64);
+                    avatarFrame.RoundImage();
+                    var frame = RenderPeepoangryFrame(avatarFrame);
 
-                    using var ms = new MemoryStream();
-                    frame.Save(ms, SysImgFormat.Png);
-                    ms.Seek(0, SeekOrigin.Begin);
-
-                    gcBitmap.Load(ms);
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: avatar.GifDelay.Value);
+                    frame.AnimationDelay = avatarFrameOriginal.AnimationDelay;
+                    collection.Add(frame);
                 }
+
+                collection.Coalesce();
+                collection.Write(filePath, MagickFormat.Gif);
             }
             else
             {
-                using var roundedAvatar = avatar.Frames[0].RoundImage();
-                using var finalAvatar = roundedAvatar.ResizeImage(100, 100);
+                var avatarFrame = avatar.Frames[0];
+                avatarFrame.Resize(64, 64);
+                avatarFrame.RoundImage();
 
-                using var frame = RenderPeepoangryFrame(finalAvatar);
-                frame.Save(filePath, SysImgFormat.Png);
+                using var frame = RenderPeepoangryFrame(avatarFrame);
+                frame.Write(filePath, MagickFormat.Png);
             }
 
             return filePath;
         }
 
-        static private SysDrawImage RenderPeepoangryFrame(SysDrawImage avatar)
+        private IMagickImage<byte> RenderPeepoangryFrame(IMagickImage<byte> avatar)
         {
-            var body = new Bitmap(250, 105);
-            using var graphics = Graphics.FromImage(body);
+            var frame = new MagickImage(MagickColors.Transparent, 250, 105);
 
-            graphics.DrawImage(avatar, new Rectangle(new Point(20, 10), new Size(64, 64)));
-            graphics.DrawImage(PeepoangryResources.peepoangry, new Point(115, -5));
+            frame.Composite(avatar, 20, 10, CompositeOperator.Over);
+            frame.Composite(PeepoangryFrame, 115, -5, CompositeOperator.Over);
 
-            return body;
+            return frame;
         }
 
         // Taken from https://github.com/Toaster192/rubbergod
@@ -316,56 +355,55 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting(".gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var roundedAvatar = rawAvatar.Frames[0].RoundImage();
-            using var avatar = roundedAvatar.ResizeImage(100, 100);
+            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            avatar.Resize(100, 100);
+            avatar.RoundImage();
 
-            using var gifWriter = new GcGifWriter(filePath);
-            using var gcBitmap = new GcBitmap();
+            using var collection = new MagickImageCollection();
 
             if (self)
-                avatar.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                avatar.Flop();
 
-            var frames = GetBitmapsFromResources<PatResources>();
+            var frames = PatFrames;
             for (int i = 0; i < frames.Count; i++)
             {
                 var frame = frames[i];
-                using var bonkFrame = RenderPatFrame(avatar, frame, i);
+                var patFrame = RenderPatFrame(avatar, frame, i);
 
                 if (self)
-                    bonkFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    patFrame.Flop();
 
-                using var ms = new MemoryStream();
-                bonkFrame.Save(ms, SysImgFormat.Png);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                gcBitmap.Load(ms);
-                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: 5);
+                patFrame.AnimationDelay = 5;
+                patFrame.GifDisposeMethod = GifDisposeMethod.Background;
+                collection.Add(patFrame);
             }
+
+            collection.Coalesce();
+            collection.Write(filePath, MagickFormat.Gif);
 
             return filePath;
         }
 
-        static private Bitmap RenderPatFrame(SysDrawImage avatar, Bitmap frame, int index)
+        static private IMagickImage<byte> RenderPatFrame(IMagickImage<byte> avatar, IMagickImage<byte> sourceFrame, int index)
         {
             var deformation = new[]
             {
-                new Point(-1, 4),
-                new Point(-2, 3),
-                new Point(1, 1),
-                new Point(2, 1),
-                new Point(1, -4)
+                new MagickGeometry(-1, 4, 0, 0),
+                new MagickGeometry(-2, 3, 0, 0),
+                new MagickGeometry(1, 1, 0, 0),
+                new MagickGeometry(2, 1, 0, 0),
+                new MagickGeometry(1, -4, 0, 0)
             };
 
-            var bitmap = new Bitmap(130, 150);
-            bitmap.MakeTransparent();
+            var frame = new MagickImage(MagickColors.Transparent, 130, 150);
 
-            using var frameAvatar = avatar.ResizeImage(100 - deformation[index].X, 100 - deformation[index].Y);
+            using var frameAvatar = avatar.Clone();
+            frameAvatar.InterpolativeResize(100 - deformation[index].X, 100 - deformation[index].Y, PixelInterpolateMethod.Bilinear);
 
-            using var g = Graphics.FromImage(bitmap);
-            g.DrawImage(frameAvatar, 120 - (110 - deformation[index].X), 150 - (100 - deformation[index].Y));
-            g.DrawImage(frame, 0, 0);
+            frame.Composite(frameAvatar, 110 - frameAvatar.Width, 150 - frameAvatar.Height, CompositeOperator.Over);
+            frame.Composite(sourceFrame, 0, 0, CompositeOperator.Over);
 
-            return bitmap;
+            return frame;
         }
 
         // Taken from https://github.com/sinus-x/rubbergoddess
@@ -389,31 +427,31 @@ namespace Inkluzitron.Services
                 filePath = cacheObject.GetPathForWriting("gif");
 
             using var rawAvatar = await GetAvatarAsync(target);
-            using var roundedAvatar = rawAvatar.Frames[0].RoundImage();
-            using var avatar = roundedAvatar.ResizeImage(100, 100);
+            using var avatar = rawAvatar.Frames[0].ToGenericAlphaImage();
+            avatar.Resize(100, 100);
+            avatar.RoundImage();
 
-            using var gifWriter = new GcGifWriter(filePath);
-            using var gcBitmap = new GcBitmap();
+            using var collection = new MagickImageCollection();
 
             if (self)
-                avatar.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                avatar.Flop();
 
-            var frames = GetBitmapsFromResources<SpankResources>();
+            var frames = SpankFrames;
             for (int i = 0; i < frames.Count; i++)
             {
                 var frame = frames[i];
-                using var whipFrame = RenderSpankFrame(avatar, frame, i, harder);
+                var spankFrame = RenderSpankFrame(avatar, frame, i, harder);
 
                 if (self)
-                    whipFrame.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    spankFrame.Flop();
 
-                using var ms = new MemoryStream();
-                whipFrame.Save(ms, SysImgFormat.Png);
-                ms.Seek(0, SeekOrigin.Begin);
-
-                gcBitmap.Load(ms);
-                gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: delayTime);
+                spankFrame.AnimationDelay = delayTime;
+                spankFrame.GifDisposeMethod = GifDisposeMethod.Background;
+                collection.Add(spankFrame);
             }
+
+            collection.Coalesce();
+            collection.Write(filePath, MagickFormat.Gif);
 
             return filePath;
         }
@@ -424,23 +462,20 @@ namespace Inkluzitron.Services
         public Task<string> SpankHarderAsync(IUser target, bool self)
             => SpankAsync(target, self, true);
 
-        static private Bitmap RenderSpankFrame(SysDrawImage profilePicture, Bitmap frame, int index, bool harder)
+        static private IMagickImage<byte> RenderSpankFrame(IMagickImage<byte> avatar, IMagickImage<byte> sourceFrame, int index, bool harder)
         {
             var deformation = new[] { 4, 2, 1, 0, 0, 0, 0, 3 };
             int deformationCoef = harder ? 7 : 2;
 
-            var bitmap = new Bitmap(230, 150);
-            bitmap.MakeTransparent();
+            var frame = new MagickImage(MagickColors.Transparent, 230, 150);
 
-            using var frameAvatar = profilePicture.ResizeImage(100 + (deformationCoef * deformation[index]), 100 + (deformationCoef * deformation[index]));
+            using var frameAvatar = avatar.Clone();
+            frameAvatar.InterpolativeResize(100 + (deformationCoef * deformation[index]), 100 + (deformationCoef * deformation[index]), PixelInterpolateMethod.Bilinear);
 
-            using var g = Graphics.FromImage(bitmap);
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            frame.Composite(sourceFrame, 10, 15, CompositeOperator.Over);
+            frame.Composite(frameAvatar, 80 - deformation[index], 10 - deformation[index], CompositeOperator.Over);
 
-            g.DrawImage(frame, new Point(10, 15));
-            g.DrawImage(frameAvatar, new Point(80 - deformation[index], 10 - deformation[index]));
-
-            return bitmap;
+            return frame;
         }
 
         // Taken from https://github.com/Misha12/GrillBot
@@ -465,47 +500,59 @@ namespace Inkluzitron.Services
 
             if (isAnimated)
             {
-                using var gifWriter = new GcGifWriter(filePath);
-                using var gcBitmap = new GcBitmap();
+                using var collection = new MagickImageCollection();
 
                 foreach (var userFrame in avatar.Frames)
                 {
-                    using var roundedUserFrame = userFrame.RoundImage();
-                    using var frame = RenderPeepoloveFrame(roundedUserFrame);
+                    using var avatarFrame = userFrame.ToGenericAlphaImage();
+                    avatarFrame.Resize(180, 180);
+                    avatarFrame.RoundImage();
+                    var frame = RenderPeepoloveFrame(avatarFrame);
 
-                    using var ms = new MemoryStream();
-                    frame.Save(ms, SysImgFormat.Png);
-                    ms.Seek(0, SeekOrigin.Begin);
-
-                    gcBitmap.Load(ms);
-                    gifWriter.AppendFrame(gcBitmap, disposalMethod: GifDisposalMethod.RestoreToBackgroundColor, delayTime: avatar.GifDelay.Value);
+                    frame.AnimationDelay = userFrame.AnimationDelay;
+                    collection.Add(frame);
                 }
+
+                collection.Coalesce();
+                collection.Write(filePath, MagickFormat.Gif);
             }
             else
             {
-                using var roundedAvatar = avatar.Frames[0].RoundImage();
-                using var finalAvatar = roundedAvatar.ResizeImage(100, 100);
+                var avatarFrame = avatar.Frames[0];
+                avatarFrame.Resize(180, 180);
+                avatarFrame.RoundImage();
 
-                using var frame = RenderPeepoloveFrame(finalAvatar);
-                frame.Save(filePath, SysImgFormat.Png);
+                using var frame = RenderPeepoloveFrame(avatarFrame);
+                frame.Write(filePath, MagickFormat.Png);
             }
 
             return filePath;
         }
 
-        static private SysDrawImage RenderPeepoloveFrame(SysDrawImage avatar)
+        private IMagickImage<byte> RenderPeepoloveFrame(IMagickImage<byte> avatar)
         {
-            using var body = new Bitmap(PeepoloveResources.body);
-            using var graphics = Graphics.FromImage(body);
+            var body = PeepoloveBodyFrame.Clone();
+            avatar.BackgroundColor = MagickColors.Transparent;
+            avatar.Rotate(-15);
 
-            graphics.RotateTransform(-0.4F);
-            graphics.DrawImage(avatar, new Rectangle(5, 312, 180, 180));
-            graphics.RotateTransform(0.4F);
-            graphics.DrawImage(PeepoloveResources.hands, new Rectangle(0, 0, 512, 512));
+            body.Composite(avatar, -15, 290, CompositeOperator.Over);
+            body.Composite(PeepoloveHandsFrame, 0, 0, CompositeOperator.Over);
 
-            graphics.DrawImage(body, new Point(0, 0));
-            return (body as SysDrawImage).CropImage(new Rectangle(0, 115, 512, 397));
+            body.Crop(new MagickGeometry(0, 115, 512, 397));
+            return body;
         }
-        */
+
+        public void Dispose()
+        {
+            WhipFrames?.Dispose();
+            BonkFrames?.Dispose();
+            PatFrames?.Dispose();
+            SpankFrames?.Dispose();
+            PeepoloveBodyFrame?.Dispose();
+            PeepoloveHandsFrame?.Dispose();
+            PeepoangryFrame?.Dispose();
+
+            GC.SuppressFinalize(this);
+        }
     }
 }
