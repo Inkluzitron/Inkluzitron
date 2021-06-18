@@ -110,7 +110,7 @@ namespace Inkluzitron.Services
             );
 
             var msg = await message.GetOrDownloadAsync();
-            if (msg == null || msg.Author == user) return;
+            if (msg == null || msg.Author == user || msg.Author.IsBot) return;
             await AddPointsAsync(msg.Author, BotSettings.PointsKarmaIncrement);
         }
 
@@ -121,7 +121,7 @@ namespace Inkluzitron.Services
             var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
 
             var msg = await message.GetOrDownloadAsync();
-            if (msg == null || msg.Author == user) return;
+            if (msg == null || msg.Author == user || msg.Author.IsBot) return;
 
             await AddPointsAsync(msg.Author, -BotSettings.PointsKarmaIncrement);
         }
