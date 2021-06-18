@@ -31,7 +31,7 @@ namespace Inkluzitron.Modules.Points
         public override int CalculateGridLineCount(float lowerLimit, float upperLimit)
         {
             var thousands = (int)Math.Ceiling((upperLimit - lowerLimit) / 1000);
-            return (thousands * 4) - 1;
+            return (thousands / 5) - 1;
         }
 
         public override float ClampAxisValue(float value)
