@@ -51,7 +51,8 @@ namespace Inkluzitron.Extensions
                 foreground=""white""
                 >{text}</span>", settings);
 
-            using var colored = new MagickImage(foreground, textArea.Width, textArea.Height);
+            using var colored = new MagickImage(MagickColors.Transparent, textArea.Width, textArea.Height);
+            new Drawables().FillColor(foreground).Rectangle(0, 0, colored.Width, colored.Height).Draw(colored);
             colored.Composite(textArea, CompositeOperator.Multiply, Channels.Alpha);
 
             image.Composite(colored, x, y, CompositeOperator.Over);
