@@ -73,7 +73,6 @@ namespace Inkluzitron
                 .AddSingleton<ReactionSettings>()
                 .AddSingleton<BdsmTestOrgSettings>()
                 .AddSingleton<ReactionsModule>()
-                .AddSingleton<FontService>()
                 .AddSingleton<GraphPaintingService>()
                 .AddSingleton<UserBdsmTraitsService>()
                 .AddSingleton<BdsmTraitOperationCheckTranslations>()

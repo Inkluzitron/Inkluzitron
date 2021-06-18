@@ -11,10 +11,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
     {
         public BdsmGraphPaintingStrategy()
             : base(
-                  new DrawableFont("Comic Sans MS"),
-                  new DrawableFont("Comic Sans MS") { Weight = FontWeight.Bold },
-                  new DrawableFont("Comic Sans MS"),
-                  new DrawableFont("Comic Sans MS")
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Light },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Bold },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Light },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Light }
             )
         {
         }

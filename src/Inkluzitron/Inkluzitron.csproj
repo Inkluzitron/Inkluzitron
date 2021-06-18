@@ -36,11 +36,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>BonkResources.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Fonts\FontsResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>FontsResources.resx</DependentUpon>
-    </Compile>
     <Compile Update="Resources\Miscellaneous\MiscellaneousResources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -77,10 +72,6 @@
     <EmbeddedResource Update="Resources\Bonk\BonkResources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>BonkResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Fonts\FontsResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>FontsResources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Miscellaneous\MiscellaneousResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -24,14 +24,21 @@ namespace Inkluzitron.Extensions
         static public void DrawEnhancedText(
             this IMagickImage<byte> image, string text, int x, int y, MagickColor foreground,
             DrawableFont font, double fontPointSize, int maxWidth, bool ellipsize = true)
+            => DrawEnhancedText(image, text, Gravity.Undefined, x, y, foreground, font, fontPointSize, maxWidth, ellipsize);
+
+        static public void DrawEnhancedText(
+            this IMagickImage<byte> image, string text, Gravity gravity, int x, int y, MagickColor foreground,
+            DrawableFont font, double fontPointSize, int maxWidth, bool ellipsize = true)
         {
             var settings = new MagickReadSettings()
             {
                 BackgroundColor = MagickColors.Transparent,
-                Width = maxWidth
+                Width = maxWidth,
+                TextGravity = gravity,
+                TextAntiAlias = false
             };
 
-            //testTextSettings.SetDefine("pango:wrap", "char");
+            //settings.SetDefine("pango:wrap", "char");
             if (ellipsize)
                 settings.SetDefine("pango:ellipsize", "end");
 
@@ -41,11 +48,13 @@ namespace Inkluzitron.Extensions
                 stretch=""{font.Stretch}""
                 style=""{(font.Style == FontStyleType.Any ? FontStyleType.Normal : font.Style)}""
                 weight=""{font.Weight}""
-                foreground=""{foreground.ToHexString()}""
+                foreground=""white""
                 >{text}</span>", settings);
 
-            image.Composite(textArea, x, y, CompositeOperator.Over);
+            using var colored = new MagickImage(foreground, textArea.Width, textArea.Height);
+            colored.Composite(textArea, CompositeOperator.Multiply, Channels.Alpha);
 
+            image.Composite(colored, x, y, CompositeOperator.Over);
         }
     }
 }
