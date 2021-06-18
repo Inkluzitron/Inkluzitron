@@ -224,7 +224,7 @@ namespace Inkluzitron.Modules.RoleMenu
                 .Circle(image.Width / 2, image.Height / 2, 0, image.Height / 2)
                 .Draw(image);
 
-            var stream = new MemoryStream();
+            using var stream = new MemoryStream();
             image.Write(stream, MagickFormat.Png);
             stream.Seek(0, SeekOrigin.Begin);
 
