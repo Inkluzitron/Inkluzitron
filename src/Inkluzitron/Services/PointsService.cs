@@ -10,6 +10,7 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,6 +21,7 @@ namespace Inkluzitron.Services
         static private readonly DateTime FallbackDateTime = new(2000, 1, 1);
         static private readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
         static private readonly TimeSpan ReactionIncrementCooldown = TimeSpan.FromSeconds(30);
+        static private readonly NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
 
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
@@ -274,7 +276,7 @@ namespace Inkluzitron.Services
                 .FillColor(MagickColors.LightGray)
                 .Font(DataFont)
                 .FontPointSize(DataSize)
-                .Text(330, 218, userEntity.Points.ToString())
+                .Text(330, 218, userEntity.Points.ToString("N0", NumberFormat))
                 .TextAlignment(TextAlignment.Right)
                 .Text(920, 218, positionText);
 
