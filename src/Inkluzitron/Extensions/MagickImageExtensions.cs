@@ -7,7 +7,6 @@ namespace Inkluzitron.Extensions
     {
         static public void RoundImage(this IMagickImage<byte> image)
         {
-
             using var mask = new MagickImage(MagickColors.Transparent, image.Width, image.Height);
             new Drawables()
                 .FillColor(MagickColors.White)
