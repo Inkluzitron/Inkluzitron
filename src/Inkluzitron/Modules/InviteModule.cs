@@ -113,7 +113,7 @@ namespace Inkluzitron.Modules
             }
 
             await Context.Channel.SendMessageAsync(
-                "Tento uživatel byl s největší pravďepodobností pozván před vznikem této fíčury.");
+                "Tento uživatel byl s největší pravděpodobností pozván před vznikem této fíčury.");
         }
     }
 }
