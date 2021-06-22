@@ -1,7 +1,9 @@
 ﻿using Inkluzitron.Enums;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace Inkluzitron.Data.Entities
 {
@@ -15,8 +17,7 @@ namespace Inkluzitron.Data.Entities
 
         public Gender Gender { get; set; } = Gender.Unspecified;
 
-        [Required]
-        public long Points { get; set; } = 0;
+        public List<UserPoints> DailyPoints { get; set; } = new();
 
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
@@ -28,5 +29,23 @@ namespace Inkluzitron.Data.Entities
 
         public bool HasGivenConsentTo(CommandConsent consentKind)
             => (CommandConsents & consentKind) == consentKind;
+
+        public long GetTotalPoints()
+            => DailyPoints.Sum(p => p.Points);
+
+        public void AddPoints(long increment)
+        {
+            var current = DateTime.Now.Date;
+
+            var currentDayPoints = DailyPoints.FirstOrDefault(p => p.Day == current);
+
+            if(currentDayPoints == null)
+            {
+                currentDayPoints = new UserPoints();
+                DailyPoints.Add(currentDayPoints);
+            }
+
+            currentDayPoints.Points += increment;
+        }
     }
 }

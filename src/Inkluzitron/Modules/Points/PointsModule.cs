@@ -102,7 +102,7 @@ namespace Inkluzitron.Modules.Points
             await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
             var results = new Dictionary<string, IReadOnlyList<GraphItem>>
             {
-                { "Body", await PointsService.GetAllPointsAsync() }
+                { "Body", await PointsService.GetUsersTotalPointsAsync() }
             };
 
             using var file = new TemporaryFile("png");

@@ -69,12 +69,21 @@ namespace Inkluzitron.Services
                 return null;
         }
 
-        public async Task<IReadOnlyList<GraphItem>> GetAllPointsAsync()
+        public async Task<IReadOnlyList<GraphItem>> GetUsersTotalPointsAsync()
         {
             using var context = DatabaseFactory.Create();
             var result = new List<GraphItem>();
 
-            await foreach (var userEntry in context.Users.AsQueryable().OrderBy(u => u.Points).AsAsyncEnumerable())
+            var usersPoints = context.Users.Include(u => u.DailyPoints).AsQueryable()
+                .Select(u => new
+                {
+                    u.Id,
+                    TotalPoints = u.DailyPoints.Sum(p => p.Points)
+                })
+                .OrderBy(u => u.TotalPoints)
+                .AsAsyncEnumerable();
+
+            await foreach (var userEntry in usersPoints)
             {
                 if (await LookupUserAsync(userEntry.Id) is not IUser user)
                     continue;
@@ -83,7 +92,7 @@ namespace Inkluzitron.Services
                 {
                     UserId = user.Id,
                     UserDisplayName = await UsersService.GetDisplayNameAsync(user),
-                    Value = userEntry.Points
+                    Value = userEntry.TotalPoints
                 });
             }
 
@@ -149,7 +158,8 @@ namespace Inkluzitron.Services
                 if (isOnCooldownFunc(userEntity))
                     return;
 
-                userEntity.Points += amount;
+
+                userEntity.AddPoints(amount);
                 resetCooldownAction(userEntity);
                 await context.SaveChangesAsync();
             });
@@ -162,7 +172,7 @@ namespace Inkluzitron.Services
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var userEntity = await context.GetOrCreateUserEntityAsync(user);
-                userEntity.Points += points;
+                userEntity.AddPoints(points);
                 await context.SaveChangesAsync();
             });
         }
@@ -173,12 +183,12 @@ namespace Inkluzitron.Services
             return await GetUserPositionAsync(context, user);
         }
 
-        static public async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user)
+        static private async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user)
         {
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
-                .Select(u => u.Points)
-                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.Points > ownPoints))
+                .Select(u => u.DailyPoints.Sum(p => p.Points))
+                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.DailyPoints.Sum(p => p.Points) > ownPoints))
                 .CountAsync();
 
             return index + 1;
@@ -187,8 +197,8 @@ namespace Inkluzitron.Services
         public async Task<Dictionary<int, User>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
         {
             using var context = DatabaseFactory.Create();
-            var users = context.Users.AsQueryable()
-                .OrderByDescending(u => u.Points)
+            var users = context.Users.Include(u => u.DailyPoints).AsQueryable()
+                .OrderByDescending(u => u.DailyPoints.Sum(p => p.Points))
                 .Skip(startFrom).Take(count)
                 .AsAsyncEnumerable();
 
@@ -275,7 +285,7 @@ namespace Inkluzitron.Services
                 .FillColor(MagickColors.LightGray)
                 .Font(DataFont)
                 .FontPointSize(DataSize)
-                .Text(330, 218, userEntity.Points.ToString("N0", NumberFormat))
+                .Text(330, 218, userEntity.GetTotalPoints().ToString("N0", NumberFormat))
                 .TextAlignment(TextAlignment.Right)
                 .Text(920, 218, positionText);
 

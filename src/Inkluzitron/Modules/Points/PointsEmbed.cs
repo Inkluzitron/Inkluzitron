@@ -49,7 +49,7 @@ namespace Inkluzitron.Modules.Points
                 var userData = client.GetUser(item.Value.Id);
                 users.AppendLine(userData == null ? "*neznámý*" : Format.Sanitize(await UsersService.GetDisplayNameAsync(userData)));
 
-                points.AppendLine(item.Value.Points.ToString("N0", NumberFormat));
+                points.AppendLine(item.Value.GetTotalPoints().ToString("N0", NumberFormat));
             }
 
             if (board.Count > 0)

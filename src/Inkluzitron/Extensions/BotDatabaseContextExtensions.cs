@@ -22,11 +22,11 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var displayName = user.Username; // TODO Bad
+            var displayName = user.Username;
 
             // Update cached displayname
             var result = await Patiently.HandleDbConcurrency(async () => {
-                var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
+                var userEntity = await context.Users.Include(u => u.DailyPoints).AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
 
                 if (userEntity != null && userEntity.Name != displayName)
                 {
