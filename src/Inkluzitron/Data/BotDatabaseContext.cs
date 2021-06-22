@@ -19,6 +19,8 @@ namespace Inkluzitron.Data
 
         public DbSet<User> Users { get; set; }
 
+        public DbSet<Invite> Invites { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>().Property("Gender").HasConversion<string>();
