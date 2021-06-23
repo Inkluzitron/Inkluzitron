@@ -80,7 +80,7 @@ namespace Inkluzitron.Modules
             await Context.User.SendMessageAsync(
                 $"Byl ti vygenerován následující invite link: {invite.Url}");
             await ReplyAsync(
-                $"Do DM jsem ti poslal vygenerovaný invite link. {Config["MCrack"]}");
+                $"Do DM jsem ti poslal vygenerovaný invite link. {Config["CrackTippingEmote"]}");
         }
 
         [Command("blame")]
