@@ -36,7 +36,7 @@ namespace Inkluzitron.Handlers
         /// <param name="user">newly joined user</param>
         private async Task OnUserJoinedAsync(SocketGuildUser user)
         {
-            var dbContext = DatabaseFactory.Create();
+            await using var dbContext = DatabaseFactory.Create();
             var inviteLinks = await user.Guild.GetInvitesAsync();
             var inviteeDb = await dbContext.GetOrCreateUserEntityAsync(user);
 
@@ -55,7 +55,6 @@ namespace Inkluzitron.Handlers
                 await dbContext.SaveChangesAsync();
 
                 await link.DeleteAsync();
-                await dbContext.DisposeAsync();
 
                 await user.Guild.DefaultChannel.SendMessageAsync(
                     "Vítej ***" +
@@ -68,7 +67,6 @@ namespace Inkluzitron.Handlers
                 "Nový uživatel " +
                 user.Username +
                 " se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
-            await dbContext.DisposeAsync();
         }
     }
 }
