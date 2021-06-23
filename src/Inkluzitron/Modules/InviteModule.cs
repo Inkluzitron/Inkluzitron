@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -15,7 +16,7 @@ namespace Inkluzitron.Modules
 {
     [Name("Invites")]
     [Group("invite")]
-    [Summary("Vytvoří jednorázový invite link, nebo zobrazí kým byl uživatel pozván.")]
+    [Summary("Vytvoří jednorázový invite link, nebo zobrazí kým byl uživatel pozván, popř. seznam lidí, které daný uživatel pozval, a počet nevyužitých pozvánek.")]
     public class InviteModule : ModuleBase
     {
         private IConfiguration Config { get; }
@@ -48,7 +49,8 @@ namespace Inkluzitron.Modules
             base.AfterExecute(command);
         }
 
-        [Command("")]
+        [Command("new")]
+        [Alias("create")]
         [Summary("Vytvoří jednorázový invite link a pošle ho do DM.")]
         [RequireBotPermission(GuildPermission.CreateInstantInvite)]
         public async Task CreateInviteAsync()
@@ -106,6 +108,27 @@ namespace Inkluzitron.Modules
             var message = $"Uživatel ***{Format.Sanitize(inviteeName)}*** byl pozván uživatelem ***{Format.Sanitize(inviterName)}***";
 
             await ReplyAsync(message);
+        }
+
+        [Command("")]
+        [Summary("Vypíše počet uživatelů, kteří byli daným uživatelem pozvání, a počet nevyužitých pozvánek.")]
+        public async Task GetInviteStatisticsForUser([Name("kdo")] IUser target = null)
+        {
+            target ??= Context.User;
+
+            var pendingInvites = DbContext.Invites
+                .Count(x => x.UsedByUserId == null && x.GeneratedByUserId == target.Id);
+
+            var invitedPeople = DbContext.Invites
+                .Include(x => x.UsedBy)
+                .Where(x => x.UsedByUserId != null && x.GeneratedByUserId == target.Id)
+                .Select(x => x.UsedBy.Name).Distinct()
+                .AsQueryable();
+
+
+            var name = await UsersService.GetDisplayNameAsync(target.Id);
+            await ReplyAsync(
+                $"Informace o invitech pro uživatele ***{name}:***\n_Počet nevyužitých pozvánek:_ {pendingInvites}\n_Seznam pozvaných lidí:_ {string.Join(", ", invitedPeople)}");
         }
     }
 }
