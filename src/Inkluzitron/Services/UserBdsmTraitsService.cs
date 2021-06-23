@@ -143,6 +143,12 @@ namespace Inkluzitron.Services
                 return check;
             }
 
+            if (userDb.Points < 0)
+            {
+                check.Result = BdsmTraitOperationCheckResult.UserNegativePoints;
+                return check;
+            }
+
             var userDominance = await GetTraitScore(user, BdsmTrait.Dominant);
             var userSubmissiveness = await GetTraitScore(user, BdsmTrait.Submissive);
             var targetDominance = await GetTraitScore(target, BdsmTrait.Dominant);

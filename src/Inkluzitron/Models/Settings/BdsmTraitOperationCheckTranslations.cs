@@ -11,6 +11,7 @@ namespace Inkluzitron.Models.Settings
 
         public string[] MissingUserConsentGendered { get; set; }
         public string[] MissingTargetConsentGendered { get; set; }
+        public string NegativePoints { get; set; }
         public string MissingTest { get; set; }
         public string InCompliance { get; set; }
         public string RollSucceeded { get; set; }
