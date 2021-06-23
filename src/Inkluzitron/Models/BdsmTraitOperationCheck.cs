@@ -27,7 +27,8 @@ namespace Inkluzitron.Models
         public bool Backfired => Result == BdsmTraitOperationCheckResult.RollFailed;
         public bool CanProceedNormally => !Backfired
             && Result != BdsmTraitOperationCheckResult.TargetDidNotConsent
-            && Result != BdsmTraitOperationCheckResult.UserDidNotConsent;
+            && Result != BdsmTraitOperationCheckResult.UserDidNotConsent
+            && Result != BdsmTraitOperationCheckResult.UserNegativePoints;
 
         public int UserSubmissiveness { get; set; }
         public int UserDominance { get; set; }
@@ -74,6 +75,9 @@ namespace Inkluzitron.Models
 
                 case BdsmTraitOperationCheckResult.TargetDidNotConsent:
                     return string.Format(_translations.MissingTargetConsentGendered[(int)_targetGender], TargetDisplayName);
+
+                case BdsmTraitOperationCheckResult.UserNegativePoints:
+                    return string.Format(_translations.NegativePoints, UserDisplayName);
 
                 default:
                     return base.ToString();

@@ -9,6 +9,7 @@
         RollSucceeded,
         RollFailed,
         UserDidNotConsent,
-        TargetDidNotConsent
+        TargetDidNotConsent,
+        UserNegativePoints
     }
 }
