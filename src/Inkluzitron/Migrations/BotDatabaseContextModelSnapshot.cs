@@ -64,6 +64,29 @@ namespace Inkluzitron.Migrations
                     b.ToTable("BdsmTestOrgResults");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
+                {
+                    b.Property<string>("InviteLink")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<ulong>("GeneratedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong?>("UsedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("InviteLink");
+
+                    b.HasIndex("GeneratedByUserId");
+
+                    b.HasIndex("UsedByUserId");
+
+                    b.ToTable("Invites");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
                 {
                     b.Property<long>("Id")
@@ -217,6 +240,23 @@ namespace Inkluzitron.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.Entities.User", "GeneratedBy")
+                        .WithMany()
+                        .HasForeignKey("GeneratedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Inkluzitron.Data.Entities.User", "UsedBy")
+                        .WithMany()
+                        .HasForeignKey("UsedByUserId");
+
+                    b.Navigation("GeneratedBy");
+
+                    b.Navigation("UsedBy");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
