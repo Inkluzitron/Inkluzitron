@@ -61,11 +61,7 @@ namespace Inkluzitron.Modules
                 true,
                 new RequestOptions()
                 {
-                    AuditLogReason = "User with ID " +
-                                     Context.User.Id +
-                                     " and name " +
-                                     Context.User.Username +
-                                     " wants to invite someone!"
+                    AuditLogReason = $"User with ID {Context.User.Id} and name {Context.User.Username} wants to invite someone!"
                 });
 
             var user = await DbContext.GetOrCreateUserEntityAsync(
@@ -82,9 +78,9 @@ namespace Inkluzitron.Modules
             await DbContext.SaveChangesAsync();
 
             await Context.User.SendMessageAsync(
-                "Byl ti vygenerován následující invite link: " + invite.Url);
+                $"Byl ti vygenerován následující invite link: {invite.Url}");
             await ReplyAsync(
-                "Do DM jsem ti poslal vygenerovaný invite link. " + Config["MCrack"]);
+                $"Do DM jsem ti poslal vygenerovaný invite link. {Config["MCrack"]}");
         }
 
         [Command("blame")]
@@ -101,14 +97,12 @@ namespace Inkluzitron.Modules
             {
                 if (invite.UsedByUserId != target.Id) continue;
 
-                var message = new StringBuilder();
                 var inviteeName = await UsersService.GetDisplayNameAsync(target);
                 var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
 
-                message.AppendFormat("Uživatel ***{0}*** byl pozván uživatelem ***{1}***",
-                    inviteeName, inviterName);
+                var message = $"Uživatel ***{inviteeName}*** byl pozván uživatelem ***{inviterName}***";
 
-                await Context.Channel.SendMessageAsync(message.ToString());
+                await Context.Channel.SendMessageAsync(message);
                 return;
             }
 
