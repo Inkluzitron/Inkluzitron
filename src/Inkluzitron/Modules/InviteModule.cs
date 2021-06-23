@@ -89,25 +89,24 @@ namespace Inkluzitron.Modules
         {
             target ??= Context.User;
 
-            var invites = DbContext.Invites
+            var invite = await DbContext.Invites
                 .Include(i => i.GeneratedBy)
-                .Include(i => i.UsedBy).AsQueryable();
+                .Include(i => i.UsedBy)
+                .Where(x => x.UsedByUserId == target.Id).FirstOrDefaultAsync();
 
-            foreach (var invite in invites)
+            if (invite == null)
             {
-                if (invite.UsedByUserId != target.Id) continue;
-
-                var inviteeName = await UsersService.GetDisplayNameAsync(target);
-                var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
-
-                var message = $"Uživatel ***{inviteeName}*** byl pozván uživatelem ***{inviterName}***";
-
-                await Context.Channel.SendMessageAsync(message);
+                await Context.Channel.SendMessageAsync(
+                    "Tento uživatel byl s největší pravděpodobností pozván před vznikem této fíčury.");
                 return;
             }
 
-            await Context.Channel.SendMessageAsync(
-                "Tento uživatel byl s největší pravděpodobností pozván před vznikem této fíčury.");
+            var inviteeName = await UsersService.GetDisplayNameAsync(target);
+            var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
+
+            var message = $"Uživatel ***{inviteeName}*** byl pozván uživatelem ***{inviterName}***";
+
+            await Context.Channel.SendMessageAsync(message);
         }
     }
 }
