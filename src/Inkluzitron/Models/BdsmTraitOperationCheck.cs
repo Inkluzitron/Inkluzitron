@@ -77,7 +77,7 @@ namespace Inkluzitron.Models
                     return string.Format(_translations.MissingTargetConsentGendered[(int)_targetGender], TargetDisplayName);
 
                 case BdsmTraitOperationCheckResult.UserNegativePoints:
-                    return string.Format(_translations.NegativePoints, UserDisplayName);
+                    return _translations.NegativePoints;
 
                 default:
                     return base.ToString();
