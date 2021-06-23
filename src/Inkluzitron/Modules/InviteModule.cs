@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -104,7 +103,7 @@ namespace Inkluzitron.Modules
             var inviteeName = await UsersService.GetDisplayNameAsync(target);
             var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
 
-            var message = $"Uživatel ***{inviteeName}*** byl pozván uživatelem ***{inviterName}***";
+            var message = $"Uživatel ***{Format.Sanitize(inviteeName)}*** byl pozván uživatelem ***{Format.Sanitize(inviterName)}***";
 
             await ReplyAsync(message);
         }
