@@ -47,7 +47,7 @@ namespace Inkluzitron.Handlers
 
                 var invite = await dbContext.Invites.AsQueryable()
                     .Where(i => i.InviteLink == link.Url)
-                    .FirstAsync();
+                    .FirstOrDefaultAsync();
 
                 if (invite == null) continue;
 
