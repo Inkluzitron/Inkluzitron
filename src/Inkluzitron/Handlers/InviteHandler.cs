@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord.WebSocket;
@@ -5,6 +6,7 @@ using Inkluzitron.Data;
 using Inkluzitron.Extensions;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Inkluzitron.Handlers
 {
@@ -13,6 +15,7 @@ namespace Inkluzitron.Handlers
     /// </summary>
     public class InviteHandler : IHandler
     {
+        private IConfiguration Config { get; }
         private DiscordSocketClient DiscordSocketClient { get; }
 
         private DatabaseFactory DatabaseFactory { get; }
@@ -20,11 +23,13 @@ namespace Inkluzitron.Handlers
 
         public InviteHandler(DiscordSocketClient discordSocketClient,
             DatabaseFactory databaseFactory,
-            UsersService usersService)
+            UsersService usersService,
+            IConfiguration config)
         {
             DiscordSocketClient = discordSocketClient;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
+            Config = config;
 
             DiscordSocketClient.UserJoined += OnUserJoinedAsync;
         }
@@ -56,8 +61,15 @@ namespace Inkluzitron.Handlers
 
                 await link.DeleteAsync();
 
-                await user.Guild.DefaultChannel.SendMessageAsync(
-                    $"Vítej ***{user.Username}*** na našem serveru!");
+                var welcomeMessage = Config.GetSection("Welcoming").GetRequired<string>("Message");
+                var rooms = Config.GetSection("Welcoming").GetRequired<string>("Rooms");
+                var formattedMessage = string.Format(
+                    welcomeMessage,
+                    inviteeDb.Name,
+                    rooms
+                );
+
+                await user.Guild.DefaultChannel.SendMessageAsync(formattedMessage);
                 return;
             }
 
