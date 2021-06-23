@@ -96,7 +96,7 @@ namespace Inkluzitron.Modules
 
             if (invite == null)
             {
-                await Context.Channel.SendMessageAsync(
+                await ReplyAsync(
                     "Tento uživatel byl s největší pravděpodobností pozván před vznikem této fíčury.");
                 return;
             }
@@ -106,7 +106,7 @@ namespace Inkluzitron.Modules
 
             var message = $"Uživatel ***{inviteeName}*** byl pozván uživatelem ***{inviterName}***";
 
-            await Context.Channel.SendMessageAsync(message);
+            await ReplyAsync(message);
         }
     }
 }
