@@ -9,6 +9,7 @@ using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Modules.Points;
 using Inkluzitron.Services;
+using Inkluzitron.Services.ChannelLogger;
 using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -88,8 +89,9 @@ namespace Inkluzitron
                 .AddMemoryCache()
                 .AddLogging(config =>
                 {
-                    config.AddConfiguration(configuration.GetSection("Logging"));
-                    config.AddConsole();
+                    config.AddConfiguration(configuration.GetSection("Logging"))
+                        .AddConsole()
+                        .AddChannelLogger();
                 });
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
