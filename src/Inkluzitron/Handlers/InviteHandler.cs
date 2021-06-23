@@ -1,6 +1,6 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Extensions;
@@ -74,7 +74,7 @@ namespace Inkluzitron.Handlers
             }
 
             await user.Guild.DefaultChannel.SendMessageAsync(
-                $"Nový uživatel ***{user.Username}*** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
+                $"Nový uživatel ***{Format.Sanitize(user.Username)}*** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
         }
     }
 }
