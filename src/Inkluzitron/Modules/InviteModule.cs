@@ -105,7 +105,7 @@ namespace Inkluzitron.Modules
             var inviteeName = await UsersService.GetDisplayNameAsync(target);
             var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
 
-            var message = $"Uživatel ***{Format.Sanitize(inviteeName)}*** byl pozván uživatelem ***{Format.Sanitize(inviterName)}***";
+            var message = $"Uživatel **{Format.Sanitize(inviteeName)}** byl pozván uživatelem **{Format.Sanitize(inviterName)}**";
 
             await ReplyAsync(message);
         }
@@ -128,7 +128,7 @@ namespace Inkluzitron.Modules
 
             var name = await UsersService.GetDisplayNameAsync(target.Id);
             await ReplyAsync(
-                $"Informace o invitech pro uživatele ***{name}:***\n_Počet nevyužitých pozvánek:_ {pendingInvites}\n_Seznam pozvaných lidí:_ {string.Join(", ", invitedPeople)}");
+                $"Informace o invitech pro uživatele **{name}**:\n_Počet nevyužitých pozvánek:_ {pendingInvites}\n_Seznam pozvaných lidí:_ {string.Join(", ", invitedPeople)}");
         }
     }
 }

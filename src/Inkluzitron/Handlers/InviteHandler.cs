@@ -74,7 +74,7 @@ namespace Inkluzitron.Handlers
             }
 
             await user.Guild.DefaultChannel.SendMessageAsync(
-                $"Nový uživatel ***{Format.Sanitize(user.Username)}*** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
+                $"Nový uživatel **{Format.Sanitize(user.Username)}** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
         }
     }
 }
