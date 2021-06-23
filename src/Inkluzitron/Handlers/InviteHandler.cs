@@ -57,16 +57,12 @@ namespace Inkluzitron.Handlers
                 await link.DeleteAsync();
 
                 await user.Guild.DefaultChannel.SendMessageAsync(
-                    "Vítej ***" +
-                    user.Username +
-                    "*** na našem serveru!");
+                    $"Vítej ***{user.Username}*** na našem serveru!");
                 return;
             }
 
             await user.Guild.DefaultChannel.SendMessageAsync(
-                "Nový uživatel " +
-                user.Username +
-                " se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
+                $"Nový uživatel ***{user.Username}*** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
         }
     }
 }
