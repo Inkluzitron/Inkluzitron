@@ -1,4 +1,6 @@
 ﻿using ImageMagick;
+using System.Drawing.Imaging;
+using System.Linq;
 using System.Security;
 
 namespace Inkluzitron.Extensions
@@ -15,6 +17,18 @@ namespace Inkluzitron.Extensions
 
             image.Alpha(AlphaOption.On);
             image.Composite(mask, CompositeOperator.Multiply);
+        }
+
+        static public IMagickColor<byte> GetDominantColor(this IMagickImage<byte> image)
+        {
+            using var img = image.Clone();
+            img.InterpolativeResize(32, 32, PixelInterpolateMethod.Average);
+            img.Quantize(new QuantizeSettings() { Colors = 8 });
+            var histogram = img.Histogram();
+
+            var dominantColor = histogram.Aggregate((x, y) => x.Value > y.Value ? x : y).Key;
+
+            return dominantColor;
         }
 
         static public void DrawEnhancedText(

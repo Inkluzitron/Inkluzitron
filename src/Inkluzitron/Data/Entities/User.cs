@@ -30,8 +30,8 @@ namespace Inkluzitron.Data.Entities
         public bool HasGivenConsentTo(CommandConsent consentKind)
             => (CommandConsents & consentKind) == consentKind;
 
-        public long GetTotalPoints()
-            => DailyPoints.Sum(p => p.Points);
+        public long GetTotalPoints(DateTime? from = null)
+            => DailyPoints.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points);
 
         public void AddPoints(long increment)
         {
