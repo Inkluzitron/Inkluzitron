@@ -49,13 +49,13 @@ namespace Inkluzitron.Modules.Points
         [Summary("Zobrazí aktuální stav bodů jiného uživatele.")]
         public async Task GetPointsAsync([Name("uživatel")]IUser member)
         {
-            using var points = await PointsService.GetPointsAsync(member);
-
-            if (points == null)
+            if (member.IsBot)
             {
-                await ReplyAsync($"Uživatel `{Format.Sanitize(await UsersService.GetDisplayNameAsync(member))}` ještě nemá žádné body.");
+                await ReplyAsync($"Nelze zobrazit body pro bota {Format.Sanitize(await UsersService.GetDisplayNameAsync(member))} (botům se body nepočítají).");
                 return;
             }
+
+            using var points = await PointsService.GetPointsAsync(member);
 
             await ReplyFileAsync(points.Path);
         }
@@ -75,6 +75,7 @@ namespace Inkluzitron.Modules.Points
         {
             var count = await PointsService.GetUserCount();
 
+            if (start < 1) start = 1;
             if (start >= count) start = count - 1;
             start -= start % BoardPageLimit;
 

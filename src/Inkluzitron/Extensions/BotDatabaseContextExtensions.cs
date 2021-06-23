@@ -58,8 +58,12 @@ namespace Inkluzitron.Extensions
             userEntity = new User()
             {
                 Id = user.Id,
-                Name = user.Username // TODO Bad
+                Name = user.Username
             };
+
+            // Do not store bot data
+            if (user.IsBot)
+                return userEntity;
 
             await context.AddAsync(userEntity);
             await context.SaveChangesAsync();

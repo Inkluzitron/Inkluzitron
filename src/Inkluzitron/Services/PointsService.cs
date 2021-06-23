@@ -158,6 +158,9 @@ namespace Inkluzitron.Services
 
         public async Task AddIncrementalPoints(IUser user, int amount, Func<User, bool> isOnCooldownFunc, Action<User> resetCooldownAction)
         {
+            if (user.IsBot)
+                return;
+
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
@@ -175,6 +178,9 @@ namespace Inkluzitron.Services
 
         public async Task AddPointsAsync(IUser user, int points)
         {
+            if (user.IsBot)
+                return;
+
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
@@ -193,6 +199,9 @@ namespace Inkluzitron.Services
 
         static private async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user, DateTime? from = null)
         {
+            if(user.IsBot)
+                return 0;
+
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
                 .Select(u => u.DailyPoints.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points))
