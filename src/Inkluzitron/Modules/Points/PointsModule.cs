@@ -1,7 +1,5 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
@@ -21,15 +19,13 @@ namespace Inkluzitron.Modules.Points
         private PointsService PointsService { get; }
         private GraphPaintingService GraphPaintingService { get; }
         private PointsGraphPaintingStrategy GraphPaintingStrategy { get; }
-        private DiscordSocketClient Client { get; }
         private ReactionSettings ReactionSettings { get; }
         private UsersService UsersService { get; }
         private readonly int BoardPageLimit = 10;
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
+        public PointsModule(PointsService pointsService, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
         {
             PointsService = pointsService;
-            Client = client;
             ReactionSettings = reactionSettings;
             GraphPaintingService = graphPaintingService;
             GraphPaintingStrategy = graphPaintingStrategy;
@@ -73,15 +69,15 @@ namespace Inkluzitron.Modules.Points
         [Summary("Žebříček uživatelů s nejvíce body s posunem od počátku tabulky.")]
         public async Task GetLeaderboardAsync([Name("offset")]int start)
         {
-            var count = await PointsService.GetUserCount();
+            var count = await PointsService.GetUserCountAsync();
 
             if (start < 1) start = 1;
             if (start >= count) start = count - 1;
             start -= start % BoardPageLimit;
 
             var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit);
-            var embed = await (new PointsEmbed(UsersService).WithBoard(
-                board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit));
+            var embed = new PointsEmbed().WithBoard(
+                board, Context.Client.CurrentUser, count, start, BoardPageLimit);
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);

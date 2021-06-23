@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using ImageMagick;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
@@ -82,11 +83,11 @@ namespace Inkluzitron.Services
             using var context = DatabaseFactory.Create();
             var result = new List<GraphItem>();
 
-            var usersPoints = context.Users.Include(u => u.DailyPoints).AsQueryable()
+            var usersPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
                 .Select(u => new
                 {
                     u.Id,
-                    TotalPoints = u.DailyPoints.Sum(p => p.Points)
+                    TotalPoints = u.DailyActivity.Sum(p => p.Points)
                 })
                 .OrderBy(u => u.TotalPoints)
                 .AsAsyncEnumerable();
@@ -119,11 +120,12 @@ namespace Inkluzitron.Services
             if (user.IsBot)
                 return;
 
-            await AddIncrementalPoints(
+            await AddIncrementalPointsAsync(
                 user,
                 ThreadSafeRandom.Next(0, 10),
                 u => DateTime.UtcNow.Subtract(u.LastReactionPointsIncrement ?? FallbackDateTime) < ReactionIncrementCooldown,
-                u => u.LastReactionPointsIncrement = DateTime.UtcNow
+                u => u.LastReactionPointsIncrement = DateTime.UtcNow,
+                UserActivityType.ReactionAdded
             );
 
             var msg = await message.GetOrDownloadAsync();
@@ -148,15 +150,17 @@ namespace Inkluzitron.Services
             if (message.Author.IsBot)
                 return;
 
-            await AddIncrementalPoints(
+            await AddIncrementalPointsAsync(
                 message.Author,
                 ThreadSafeRandom.Next(0, 25),
                 u => DateTime.UtcNow.Subtract(u.LastMessagePointsIncrement ?? FallbackDateTime) < MessageIncrementCooldown,
-                u => u.LastMessagePointsIncrement = DateTime.UtcNow
+                u => u.LastMessagePointsIncrement = DateTime.UtcNow,
+                UserActivityType.MessageSent
             );
         }
 
-        public async Task AddIncrementalPoints(IUser user, int amount, Func<User, bool> isOnCooldownFunc, Action<User> resetCooldownAction)
+        public async Task AddIncrementalPointsAsync(IUser user, int amount, Func<User, bool> isOnCooldownFunc,
+            Action<User> resetCooldownAction, UserActivityType activityType = UserActivityType.Other)
         {
             if (user.IsBot)
                 return;
@@ -169,8 +173,14 @@ namespace Inkluzitron.Services
                 if (isOnCooldownFunc(userEntity))
                     return;
 
+                var activity = await context.GetTodayUserActivityAsync(user);
+                activity.Points += amount;
 
-                userEntity.AddPoints(amount);
+                if (activityType == UserActivityType.MessageSent)
+                    activity.MessagesSent++;
+                else if (activityType == UserActivityType.ReactionAdded)
+                    activity.ReactionsAdded++;
+
                 resetCooldownAction(userEntity);
                 await context.SaveChangesAsync();
             });
@@ -185,8 +195,8 @@ namespace Inkluzitron.Services
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await context.GetOrCreateUserEntityAsync(user);
-                userEntity.AddPoints(points);
+                var activity = await context.GetTodayUserActivityAsync(user);
+                activity.Points += points;
                 await context.SaveChangesAsync();
             });
         }
@@ -204,35 +214,51 @@ namespace Inkluzitron.Services
 
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
-                .Select(u => u.DailyPoints.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points))
+                .Select(u => u.DailyActivity.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points))
                 .Select(ownPoints => context.Users.AsQueryable()
-                    .Where(u => u.DailyPoints.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points) > ownPoints)
+                    .Where(u => u.DailyActivity.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points) > ownPoints)
                     .Count())
                 .FirstAsync();
 
             return index + 1;
         }
 
-        public async Task<Dictionary<int, User>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
+        public async Task<long> GetTotalPointsAsync(IUser user, DateTime? from = null)
         {
             using var context = DatabaseFactory.Create();
-            var users = context.Users.Include(u => u.DailyPoints).AsQueryable()
-                .OrderByDescending(u => u.DailyPoints.Sum(p => p.Points))
+            return await context.DailyUsersActivities.AsQueryable()
+                .Where(a =>
+                    a.UserId == user.Id &&
+                    (!from.HasValue || a.Day >= from.Value))
+                .SumAsync(a => a.Points);
+        }
+
+        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
+        {
+            using var context = DatabaseFactory.Create();
+            var userPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
+                .Select(u => new { u.Id, Points = u.DailyActivity.Sum(p => p.Points) })
+                .OrderByDescending(u => u.Points)
                 .Skip(startFrom).Take(count)
                 .AsAsyncEnumerable();
 
-            var board = new Dictionary<int, User>();
+            var board = new List<PointsLeaderboardData>();
 
-            await foreach (var user in users)
+            await foreach (var user in userPoints)
             {
                 startFrom++;
-                board.Add(startFrom, user);
+                board.Add(new PointsLeaderboardData()
+                {
+                    Position = startFrom,
+                    UserDisplayName = await UsersService.GetDisplayNameAsync(user.Id),
+                    Points = user.Points
+                });
             }
 
             return board;
         }
 
-        public async Task<int> GetUserCount()
+        public async Task<int> GetUserCountAsync()
         {
             using var context = DatabaseFactory.Create();
             return await context.Users.AsQueryable().CountAsync();
@@ -258,7 +284,7 @@ namespace Inkluzitron.Services
                 var tmpFile = new TemporaryFile("gif");
                 using var output = new MagickImageCollection();
 
-                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user, ppDominantColor);
+                using var baseImage = await RenderPointsBaseFrameAsync(position, user, ppDominantColor);
                 foreach (var frameAvatar in profilePicture.Frames)
                 {
                     frameAvatar.Resize(166, 166);
@@ -277,7 +303,7 @@ namespace Inkluzitron.Services
             }
             else
             {
-                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user, ppDominantColor);
+                using var baseImage = await RenderPointsBaseFrameAsync(position, user, ppDominantColor);
 
                 var avatar = profilePicture.Frames[0];
                 avatar.Resize(166, 166);
@@ -291,18 +317,24 @@ namespace Inkluzitron.Services
             }
         }
 
-        private void DrawGraphOnPointsImage(MagickImage image, List<UserPoints> dailyPoints, int width, int height)
+        private async Task DrawGraphOnPointsImage(MagickImage image, IUser user, int width, int height)
         {
             var days = BotSettings.UserPointsGraphDays;
 
             var graphPoints = new List<PointD>();
-            var graphData = new List<UserPoints>();
+            var graphData = new List<DailyUserActivity>();
             var today = DateTime.Now.Date;
+            var day = today.AddDays(-days);
 
-            for (var day = today.AddDays(-days); day < today; day = day.AddDays(1))
+            using var context = DatabaseFactory.Create();
+            var dailyPoints = await context.DailyUsersActivities.AsQueryable()
+                .Where(a => a.UserId == user.Id && a.Day >= day)
+                .ToListAsync();
+
+            for (; day < today; day = day.AddDays(1))
             {
                 var dayData = dailyPoints.FirstOrDefault(p => p.Day == day)
-                    ?? new UserPoints() { Day = day, Points = 0 };
+                    ?? new DailyUserActivity() { Day = day, Points = 0 };
 
                 graphData.Add(dayData);
             }
@@ -343,7 +375,7 @@ namespace Inkluzitron.Services
                 .Draw(image);
         }
 
-        private async Task<MagickImage> RenderPointsBaseFrame(User userEntity, int position, IUser user, IMagickColor<byte> headerColor)
+        private async Task<MagickImage> RenderPointsBaseFrameAsync(int position, IUser user, IMagickColor<byte> headerColor)
         {
             var pastWeek = DateTime.Now.AddDays(-6).Date;
             var pastMonth = DateTime.Now.AddMonths(-1).AddDays(1).Date;
@@ -368,7 +400,7 @@ namespace Inkluzitron.Services
                 .FillColor(MagickColors.LightGray)
                 .Font(DataFont)
                 .FontPointSize(DataFontSize)
-                .Text(330, 190, userEntity.GetTotalPoints().ToString("N0", NumberFormat))
+                .Text(330, 190, (await GetTotalPointsAsync(user)).ToString("N0", NumberFormat))
                 .TextAlignment(TextAlignment.Right)
                 .Text(870, 190, positionText);
 
@@ -390,8 +422,8 @@ namespace Inkluzitron.Services
                 .FontPointSize(SmallDataFontSize)
                 .FillColor(MagickColors.DarkGray);
 
-            var weekPoints = userEntity.GetTotalPoints(pastWeek).ToString("N0", NumberFormat);
-            var monthPoints = userEntity.GetTotalPoints(pastMonth).ToString("N0", NumberFormat);
+            var weekPoints = (await GetTotalPointsAsync(user, pastWeek)).ToString("N0", NumberFormat);
+            var monthPoints = (await GetTotalPointsAsync(user, pastMonth)).ToString("N0", NumberFormat);
             var smallPositionX = 330 + Math.Max(
                 drawable.FontTypeMetrics(weekPoints).TextWidth,
                 drawable.FontTypeMetrics(monthPoints).TextWidth);
@@ -406,12 +438,12 @@ namespace Inkluzitron.Services
 
             image.DrawEnhancedText(nickname, 240, 45, nicknameColor, NicknameFont, NicknameFontSize, 635);
 
-            DrawGraphOnPointsImage(image, userEntity.DailyPoints, 250, 60);
+            await DrawGraphOnPointsImage(image, user, 250, 60);
 
             var finalImage = new MagickImage(MagickColors.Transparent, image.Width + 40, image.Height + 40);
 
             new Drawables()
-                .FillColor(MagickColor.FromRgba(0, 0, 0, 100))
+                .FillColor(MagickColor.FromRgba(0, 0, 0, 50))
                 .RoundRectangle(20, 20, finalImage.Width - 20, finalImage.Height - 20, 12, 12)
                 .Draw(finalImage);
 

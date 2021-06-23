@@ -1,13 +1,10 @@
 ﻿using Discord;
-using Discord.WebSocket;
-using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
-using Inkluzitron.Services;
+using Inkluzitron.Models;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Points
 {
@@ -15,16 +12,8 @@ namespace Inkluzitron.Modules.Points
     {
         static private readonly NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
 
-        private UsersService UsersService { get; }
-
-        public PointsEmbed(UsersService usersService)
-        {
-            UsersService = usersService;
-        }
-
-        public async Task<PointsEmbed> WithBoard(
-            Dictionary<int, User> board, DiscordSocketClient client,
-            IUser user, int count, int start = 0, int limit = 10)
+        public PointsEmbed WithBoard(
+            List<PointsLeaderboardData> board, IUser user, int count, int start = 0, int limit = 10)
         {
             WithAuthor("Žebříček bodů", user.GetAvatarUrl());
             WithTimestamp(DateTime.Now);
@@ -45,11 +34,10 @@ namespace Inkluzitron.Modules.Points
 
             foreach (var item in board)
             {
-                position.Append("**").Append(item.Key).AppendLine(".**");
-                var userData = client.GetUser(item.Value.Id);
-                users.AppendLine(userData == null ? "*neznámý*" : Format.Sanitize(await UsersService.GetDisplayNameAsync(userData)));
+                position.Append("**").Append(item.Position).AppendLine(".**");
+                users.AppendLine(item.UserDisplayName == null ? "*neznámý*" : Format.Sanitize(item.UserDisplayName));
 
-                points.AppendLine(item.Value.GetTotalPoints().ToString("N0", NumberFormat));
+                points.AppendLine(item.Points.ToString("N0", NumberFormat));
             }
 
             if (board.Count > 0)

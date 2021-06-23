@@ -22,11 +22,11 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
+            // Update cached displayname
             var displayName = user.Username;
 
-            // Update cached displayname
             var result = await Patiently.HandleDbConcurrency(async () => {
-                var userEntity = await context.Users.Include(u => u.DailyPoints).AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
+                var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
 
                 if (userEntity != null && userEntity.Name != displayName)
                 {
@@ -84,6 +84,30 @@ namespace Inkluzitron.Extensions
                 userEntity.CommandConsents = consentUpdaterFunc(userEntity.CommandConsents);
                 await context.SaveChangesAsync();
             });
+        }
+
+        static public Task<DailyUserActivity> GetTodayUserActivityAsync(this BotDatabaseContext context, IUser user)
+            => GetUserActivityAsync(context, user, DateTime.Now);
+
+        static public async Task<DailyUserActivity> GetUserActivityAsync(this BotDatabaseContext context, IUser user, DateTime day)
+        {
+            day = day.Date;
+
+            var todayActivity = await context.DailyUsersActivities.AsQueryable()
+                .FirstOrDefaultAsync(a => a.UserId == user.Id && a.Day == day);
+
+            if (todayActivity == null)
+            {
+                todayActivity = new DailyUserActivity()
+                {
+                    Day = DateTime.Now.Date,
+                    User = await context.GetOrCreateUserEntityAsync(user)
+                };
+
+                await context.DailyUsersActivities.AddAsync(todayActivity);
+            }
+
+            return todayActivity;
         }
     }
 }

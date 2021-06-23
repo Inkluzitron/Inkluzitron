@@ -17,7 +17,7 @@ namespace Inkluzitron.Data.Entities
 
         public Gender Gender { get; set; } = Gender.Unspecified;
 
-        public List<UserPoints> DailyPoints { get; set; } = new();
+        public List<DailyUserActivity> DailyActivity { get; set; } = new();
 
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
@@ -29,23 +29,5 @@ namespace Inkluzitron.Data.Entities
 
         public bool HasGivenConsentTo(CommandConsent consentKind)
             => (CommandConsents & consentKind) == consentKind;
-
-        public long GetTotalPoints(DateTime? from = null)
-            => DailyPoints.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points);
-
-        public void AddPoints(long increment)
-        {
-            var current = DateTime.Now.Date;
-
-            var currentDayPoints = DailyPoints.FirstOrDefault(p => p.Day == current);
-
-            if(currentDayPoints == null)
-            {
-                currentDayPoints = new UserPoints();
-                DailyPoints.Add(currentDayPoints);
-            }
-
-            currentDayPoints.Points += increment;
-        }
     }
 }

@@ -64,6 +64,34 @@ namespace Inkluzitron.Migrations
                     b.ToTable("BdsmTestOrgResults");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Day")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("MessagesSent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ReactionsAdded")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DailyUsersActivities");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.RicePurityResult", b =>
                 {
                     b.Property<long>("Id")
@@ -169,28 +197,6 @@ namespace Inkluzitron.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.UserPoints", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("Day")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("Points")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserPoints");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgItem", b =>
                 {
                     b.HasOne("Inkluzitron.Data.Entities.BdsmTestOrgResult", "Parent")
@@ -206,6 +212,17 @@ namespace Inkluzitron.Migrations
                 {
                     b.HasOne("Inkluzitron.Data.Entities.User", "User")
                         .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.Entities.User", "User")
+                        .WithMany("DailyActivity")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -235,17 +252,6 @@ namespace Inkluzitron.Migrations
                     b.Navigation("Message");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.UserPoints", b =>
-                {
-                    b.HasOne("Inkluzitron.Data.Entities.User", "User")
-                        .WithMany("DailyPoints")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgResult", b =>
                 {
                     b.Navigation("Items");
@@ -258,7 +264,7 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
                 {
-                    b.Navigation("DailyPoints");
+                    b.Navigation("DailyActivity");
                 });
 #pragma warning restore 612, 618
         }

@@ -18,6 +18,7 @@ namespace Inkluzitron.Data
         public DbSet<RoleMenuMessageRole> RoleMenuMessageRoles { get; set; }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<DailyUserActivity> DailyUsersActivities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
