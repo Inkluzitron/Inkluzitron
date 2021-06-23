@@ -51,7 +51,7 @@ namespace Inkluzitron.Handlers
 
                 if (invite == null) continue;
 
-                dbContext.Invites.Update(invite).Entity.UsedByUserId = inviteeDb.Id;
+                invite.UsedByUserId = inviteeDb.Id;
                 await dbContext.SaveChangesAsync();
 
                 await link.DeleteAsync();
