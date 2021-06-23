@@ -61,8 +61,8 @@ namespace Inkluzitron.Handlers
 
                 await link.DeleteAsync();
 
-                var welcomeMessage = Config.GetSection("Welcoming").GetRequired<string>("Message");
-                var rooms = Config.GetSection("Welcoming").GetRequired<string>("Rooms");
+                var welcomeMessage = Config.GetValue<string>("Welcoming:Message");
+                var rooms = Config.GetValue<string>("Welcoming:Rooms");
                 var formattedMessage = string.Format(
                     welcomeMessage,
                     inviteeDb.Name,
