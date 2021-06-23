@@ -55,7 +55,7 @@ namespace Inkluzitron.Services
             const string font = "Open Sans";
             DataFont = new DrawableFont(font) { Weight = FontWeight.Bold };
             DataFontSize = 40;
-            NicknameFont = new DrawableFont(font) { Weight = FontWeight.SemiBold };
+            NicknameFont = new DrawableFont(font) { Weight = FontWeight.Bold };
             NicknameFontSize = 40;
             LabelFont = new DrawableFont(font);
             LabelFontSize = 20;

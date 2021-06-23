@@ -1,5 +1,4 @@
 ﻿using ImageMagick;
-using System.Drawing.Imaging;
 using System.Linq;
 using System.Security;
 

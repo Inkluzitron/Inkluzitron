@@ -11,14 +11,12 @@ namespace Inkluzitron.Modules.Points
     {
         public PointsGraphPaintingStrategy()
             : base(
-                  new DrawableFont("Comic Sans MS"),
-                  new DrawableFont("Comic Sans MS") { Weight = FontWeight.Bold },
-                  new DrawableFont("Comic Sans MS"),
-                  new DrawableFont("Comic Sans MS")
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Light },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed },
+                  new DrawableFont("Open Sans") { Stretch = FontStretch.Condensed, Weight = FontWeight.Light }
             )
         {
-            GridLinePercentageFontSize = 15;
-            UserValueLabelFontSize = 15;
             CategoryBoxHeight = 1024;
         }
 
