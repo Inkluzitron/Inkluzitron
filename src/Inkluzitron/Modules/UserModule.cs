@@ -21,14 +21,16 @@ namespace Inkluzitron.Modules
         private DatabaseFactory DatabaseFactory { get; }
         private BotDatabaseContext DbContext { get; set; }
         private UsersService UsersService { get; }
+        private KisSettings KisSettings { get; }
 
         public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
-            DatabaseFactory databaseFactory, UsersService usersService)
+            DatabaseFactory databaseFactory, UsersService usersService, KisSettings kisSettings)
         {
             Configuration = configuration;
             ReactionSettings = reactionSettings;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
+            KisSettings = kisSettings;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -114,7 +116,7 @@ namespace Inkluzitron.Modules
 
                 if (!string.IsNullOrEmpty(user.KisNickname))
                 {
-                    await ReplyAsync(Configuration["Kis:Messages:AlreadySet"]);
+                    await ReplyAsync(KisSettings.Messages["AlreadySet"]);
                     return;
                 }
 
@@ -132,7 +134,7 @@ namespace Inkluzitron.Modules
         {
             if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
             {
-                await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
+                await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
                 return;
             }
 
