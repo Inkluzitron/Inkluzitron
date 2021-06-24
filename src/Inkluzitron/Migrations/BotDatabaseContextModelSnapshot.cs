@@ -200,6 +200,12 @@ namespace Inkluzitron.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("KisLastCheck")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KisNickname")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("LastMessagePointsIncrement")
                         .HasColumnType("TEXT");
 
@@ -215,6 +221,9 @@ namespace Inkluzitron.Migrations
                         .HasColumnType("BLOB");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("KisNickname")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });

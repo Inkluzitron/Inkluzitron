@@ -26,7 +26,11 @@ namespace Inkluzitron.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<User>().Property("Gender").HasConversion<string>();
+            modelBuilder.Entity<User>(builder =>
+            {
+                builder.Property(o => o.Gender).HasConversion<string>();
+                builder.HasIndex(o => o.KisNickname).IsUnique();
+            });
 
             modelBuilder.Entity<BdsmTestOrgResult>().HasIndex(r => r.Link).IsUnique();
             modelBuilder.Entity<BdsmTestOrgItem>().Property("Trait").HasConversion<string>();
