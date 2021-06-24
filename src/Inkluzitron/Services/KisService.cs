@@ -1,8 +1,10 @@
-﻿using Inkluzitron.Models;
+﻿using Inkluzitron.Models.Kis;
 using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -46,13 +48,13 @@ namespace Inkluzitron.Services
                 return new KisPrestigeResult() { ErrorMessage = Settings.Messages["ApiError"] };
             }
 
-            var json = JArray.Parse(content);
-            var usersPrestige = json.FirstOrDefault(o => o["nickname"].Value<string>() == nickname);
+            var data = JsonConvert.DeserializeObject<List<LeaderboardItem>>(content);
+            var userPrestige = data.Find(o => o.Nickname == nickname);
 
-            if (usersPrestige == null)
+            if (userPrestige == null)
                 return new KisPrestigeResult() { ErrorMessage = Settings.Messages["NoData"] };
 
-            return new KisPrestigeResult() { Prestige = usersPrestige["prestige_gain"].Value<int>() };
+            return new KisPrestigeResult() { Prestige = (int)userPrestige.PrestigeGain };
         }
 
         public void Dispose()

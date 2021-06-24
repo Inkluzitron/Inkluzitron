@@ -1,4 +1,4 @@
-﻿namespace Inkluzitron.Models
+﻿namespace Inkluzitron.Models.Kis
 {
     public class KisPrestigeResult
     {
