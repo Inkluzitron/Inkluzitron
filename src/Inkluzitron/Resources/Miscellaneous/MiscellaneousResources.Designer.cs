@@ -61,12 +61,12 @@ namespace Inkluzitron.Resources.Miscellaneous {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        internal static System.Drawing.Bitmap FallbackAvatar {
+        internal static byte[] FallbackAvatar {
             get {
                 object obj = ResourceManager.GetObject("FallbackAvatar", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
     }

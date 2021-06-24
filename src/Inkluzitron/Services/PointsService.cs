@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using ImageMagick;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
@@ -27,16 +28,19 @@ namespace Inkluzitron.Services
         private DatabaseFactory DatabaseFactory { get; }
         private DiscordSocketClient DiscordClient { get; }
         private ImagesService ImagesService { get; }
-
-        private DrawableFont DataFont { get; }
-        private DrawableFontPointSize DataSize { get; }
-        private DrawableFont NicknameFont { get; }
-        private DrawableFontPointSize NicknameSize { get; }
-        private DrawableFont LabelFont { get; }
-        private DrawableFontPointSize LabelSize { get; }
         private BotSettings BotSettings { get; }
         private UsersService UsersService { get; }
-        private KisService KisService { get; }
+
+        private DrawableFont DataFont { get; }
+        private double DataFontSize { get; }
+        private DrawableFont NicknameFont { get; }
+        private double NicknameFontSize { get; }
+        private DrawableFont LabelFont { get; }
+        private double LabelFontSize { get; }
+        private DrawableFont SmallLabelFont { get; }
+        private double SmallLabelFontSize { get; }
+        private DrawableFont SmallDataFont { get; }
+        private double SmallDataFontSize { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
             ImagesService imagesService, BotSettings botSettings, UsersService usersService,
@@ -47,18 +51,22 @@ namespace Inkluzitron.Services
             ImagesService = imagesService;
             BotSettings = botSettings;
             KisService = kisService;
+            UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
             DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
 
-            const string font = "Comic Sans MS";
-            DataFont = new DrawableFont(font);
-            DataSize = new DrawableFontPointSize(55);
-            NicknameFont = new DrawableFont(font);
-            NicknameSize = new DrawableFontPointSize(40);
+            const string font = "Open Sans";
+            DataFont = new DrawableFont(font) { Weight = FontWeight.Bold };
+            DataFontSize = 40;
+            NicknameFont = new DrawableFont(font) { Weight = FontWeight.Bold };
+            NicknameFontSize = 40;
             LabelFont = new DrawableFont(font);
-            LabelSize = new DrawableFontPointSize(24);
-            UsersService = usersService;
+            LabelFontSize = 20;
+            SmallLabelFont = new DrawableFont(font);
+            SmallLabelFontSize = 15;
+            SmallDataFont = new DrawableFont(font) { Weight = FontWeight.SemiBold };
+            SmallDataFontSize = 24;
         }
 
         private async Task<IUser> LookupUserAsync(ulong userId)
@@ -73,12 +81,21 @@ namespace Inkluzitron.Services
                 return null;
         }
 
-        public async Task<IReadOnlyList<GraphItem>> GetAllPointsAsync()
+        public async Task<IReadOnlyList<GraphItem>> GetUsersTotalPointsAsync()
         {
             using var context = DatabaseFactory.Create();
             var result = new List<GraphItem>();
 
-            await foreach (var userEntry in context.Users.AsQueryable().OrderBy(u => u.Points).AsAsyncEnumerable())
+            var usersPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
+                .Select(u => new
+                {
+                    u.Id,
+                    TotalPoints = u.DailyActivity.Sum(p => p.Points)
+                })
+                .OrderBy(u => u.TotalPoints)
+                .AsAsyncEnumerable();
+
+            await foreach (var userEntry in usersPoints)
             {
                 if (await LookupUserAsync(userEntry.Id) is not IUser user)
                     continue;
@@ -87,7 +104,7 @@ namespace Inkluzitron.Services
                 {
                     UserId = user.Id,
                     UserDisplayName = await UsersService.GetDisplayNameAsync(user),
-                    Value = userEntry.Points
+                    Value = userEntry.TotalPoints
                 });
             }
 
@@ -106,11 +123,12 @@ namespace Inkluzitron.Services
             if (user.IsBot)
                 return;
 
-            await AddIncrementalPoints(
+            await AddIncrementalPointsAsync(
                 user,
                 ThreadSafeRandom.Next(0, 10),
                 u => DateTime.UtcNow.Subtract(u.LastReactionPointsIncrement ?? FallbackDateTime) < ReactionIncrementCooldown,
-                u => u.LastReactionPointsIncrement = DateTime.UtcNow
+                u => u.LastReactionPointsIncrement = DateTime.UtcNow,
+                UserActivityType.ReactionAdded
             );
 
             var msg = await message.GetOrDownloadAsync();
@@ -135,16 +153,21 @@ namespace Inkluzitron.Services
             if (message.Author.IsBot)
                 return;
 
-            await AddIncrementalPoints(
+            await AddIncrementalPointsAsync(
                 message.Author,
                 ThreadSafeRandom.Next(0, 25),
                 u => DateTime.UtcNow.Subtract(u.LastMessagePointsIncrement ?? FallbackDateTime) < MessageIncrementCooldown,
-                u => u.LastMessagePointsIncrement = DateTime.UtcNow
+                u => u.LastMessagePointsIncrement = DateTime.UtcNow,
+                UserActivityType.MessageSent
             );
         }
 
-        public async Task AddIncrementalPoints(IUser user, int amount, Func<User, bool> isOnCooldownFunc, Action<User> resetCooldownAction)
+        public async Task AddIncrementalPointsAsync(IUser user, int amount, Func<User, bool> isOnCooldownFunc,
+            Action<User> resetCooldownAction, UserActivityType activityType = UserActivityType.Other)
         {
+            if (user.IsBot)
+                return;
+
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
@@ -153,7 +176,14 @@ namespace Inkluzitron.Services
                 if (isOnCooldownFunc(userEntity))
                     return;
 
-                userEntity.Points += amount;
+                var activity = await context.GetTodayUserActivityAsync(user);
+                activity.Points += amount;
+
+                if (activityType == UserActivityType.MessageSent)
+                    activity.MessagesSent++;
+                else if (activityType == UserActivityType.ReactionAdded)
+                    activity.ReactionsAdded++;
+
                 resetCooldownAction(userEntity);
                 await context.SaveChangesAsync();
             });
@@ -161,53 +191,77 @@ namespace Inkluzitron.Services
 
         public async Task AddPointsAsync(IUser user, int points)
         {
+            if (user.IsBot)
+                return;
+
             using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
             {
-                var userEntity = await context.GetOrCreateUserEntityAsync(user);
-                userEntity.Points += points;
+                var activity = await context.GetTodayUserActivityAsync(user);
+                activity.Points += points;
                 await context.SaveChangesAsync();
             });
         }
 
-        public async Task<int> GetUserPositionAsync(IUser user)
+        public async Task<int> GetUserPositionAsync(IUser user, DateTime? from = null)
         {
             using var context = DatabaseFactory.Create();
-            return await GetUserPositionAsync(context, user);
+            return await GetUserPositionAsync(context, user, from);
         }
 
-        static public async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user)
+        static private async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user, DateTime? from = null)
         {
+            if(user.IsBot)
+                return 0;
+
             var index = await context.Users.AsQueryable()
                 .Where(u => u.Id == user.Id)
-                .Select(u => u.Points)
-                .SelectMany(ownPoints => context.Users.AsQueryable().Where(u => u.Points > ownPoints))
-                .CountAsync();
+                .Select(u => u.DailyActivity.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points))
+                .Select(ownPoints => context.Users.AsQueryable()
+                    .Where(u => u.DailyActivity.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points) > ownPoints)
+                    .Count())
+                .FirstAsync();
 
             return index + 1;
         }
 
-        public async Task<Dictionary<int, User>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
+        public async Task<long> GetTotalPointsAsync(IUser user, DateTime? from = null)
         {
             using var context = DatabaseFactory.Create();
-            var users = context.Users.AsQueryable()
+            return await context.DailyUsersActivities.AsQueryable()
+                .Where(a =>
+                    a.UserId == user.Id &&
+                    (!from.HasValue || a.Day >= from.Value))
+                .SumAsync(a => a.Points);
+        }
+
+        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
+        {
+            using var context = DatabaseFactory.Create();
+            var userPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
+                .Select(u => new { u.Id, Points = u.DailyActivity.Sum(p => p.Points) })
                 .OrderByDescending(u => u.Points)
                 .Skip(startFrom).Take(count)
                 .AsAsyncEnumerable();
 
-            var board = new Dictionary<int, User>();
+            var board = new List<PointsLeaderboardData>();
 
-            await foreach (var user in users)
+            await foreach (var user in userPoints)
             {
                 startFrom++;
-                board.Add(startFrom, user);
+                board.Add(new PointsLeaderboardData()
+                {
+                    Position = startFrom,
+                    UserDisplayName = await UsersService.GetDisplayNameAsync(user.Id),
+                    Points = user.Points
+                });
             }
 
             return board;
         }
 
-        public async Task<int> GetUserCount()
+        public async Task<int> GetUserCountAsync()
         {
             using var context = DatabaseFactory.Create();
             return await context.Users.AsQueryable().CountAsync();
@@ -226,19 +280,21 @@ namespace Inkluzitron.Services
 
             using var profilePicture = await ImagesService.GetAvatarAsync(user);
 
+            var ppDominantColor = profilePicture.Frames[0].GetDominantColor();
+
             if (profilePicture.IsAnimated)
             {
                 var tmpFile = new TemporaryFile("gif");
                 using var output = new MagickImageCollection();
 
-                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
+                using var baseImage = await RenderPointsBaseFrameAsync(position, user, ppDominantColor);
                 foreach (var frameAvatar in profilePicture.Frames)
                 {
-                    frameAvatar.Resize(160, 160);
+                    frameAvatar.Resize(166, 166);
                     frameAvatar.RoundImage();
 
                     var frame = baseImage.Clone();
-                    frame.Composite(frameAvatar, 70, 70, CompositeOperator.Over);
+                    frame.Composite(frameAvatar, 57, 57, CompositeOperator.Over);
                     frame.AnimationDelay = frameAvatar.AnimationDelay;
                     frame.GifDisposeMethod = GifDisposeMethod.Background;
                     output.Add(frame);
@@ -250,12 +306,12 @@ namespace Inkluzitron.Services
             }
             else
             {
-                using var baseImage = await RenderPointsBaseFrame(userEntity, position, user);
+                using var baseImage = await RenderPointsBaseFrameAsync(position, user, ppDominantColor);
 
                 var avatar = profilePicture.Frames[0];
-                avatar.Resize(160, 160);
+                avatar.Resize(166, 166);
                 avatar.RoundImage();
-                baseImage.Composite(avatar, 70, 70, CompositeOperator.Over);
+                baseImage.Composite(avatar, 57, 57, CompositeOperator.Over);
 
                 var tmpFile = new TemporaryFile("png");
                 baseImage.Write(tmpFile.Path, MagickFormat.Png);
@@ -264,39 +320,140 @@ namespace Inkluzitron.Services
             }
         }
 
-        private async Task<MagickImage> RenderPointsBaseFrame(User userEntity, int position, IUser user)
+        private async Task DrawGraphOnPointsImage(MagickImage image, IUser user, int width, int height)
         {
-            var image = new MagickImage(MagickColors.Transparent, 1000, 300);
+            var days = BotSettings.UserPointsGraphDays;
+
+            var graphPoints = new List<PointD>();
+            var graphData = new List<DailyUserActivity>();
+            var today = DateTime.Now;
+            var day = today.AddDays(-days);
+
+            using var context = DatabaseFactory.Create();
+            var dailyPoints = await context.DailyUsersActivities.AsQueryable()
+                .Where(a => a.UserId == user.Id && a.Day >= day)
+                .ToListAsync();
+
+            for (; day < today; day = day.AddDays(1))
+            {
+                var dayData = dailyPoints.FirstOrDefault(p => p.Day == day)
+                    ?? new DailyUserActivity() { Day = day, Points = 0 };
+
+                graphData.Add(dayData);
+            }
+
+            var min = graphData.Min(p => p.Points);
+            var max = graphData.Max(p => p.Points);
+
+            if (min == max)
+                return;
+
+            foreach (var data in graphData)
+            {
+                var dateDiff = today - data.Day;
+
+                graphPoints.Add(new PointD(
+                    width - (double)dateDiff.Days / days * width,
+                    height - (double)(data.Points - min) / (max - min) * height));
+            }
+
+            new Drawables()
+                .Density(100)
+                .Translation(620, 220)
+                .StrokeWidth(2)
+                .StrokeColor(MagickColor.FromRgb(50, 50, 50))
+                .FillColor(MagickColors.Transparent)
+                .Line(0, height, width, height)
+                .Line(0, 0, width, 0)
+                .StrokeColor(MagickColors.Gray)
+                .StrokeWidth(3)
+                .Lines(graphPoints.ToArray())
+                .StrokeColor(MagickColors.Transparent)
+                .FillColor(MagickColor.FromRgb(50, 50, 50))
+                .Font(SmallLabelFont)
+                .FontPointSize(SmallLabelFontSize)
+                .TextAlignment(TextAlignment.Right)
+                .Text(-5, 7, $"{max}") // TODO in the future maybe pretty format the axis labels
+                .Text(-5, 7 + height, $"{min}")
+                .Draw(image);
+        }
+
+        private async Task<MagickImage> RenderPointsBaseFrameAsync(int position, IUser user, IMagickColor<byte> headerColor)
+        {
+            var pastWeek = DateTime.Now.AddDays(-6);
+            var pastMonth = DateTime.Now.AddMonths(-1).AddDays(1);
+
+            using var image = new MagickImage(MagickColors.Transparent, 900, 320);
 
             var positionText = $"#{position}";
             var nickname = await UsersService.GetDisplayNameAsync(user);
 
+            var headerHsl = ColorHSL.FromMagickColor(headerColor);
+            var nicknameColor = headerHsl.Lightness > 0.8 ? MagickColors.Black : MagickColors.White;
+
             var drawable = new Drawables()
-                .FillColor(MagickColor.FromRgba(35, 39, 42, 255))
-                .RoundRectangle(0, 0, image.Width, image.Height, 15, 15)
-                .FillColor(MagickColor.FromRgba(0, 0, 0, 100))
-                .RoundRectangle(50, 50, image.Width - 50, image.Height - 50, 15, 15)
+                .TextAlignment(TextAlignment.Left)
+                .Density(100)
+                .FillColor(headerColor)
+                .RoundRectangle(0, 0, image.Width, 140, 12, 12)
+                .FillColor(MagickColor.FromRgb(24, 25, 28))
+                .RoundRectangle(0, 120, image.Width, image.Height, 12, 12)
+                .Rectangle(0, 120, image.Width, 140)
+                .Circle(120, 120, 120, 25)
                 .FillColor(MagickColors.LightGray)
                 .Font(DataFont)
-                .FontPointSize(DataSize)
-                .Text(330, 218, userEntity.Points.ToString("N0", NumberFormat))
+                .FontPointSize(DataFontSize)
+                .Text(330, 190, (await GetTotalPointsAsync(user)).ToString("N0", NumberFormat))
                 .TextAlignment(TextAlignment.Right)
-                .Text(920, 218, positionText);
+                .Text(870, 190, positionText);
 
             var positionTextMetrics = drawable.FontTypeMetrics(positionText);
 
-            drawable
+            drawable = drawable
                 .Font(LabelFont)
-                .FontPointSize(LabelSize)
-                .FillColor(MagickColors.White)
-                .Text(900 - positionTextMetrics.TextWidth, 210, "POZICE")
+                .FontPointSize(LabelFontSize)
+                .FillColor(MagickColors.WhiteSmoke)
+                .Text(860 - positionTextMetrics.TextWidth, 182, "POZICE")
+                .Text(318, 182, "BODY")
+                .Font(SmallLabelFont)
+                .FontPointSize(SmallLabelFontSize)
+                .TextAlignment(TextAlignment.Right)
+                .FillColor(MagickColors.LightGray)
+                .Text(318, 240, "TÝDEN")
+                .Text(318, 280, "MĚSÍC")
+                .Font(SmallDataFont)
+                .FontPointSize(SmallDataFontSize)
+                .FillColor(MagickColors.DarkGray);
+
+            var weekPoints = (await GetTotalPointsAsync(user, pastWeek)).ToString("N0", NumberFormat);
+            var monthPoints = (await GetTotalPointsAsync(user, pastMonth)).ToString("N0", NumberFormat);
+            var smallPositionX = 330 + Math.Max(
+                drawable.FontTypeMetrics(weekPoints).TextWidth,
+                drawable.FontTypeMetrics(monthPoints).TextWidth);
+
+            drawable
+                .Text(smallPositionX, 243, weekPoints)
+                .Text(smallPositionX, 283, monthPoints)
                 .TextAlignment(TextAlignment.Left)
-                .Text(250, 210, "BODY")
+                .Text(25 + smallPositionX, 243, $"#{await GetUserPositionAsync(user, pastWeek)}")
+                .Text(25 + smallPositionX, 283, $"#{await GetUserPositionAsync(user, pastMonth)}")
                 .Draw(image);
 
-            image.DrawEnhancedText(nickname, 250, 70, MagickColors.White, NicknameFont, NicknameSize.PointSize, 670);
+            image.DrawEnhancedText(nickname, 240, 45, nicknameColor, NicknameFont, NicknameFontSize, 635);
 
-            return image;
+            await DrawGraphOnPointsImage(image, user, 250, 60);
+
+            var finalImage = new MagickImage(MagickColors.Transparent, image.Width + 40, image.Height + 40);
+
+            new Drawables()
+                .FillColor(MagickColor.FromRgba(0, 0, 0, 50))
+                .RoundRectangle(20, 20, finalImage.Width - 20, finalImage.Height - 20, 12, 12)
+                .Draw(finalImage);
+
+            finalImage.Blur(0, 10);
+            finalImage.Composite(image, 20, 20, CompositeOperator.Over);
+
+            return finalImage;
         }
 
         public async Task<string> SynchronizeKisPointsAsync(IUser user)

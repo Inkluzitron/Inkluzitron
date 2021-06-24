@@ -61,12 +61,12 @@ namespace Inkluzitron.Resources.Peepoangry {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        public static System.Drawing.Bitmap peepoangry {
+        public static byte[] peepoangry {
             get {
                 object obj = ResourceManager.GetObject("peepoangry", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
     }
