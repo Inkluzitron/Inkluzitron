@@ -9,7 +9,7 @@ namespace Inkluzitron.Services.ChannelLogger
 
         public Dictionary<LogLevel, string> LogLevels { get; set; } = new()
         {
-            [LogLevel.Warning] = "⚠ **Warning**",
+            //[LogLevel.Warning] = "⚠ **Warning**",
             [LogLevel.Error] = "🛑 **Error**",
             [LogLevel.Critical] = "🚨 **Critical**"
         };
