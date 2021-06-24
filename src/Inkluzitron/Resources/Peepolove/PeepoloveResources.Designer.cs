@@ -61,22 +61,22 @@ namespace Inkluzitron.Resources.Peepolove {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap body {
+        public static byte[] body {
             get {
                 object obj = ResourceManager.GetObject("body", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap hands {
+        public static byte[] hands {
             get {
                 object obj = ResourceManager.GetObject("hands", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
     }

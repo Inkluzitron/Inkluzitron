@@ -1,5 +1,7 @@
 ﻿using Inkluzitron.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System;
 
 namespace Inkluzitron.Data
 {
@@ -18,6 +20,7 @@ namespace Inkluzitron.Data
         public DbSet<RoleMenuMessageRole> RoleMenuMessageRoles { get; set; }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<DailyUserActivity> DailyUsersActivities { get; set; }
 
         public DbSet<Invite> Invites { get; set; }
 
@@ -35,6 +38,14 @@ namespace Inkluzitron.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RoleMenuMessageRole>().HasKey(i => new { i.RoleId, i.GuildId, i.ChannelId, i.MessageId });
+
+            modelBuilder.Entity<DailyUserActivity>().HasKey(i => new { i.UserId, i.Day });
+            modelBuilder.Entity<DailyUserActivity>()
+                .Property(i => i.Day)
+                .HasConversion(new ValueConverter<DateTime, string>(
+                    from => from.ToString("yyyy-MM-dd"),
+                    to => DateTime.ParseExact(to, "yyyy-MM-dd", null)
+                ));
         }
     }
 }

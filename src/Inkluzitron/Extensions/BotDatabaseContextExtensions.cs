@@ -22,9 +22,9 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var displayName = user.Username; // TODO Bad
-
             // Update cached displayname
+            var displayName = user.Username;
+
             var result = await Patiently.HandleDbConcurrency(async () => {
                 var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
 
@@ -58,8 +58,12 @@ namespace Inkluzitron.Extensions
             userEntity = new User()
             {
                 Id = user.Id,
-                Name = user.Username // TODO Bad
+                Name = user.Username
             };
+
+            // Do not store bot data
+            if (user.IsBot)
+                return userEntity;
 
             await context.AddAsync(userEntity);
             await context.SaveChangesAsync();
@@ -80,6 +84,29 @@ namespace Inkluzitron.Extensions
                 userEntity.CommandConsents = consentUpdaterFunc(userEntity.CommandConsents);
                 await context.SaveChangesAsync();
             });
+        }
+
+        static public Task<DailyUserActivity> GetTodayUserActivityAsync(this BotDatabaseContext context, IUser user)
+            => GetUserActivityAsync(context, user, DateTime.Now);
+
+        static public async Task<DailyUserActivity> GetUserActivityAsync(this BotDatabaseContext context, IUser user, DateTime day)
+        {
+            day = day.Date;
+
+            var todayActivity = await context.DailyUsersActivities.AsQueryable()
+                .FirstOrDefaultAsync(a => a.UserId == user.Id && a.Day == day);
+
+            if (todayActivity == null)
+            {
+                todayActivity = new DailyUserActivity()
+                {
+                    User = await context.GetOrCreateUserEntityAsync(user)
+                };
+
+                await context.DailyUsersActivities.AddAsync(todayActivity);
+            }
+
+            return todayActivity;
         }
     }
 }
