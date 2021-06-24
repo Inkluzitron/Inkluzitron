@@ -99,25 +99,9 @@ namespace Inkluzitron.Modules
 
         [Command("duck set")]
         [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
-        public Task SetKisNicknameAsync([Remainder][Name("prezdivka")] string nickname)
-            => UpdateKisNicknameAsync(nickname);
-
-        [Command("duck unset")]
-        [Alias("duck clear")]
-        [Summary("Smaže přezdívku používanou v kachničce.")]
-        public Task UnsetKisNicknameAsync() => UpdateKisNicknameAsync(null);
-
-        public async Task SetGenderAsync(Gender gender)
+        public async Task SetKisNicknameAsync([Remainder][Name("přezdívka")] string nickname)
         {
-            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
-            user.Gender = gender;
-            await DbContext.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-        }
-
-        private async Task UpdateKisNicknameAsync(string nickname)
-        {
-            if (!string.IsNullOrEmpty(nickname) && await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
             {
                 await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
                 return;
@@ -126,12 +110,62 @@ namespace Inkluzitron.Modules
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+                bool canSave = false;
 
-                user.KisNickname = nickname;
-                await DbContext.SaveChangesAsync();
+                try
+                {
+                    if (string.IsNullOrEmpty(user.KisNickname))
+                    {
+                        user.KisNickname = nickname;
+                        canSave = true;
+                        return;
+                    }
+
+                    await ReplyAsync(Configuration["Kis:Messages:AlreadySet"]);
+                }
+                finally
+                {
+                    if (canSave)
+                    {
+                        await DbContext.SaveChangesAsync();
+                        await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+                    }
+                }
             });
+        }
 
+        [Command("duck set")]
+        [Summary("Nastaví danému uživateli přezdívku používanou v kachničce.")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
+        {
+            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            {
+                await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
+                return;
+            }
 
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await DbContext.GetOrCreateUserEntityAsync(user);
+
+                userEntity.KisNickname = nickname;
+                await DbContext.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+            });
+        }
+
+        [Command("duck unset")]
+        [Alias("duck clear")]
+        [Summary("Smaže přezdívku používanou v kachničce.")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task UnsetKisNicknameAsync(IUser user) => SetKisNicknameAsync(user, null);
+
+        public async Task SetGenderAsync(Gender gender)
+        {
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+            user.Gender = gender;
+            await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }
