@@ -110,27 +110,16 @@ namespace Inkluzitron.Modules
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
-                bool canSave = false;
 
-                try
+                if (!string.IsNullOrEmpty(user.KisNickname))
                 {
-                    if (string.IsNullOrEmpty(user.KisNickname))
-                    {
-                        user.KisNickname = nickname;
-                        canSave = true;
-                        return;
-                    }
-
                     await ReplyAsync(Configuration["Kis:Messages:AlreadySet"]);
+                    return;
                 }
-                finally
-                {
-                    if (canSave)
-                    {
-                        await DbContext.SaveChangesAsync();
-                        await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-                    }
-                }
+
+                user.KisNickname = nickname;
+                await DbContext.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
             });
         }
 
