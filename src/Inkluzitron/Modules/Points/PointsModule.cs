@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
@@ -26,7 +25,8 @@ namespace Inkluzitron.Modules.Points
         private UsersService UsersService { get; }
         private readonly int BoardPageLimit = 10;
 
-        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings, GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
+        public PointsModule(PointsService pointsService, DiscordSocketClient client, ReactionSettings reactionSettings,
+            GraphPaintingService graphPaintingService, PointsGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
         {
             PointsService = pointsService;
             Client = client;
@@ -47,7 +47,7 @@ namespace Inkluzitron.Modules.Points
         [Command("")]
         [Alias("kde", "gde")]
         [Summary("Zobrazí aktuální stav bodů jiného uživatele.")]
-        public async Task GetPointsAsync([Name("uživatel")]IUser member)
+        public async Task GetPointsAsync([Name("uživatel")] IUser member)
         {
             using var points = await PointsService.GetPointsAsync(member);
 
@@ -71,7 +71,7 @@ namespace Inkluzitron.Modules.Points
         [Command("board")]
         [Alias("list")]
         [Summary("Žebříček uživatelů s nejvíce body s posunem od počátku tabulky.")]
-        public async Task GetLeaderboardAsync([Name("offset")]int start)
+        public async Task GetLeaderboardAsync([Name("offset")] int start)
         {
             var count = await PointsService.GetUserCount();
 
@@ -79,8 +79,8 @@ namespace Inkluzitron.Modules.Points
             start -= start % BoardPageLimit;
 
             var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit);
-            var embed = await (new PointsEmbed(UsersService).WithBoard(
-                board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit));
+            var embed = await new PointsEmbed(UsersService).WithBoard(
+                board, Client, Context.Client.CurrentUser, count, start, BoardPageLimit);
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
@@ -110,6 +110,15 @@ namespace Inkluzitron.Modules.Points
             graph.Write(file.Path, ImageMagick.MagickFormat.Png);
 
             await ReplyFileAsync(file.Path);
+        }
+
+        [Command("kachna")]
+        [Alias("get kis", "z kachny")]
+        [Summary("Synchronizuje body získané nákupem z kachničky.")]
+        public async Task SynchronizeKisPointsAsync()
+        {
+            var message = await PointsService.SynchronizeKisPointsAsync(Context.User);
+            await ReplyAsync(message);
         }
     }
 }

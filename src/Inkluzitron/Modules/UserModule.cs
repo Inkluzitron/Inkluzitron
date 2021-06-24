@@ -44,7 +44,7 @@ namespace Inkluzitron.Modules
         [Command("pronouns")]
         [Alias("osloveni")]
         [Summary("Vypíše svoje preferované oslovení nebo oslovení vybraného uživatele.")]
-        public async Task ShowGenderAsync([Name("uživatel")]IUser user = null)
+        public async Task ShowGenderAsync([Name("uživatel")] IUser user = null)
         {
             var genderMsg = Configuration["UserModule:UserPronounsMessage"];
             var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
@@ -53,7 +53,7 @@ namespace Inkluzitron.Modules
 
             if (user.IsBot)
             {
-                if(user.Id == Context.Client.CurrentUser.Id)
+                if (user.Id == Context.Client.CurrentUser.Id)
                 {
                     await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), Configuration["UserModule:UserPronounsBotSelf"]));
                     return;
@@ -95,10 +95,29 @@ namespace Inkluzitron.Modules
         public Task UnsetGenderAsync()
             => SetGenderAsync(Gender.Unspecified);
 
+        [Command("duck set")]
+        [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
+        public Task SetKisNicknameAsync([Remainder][Name("prezdivka")] string nickname)
+            => UpdateKisNicknameAsync(nickname);
+
+        [Command("duck unset")]
+        [Alias("duck clear")]
+        [Summary("Smaže přezdívku používanou v kachničce.")]
+        public Task UnsetKisNicknameAsync() => UpdateKisNicknameAsync(null);
+
         public async Task SetGenderAsync(Gender gender)
         {
             var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
             user.Gender = gender;
+            await DbContext.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+        }
+
+        private async Task UpdateKisNicknameAsync(string nickname)
+        {
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+
+            user.KisNickname = nickname;
             await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }

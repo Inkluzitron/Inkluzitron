@@ -10,6 +10,7 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,14 +36,17 @@ namespace Inkluzitron.Services
         private DrawableFontPointSize LabelSize { get; }
         private BotSettings BotSettings { get; }
         private UsersService UsersService { get; }
+        private KisService KisService { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
-            ImagesService imagesService, BotSettings botSettings, UsersService usersService)
+            ImagesService imagesService, BotSettings botSettings, UsersService usersService,
+            KisService kisService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
             BotSettings = botSettings;
+            KisService = kisService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
             DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
@@ -293,6 +297,36 @@ namespace Inkluzitron.Services
             image.DrawEnhancedText(nickname, 250, 70, MagickColors.White, NicknameFont, NicknameSize.PointSize, 670);
 
             return image;
+        }
+
+        public async Task<string> SynchronizeKisPointsAsync(IUser user)
+        {
+            try
+            {
+                using var context = DatabaseFactory.Create();
+
+                var now = DateTime.UtcNow;
+                var userEntity = await context.GetOrCreateUserEntityAsync(user);
+                var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
+
+                userEntity.Points += points;
+                userEntity.KisLastCheck = now;
+
+                await context.SaveChangesAsync();
+
+                var pointsSuffix = "bod";
+                if (points == 0 || points > 5) pointsSuffix = "bodů";
+                else if (points > 1 && points < 5) pointsSuffix = "body";
+
+                return string.Format(KisService.Settings.Messages["Done"], points, pointsSuffix);
+            }
+            catch (Exception ex)
+            {
+                if (ex is InvalidOperationException || ex is ValidationException)
+                    return ex.Message;
+
+                throw;
+            }
         }
     }
 }

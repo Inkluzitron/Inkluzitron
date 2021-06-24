@@ -26,6 +26,9 @@ namespace Inkluzitron.Data.Entities
 
         public CommandConsent CommandConsents { get; set; } = CommandConsent.None;
 
+        public string KisNickname { get; set; }
+        public DateTime? KisLastCheck { get; set; }
+
         public bool HasGivenConsentTo(CommandConsent consentKind)
             => (CommandConsents & consentKind) == consentKind;
     }
