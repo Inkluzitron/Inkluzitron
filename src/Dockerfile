@@ -10,7 +10,7 @@ RUN dotnet publish Inkluzitron/ -c release -o /app -r linux-x64 --self-contained
 FROM mcr.microsoft.com/dotnet/runtime:5.0-buster-slim
 RUN sed -i'.bak' 's/$/ contrib/' /etc/apt/sources.list
 RUN apt-get update && \
-    apt-get -y install libgdiplus tzdata fontconfig fonts-open-sans fonts-symbola && \
+    apt-get -y install tzdata fontconfig fonts-open-sans fonts-symbola && \
     apt-get clean
 ENV TZ=Europe/Prague
 WORKDIR /app

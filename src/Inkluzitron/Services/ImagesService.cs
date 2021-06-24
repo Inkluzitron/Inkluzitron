@@ -13,7 +13,6 @@ using Inkluzitron.Resources.Whip;
 using Inkluzitron.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -50,36 +49,28 @@ namespace Inkluzitron.Services
             PatFrames = GetFramesFromResources<PatResources>();
             SpankFrames = GetFramesFromResources<SpankResources>();
 
-            PeepoloveBodyFrame = BitmapToMagickImage(PeepoloveResources.body);
-            PeepoloveHandsFrame = BitmapToMagickImage(PeepoloveResources.hands);
-            PeepoangryFrame = BitmapToMagickImage(PeepoangryResources.peepoangry);
-        }
-
-        static private MagickImage BitmapToMagickImage(Bitmap bitmap, System.Drawing.Imaging.ImageFormat format = null)
-        {
-            using var stream = new MemoryStream();
-            bitmap.Save(stream, format ?? System.Drawing.Imaging.ImageFormat.Png);
-            stream.Seek(0, SeekOrigin.Begin);
-            return new MagickImage(stream);
+            PeepoloveBodyFrame = new MagickImage(PeepoloveResources.body);
+            PeepoloveHandsFrame = new MagickImage(PeepoloveResources.hands);
+            PeepoangryFrame = new MagickImage(PeepoangryResources.peepoangry);
         }
 
         static private MagickImageCollection GetFramesFromResources<TResources>()
         {
             var collection = new MagickImageCollection();
 
-            var bitmaps = GetBitmapsFromResources<TResources>();
-            foreach (var bitmap in bitmaps)
+            var bytesList = GetBytesFromResources<TResources>();
+            foreach (var bytes in bytesList)
             {
-                collection.Add(BitmapToMagickImage(bitmap));
+                collection.Add(new MagickImage(bytes));
             }
 
             return collection;
         }
 
-        static private List<Bitmap> GetBitmapsFromResources<TResources>()
+        static private List<byte[]> GetBytesFromResources<TResources>()
             => typeof(TResources).GetProperties()
-                .Where(o => o.PropertyType == typeof(Bitmap))
-                .Select(o => o.GetValue(null, null) as Bitmap)
+                .Where(o => o.PropertyType == typeof(byte[]))
+                .Select(o => o.GetValue(null, null) as byte[])
                 .Where(o => o != null)
                 .ToList();
 
@@ -87,11 +78,7 @@ namespace Inkluzitron.Services
         {
             if(size == null) size = DefaultAvatarSize;
 
-            using var bitmap = MiscellaneousResources.FallbackAvatar;
-            using var stream = new MemoryStream();
-            bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
-            stream.Seek(0, SeekOrigin.Begin);
-            var fallbackAvatar = new MagickImageCollection(stream);
+            var fallbackAvatar = new MagickImageCollection(MiscellaneousResources.FallbackAvatar);
             foreach (var frame in fallbackAvatar)
             {
                 frame.Resize(size.Width, size.Height);
