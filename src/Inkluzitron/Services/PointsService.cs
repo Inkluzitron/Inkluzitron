@@ -199,7 +199,7 @@ namespace Inkluzitron.Services
             await AddPointsAsync(context, user, points);
         }
 
-        public static async Task AddPointsAsync(BotDatabaseContext context, IUser user, int points)
+        static public async Task AddPointsAsync(BotDatabaseContext context, IUser user, int points)
         {
             if (user.IsBot)
                 return;
@@ -334,7 +334,7 @@ namespace Inkluzitron.Services
 
             var graphPoints = new List<PointD>();
             var graphData = new List<DailyUserActivity>();
-            var today = DateTime.Now;
+            var today = DateTime.Now.Date;
             var day = today.AddDays(-days);
 
             using var context = DatabaseFactory.Create();
@@ -397,7 +397,7 @@ namespace Inkluzitron.Services
             var nickname = await UsersService.GetDisplayNameAsync(user);
 
             var headerHsl = ColorHSL.FromMagickColor(headerColor);
-            var nicknameColor = headerHsl.Lightness > 0.8 ? MagickColors.Black : MagickColors.White;
+            var nicknameColor = headerHsl.Lightness > 0.75 ? MagickColors.Black : MagickColors.White;
 
             var drawable = new Drawables()
                 .TextAlignment(TextAlignment.Left)
