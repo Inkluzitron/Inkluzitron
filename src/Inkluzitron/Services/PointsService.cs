@@ -30,6 +30,7 @@ namespace Inkluzitron.Services
         private ImagesService ImagesService { get; }
         private BotSettings BotSettings { get; }
         private UsersService UsersService { get; }
+        private KisService KisService { get; }
 
         private DrawableFont DataFont { get; }
         private double DataFontSize { get; }
@@ -189,12 +190,19 @@ namespace Inkluzitron.Services
             });
         }
 
-        public async Task AddPointsAsync(IUser user, int points)
+        public Task AddPointsAsync(IUser user, int points)
+        {
+            if (user.IsBot)
+                return Task.CompletedTask;
+
+            using var context = DatabaseFactory.Create();
+            return AddPointsAsync(context, user, points);
+        }
+
+        public static async Task AddPointsAsync(BotDatabaseContext context, IUser user, int points)
         {
             if (user.IsBot)
                 return;
-
-            using var context = DatabaseFactory.Create();
 
             await Patiently.HandleDbConcurrency(async () =>
             {
@@ -212,7 +220,7 @@ namespace Inkluzitron.Services
 
         static private async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user, DateTime? from = null)
         {
-            if(user.IsBot)
+            if (user.IsBot)
                 return 0;
 
             var index = await context.Users.AsQueryable()
@@ -471,14 +479,7 @@ namespace Inkluzitron.Services
             if (!points.IsOk)
                 return points.ErrorMessage;
 
-            await Patiently.HandleDbConcurrency(async () =>
-            {
-                var userEntity = await context.GetOrCreateUserEntityAsync(user);
-
-                userEntity.Points += points.Prestige;
-                userEntity.KisLastCheck = now;
-                await context.SaveChangesAsync();
-            });
+            await AddPointsAsync(context, user, points.Prestige);
 
             var pointsSuffix = "bod";
             if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
