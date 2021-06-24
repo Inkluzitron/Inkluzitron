@@ -323,7 +323,7 @@ namespace Inkluzitron.Services
 
             var graphPoints = new List<PointD>();
             var graphData = new List<DailyUserActivity>();
-            var today = DateTime.Now.Date;
+            var today = DateTime.Now;
             var day = today.AddDays(-days);
 
             using var context = DatabaseFactory.Create();
@@ -377,8 +377,8 @@ namespace Inkluzitron.Services
 
         private async Task<MagickImage> RenderPointsBaseFrameAsync(int position, IUser user, IMagickColor<byte> headerColor)
         {
-            var pastWeek = DateTime.Now.AddDays(-6).Date;
-            var pastMonth = DateTime.Now.AddMonths(-1).AddDays(1).Date;
+            var pastWeek = DateTime.Now.AddDays(-6);
+            var pastMonth = DateTime.Now.AddMonths(-1).AddDays(1);
 
             using var image = new MagickImage(MagickColors.Transparent, 900, 320);
 

@@ -36,9 +36,7 @@ namespace Inkluzitron.Modules.Points
         [Alias("kde", "gde")]
         [Summary("Zobrazí aktuální stav svých bodů.")]
         public async Task GetPointsAsync()
-        {
-            await GetPointsAsync(Context.User);
-        }
+            => await GetPointsAsync(Context.User);
 
         [Command("")]
         [Alias("kde", "gde")]

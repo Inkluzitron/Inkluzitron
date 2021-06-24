@@ -58,7 +58,7 @@ namespace Inkluzitron.Services
         {
             var collection = new MagickImageCollection();
 
-            var bytesList = GetBytesFromResources<TResources>();
+            var bytesList = GetValuesOfByteArrayProperties<TResources>();
             foreach (var bytes in bytesList)
             {
                 collection.Add(new MagickImage(bytes));
@@ -67,7 +67,7 @@ namespace Inkluzitron.Services
             return collection;
         }
 
-        static private List<byte[]> GetBytesFromResources<TResources>()
+        static private List<byte[]> GetValuesOfByteArrayProperties<TResources>()
             => typeof(TResources).GetProperties()
                 .Where(o => o.PropertyType == typeof(byte[]))
                 .Select(o => o.GetValue(null, null) as byte[])

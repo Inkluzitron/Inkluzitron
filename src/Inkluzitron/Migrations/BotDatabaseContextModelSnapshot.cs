@@ -64,6 +64,33 @@ namespace Inkluzitron.Migrations
                     b.ToTable("BdsmTestOrgResults");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
+                {
+                    b.Property<ulong>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Day")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("MessagesSent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("Points")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ReactionsAdded")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Timestamp")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("UserId", "Day");
+
+                    b.ToTable("DailyUsersActivities");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
                 {
                     b.Property<string>("InviteLink")
@@ -85,34 +112,6 @@ namespace Inkluzitron.Migrations
                     b.HasIndex("UsedByUserId");
 
                     b.ToTable("Invites");
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("Day")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("MessagesSent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("Points")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("ReactionsAdded")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("DailyUsersActivities");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.RicePurityResult", b =>
@@ -242,6 +241,17 @@ namespace Inkluzitron.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.Entities.User", "User")
+                        .WithMany("DailyActivity")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
                 {
                     b.HasOne("Inkluzitron.Data.Entities.User", "GeneratedBy")
@@ -257,17 +267,6 @@ namespace Inkluzitron.Migrations
                     b.Navigation("GeneratedBy");
 
                     b.Navigation("UsedBy");
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
-                {
-                    b.HasOne("Inkluzitron.Data.Entities.User", "User")
-                        .WithMany("DailyActivity")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.RicePurityResult", b =>

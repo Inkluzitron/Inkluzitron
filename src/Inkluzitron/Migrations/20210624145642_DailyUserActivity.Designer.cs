@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    [Migration("20210623140655_DailyUserActivity")]
+    [Migration("20210624145642_DailyUserActivity")]
     partial class DailyUserActivity
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -68,11 +68,10 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.DailyUserActivity", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<ulong>("UserId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("Day")
+                    b.Property<string>("Day")
                         .HasColumnType("TEXT");
 
                     b.Property<long>("MessagesSent")
@@ -84,14 +83,37 @@ namespace Inkluzitron.Migrations
                     b.Property<long>("ReactionsAdded")
                         .HasColumnType("INTEGER");
 
-                    b.Property<ulong>("UserId")
-                        .HasColumnType("INTEGER");
+                    b.Property<byte[]>("Timestamp")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
+                    b.HasKey("UserId", "Day");
 
                     b.ToTable("DailyUsersActivities");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
+                {
+                    b.Property<string>("InviteLink")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<ulong>("GeneratedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong?>("UsedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("InviteLink");
+
+                    b.HasIndex("GeneratedByUserId");
+
+                    b.HasIndex("UsedByUserId");
+
+                    b.ToTable("Invites");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.RicePurityResult", b =>
@@ -230,6 +252,23 @@ namespace Inkluzitron.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.Entities.User", "GeneratedBy")
+                        .WithMany()
+                        .HasForeignKey("GeneratedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Inkluzitron.Data.Entities.User", "UsedBy")
+                        .WithMany()
+                        .HasForeignKey("UsedByUserId");
+
+                    b.Navigation("GeneratedBy");
+
+                    b.Navigation("UsedBy");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.RicePurityResult", b =>

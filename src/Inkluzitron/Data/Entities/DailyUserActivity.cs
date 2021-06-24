@@ -1,5 +1,4 @@
-﻿using Discord;
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -7,8 +6,9 @@ namespace Inkluzitron.Data.Entities
 {
     public class DailyUserActivity
     {
-        [Key]
-        public long Id { get; set; }
+        [ForeignKey(nameof(UserId))]
+        public User User { get; set; }
+        public ulong UserId { get; set; }
 
         [Required]
         public DateTime Day { get; set; } = DateTime.Now.Date;
@@ -22,8 +22,7 @@ namespace Inkluzitron.Data.Entities
         [Required]
         public long ReactionsAdded { get; set; } = 0;
 
-        [ForeignKey(nameof(UserId))]
-        public User User { get; set; }
-        public ulong UserId { get; set; }
+        [Timestamp]
+        public byte[] Timestamp { get; set; }
     }
 }

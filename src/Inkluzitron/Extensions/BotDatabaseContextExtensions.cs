@@ -100,7 +100,6 @@ namespace Inkluzitron.Extensions
             {
                 todayActivity = new DailyUserActivity()
                 {
-                    Day = DateTime.Now.Date,
                     User = await context.GetOrCreateUserEntityAsync(user)
                 };
 
