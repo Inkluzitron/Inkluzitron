@@ -98,6 +98,7 @@ namespace Inkluzitron.Modules
             => SetGenderAsync(Gender.Unspecified);
 
         [Command("duck set")]
+        [Alias("kachna set")]
         [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
         public async Task SetKisNicknameAsync([Remainder][Name("přezdívka")] string nickname)
         {
@@ -124,6 +125,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("duck set")]
+        [Alias("kachna set")]
         [Summary("Nastaví danému uživateli přezdívku používanou v kachničce.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
@@ -145,7 +147,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("duck unset")]
-        [Alias("duck clear")]
+        [Alias("duck clear", "kachna unset", "kachna clear")]
         [Summary("Smaže přezdívku používanou v kachničce.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task UnsetKisNicknameAsync(IUser user) => SetKisNicknameAsync(user, null);
