@@ -21,5 +21,14 @@ namespace Inkluzitron.Modules
 
             await ReplyAsync($"Start proběhl **{start}**. To znamená, že běžím {uptime} (ale reálně jsem pracoval {activeTime}).");
         }
+
+        [Command("version")]
+        [Alias("verze")]
+        [Summary("Vypíše aktuální verzi bota.")]
+        public async Task GetVersionAsync()
+        {
+            var commitDate = DateTime.Parse(ThisAssembly.Git.CommitDate);
+            await ReplyAsync($"Aktuální verze bota je **`{ThisAssembly.Git.Commit}`** (**{commitDate:dd. MM. yyyy HH:mm:ss}**)");
+        }
     }
 }
