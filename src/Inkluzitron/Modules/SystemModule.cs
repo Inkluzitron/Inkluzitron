@@ -28,7 +28,7 @@ namespace Inkluzitron.Modules
         public async Task GetVersionAsync()
         {
             var commitDate = DateTime.Parse(ThisAssembly.Git.CommitDate);
-            await ReplyAsync($"Aktuální verze bota je **`{ThisAssembly.Git.Commit}`** (**{commitDate:dd. MM. yyyy HH:mm:ss}**)");
+            await ReplyAsync($"Aktuální verze bota je `{ThisAssembly.Git.Commit}` (**{commitDate:dd. MM. yyyy HH:mm:ss}**)");
         }
     }
 }
