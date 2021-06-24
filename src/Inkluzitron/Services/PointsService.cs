@@ -301,39 +301,33 @@ namespace Inkluzitron.Services
 
         public async Task<string> SynchronizeKisPointsAsync(IUser user)
         {
-            try
-            {
-                using var context = DatabaseFactory.Create();
+            using var context = DatabaseFactory.Create();
 
-                var now = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
+            var userEntity = await context.GetOrCreateUserEntityAsync(user);
+
+            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
+                return KisService.Settings.Messages["SyncTooSoon"];
+
+            var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
+
+            if (!points.IsOk)
+                return points.ErrorMessage;
+
+            await Patiently.HandleDbConcurrency(async () =>
+            {
                 var userEntity = await context.GetOrCreateUserEntityAsync(user);
 
-                if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
-                    return KisService.Settings.Messages["SyncTooSoon"];
+                userEntity.Points += points.Prestige;
+                userEntity.KisLastCheck = now;
+                await context.SaveChangesAsync();
+            });
 
-                var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
-                await Patiently.HandleDbConcurrency(async () =>
-                {
-                    var userEntity = await context.GetOrCreateUserEntityAsync(user);
+            var pointsSuffix = "bod";
+            if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
+            else if (points.Prestige > 1 && points.Prestige < 5) pointsSuffix = "body";
 
-                    userEntity.Points += points;
-                    userEntity.KisLastCheck = now;
-                    await context.SaveChangesAsync();
-                });
-
-                var pointsSuffix = "bod";
-                if (points == 0 || points > 5) pointsSuffix = "bodů";
-                else if (points > 1 && points < 5) pointsSuffix = "body";
-
-                return string.Format(KisService.Settings.Messages["Done"], points, pointsSuffix);
-            }
-            catch (Exception ex)
-            {
-                if (ex is InvalidOperationException || ex is ValidationException)
-                    return ex.Message;
-
-                throw;
-            }
+            return string.Format(KisService.Settings.Messages["Done"], points.Prestige, pointsSuffix);
         }
     }
 }

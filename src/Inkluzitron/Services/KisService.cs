@@ -1,8 +1,8 @@
-﻿using Inkluzitron.Models.Settings;
+﻿using Inkluzitron.Models;
+using Inkluzitron.Models.Settings;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -22,9 +22,13 @@ namespace Inkluzitron.Services
             Logger = logger;
         }
 
-        public async Task<int> GetPrestigeAsync(string nickname, DateTime? from, DateTime? to)
+        public async Task<KisPrestigeResult> GetPrestigeAsync(string nickname, DateTime? from, DateTime? to)
         {
-            Validate(nickname);
+            if (HttpClient.BaseAddress == null)
+                return new KisPrestigeResult() { ErrorMessage = Settings.Messages["NotConfigured"] };
+
+            if (string.IsNullOrEmpty(nickname))
+                return new KisPrestigeResult() { ErrorMessage = Settings.Messages["MissingNickname"] };
 
             if (from == null) from = DateTime.MinValue;
             if (to == null) to = DateTime.UtcNow;
@@ -39,25 +43,16 @@ namespace Inkluzitron.Services
             if (!response.IsSuccessStatusCode)
             {
                 Logger.LogError(content);
-                throw new InvalidOperationException(Settings.Messages["ApiError"]);
+                return new KisPrestigeResult() { ErrorMessage = Settings.Messages["ApiError"] };
             }
 
             var json = JArray.Parse(content);
             var usersPrestige = json.FirstOrDefault(o => o["nickname"].Value<string>() == nickname);
 
             if (usersPrestige == null)
-                throw new InvalidOperationException(Settings.Messages["NoData"]);
+                return new KisPrestigeResult() { ErrorMessage = Settings.Messages["NoData"] };
 
-            return usersPrestige["prestige_gain"].Value<int>();
-        }
-
-        private void Validate(string nickname)
-        {
-            if (HttpClient.BaseAddress == null)
-                throw new InvalidOperationException(Settings.Messages["NotConfigured"]);
-
-            if (string.IsNullOrEmpty(nickname))
-                throw new ValidationException(Settings.Messages["MissingNickname"]);
+            return new KisPrestigeResult() { Prestige = usersPrestige["prestige_gain"].Value<int>() };
         }
 
         public void Dispose()
