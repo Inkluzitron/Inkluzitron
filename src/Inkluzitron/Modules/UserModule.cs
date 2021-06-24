@@ -5,6 +5,8 @@ using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 
@@ -115,10 +117,21 @@ namespace Inkluzitron.Modules
 
         private async Task UpdateKisNicknameAsync(string nickname)
         {
-            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+            if (!string.IsNullOrEmpty(nickname) && await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            {
+                await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
+                return;
+            }
 
-            user.KisNickname = nickname;
-            await DbContext.SaveChangesAsync();
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+
+                user.KisNickname = nickname;
+                await DbContext.SaveChangesAsync();
+            });
+
+
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }

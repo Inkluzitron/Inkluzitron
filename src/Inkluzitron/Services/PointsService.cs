@@ -307,12 +307,19 @@ namespace Inkluzitron.Services
 
                 var now = DateTime.UtcNow;
                 var userEntity = await context.GetOrCreateUserEntityAsync(user);
+
+                if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
+                    return KisService.Settings.Messages["SyncTooSoon"];
+
                 var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
+                await Patiently.HandleDbConcurrency(async () =>
+                {
+                    var userEntity = await context.GetOrCreateUserEntityAsync(user);
 
-                userEntity.Points += points;
-                userEntity.KisLastCheck = now;
-
-                await context.SaveChangesAsync();
+                    userEntity.Points += points;
+                    userEntity.KisLastCheck = now;
+                    await context.SaveChangesAsync();
+                });
 
                 var pointsSuffix = "bod";
                 if (points == 0 || points > 5) pointsSuffix = "bodů";

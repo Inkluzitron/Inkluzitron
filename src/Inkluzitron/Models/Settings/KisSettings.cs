@@ -14,12 +14,13 @@ namespace Inkluzitron.Models.Settings
 
             DateTimeFormat = kis.GetRequired<string>(nameof(DateTimeFormat));
             Messages = kis.GetSection("Messages")
-                .AsEnumerable()
-                .Where(o => !string.IsNullOrEmpty(o.Value))
-                .ToDictionary(o => o.Key.Replace("Kis:Messages:", ""), o => o.Value);
+                .GetChildren()
+                .ToDictionary(o => o.Key, o => o.Value);
+            SyncMonths = kis.GetValue<int>(nameof(SyncMonths));
         }
 
         public string DateTimeFormat { get; }
         public Dictionary<string, string> Messages { get; }
+        public int SyncMonths { get; }
     }
 }
