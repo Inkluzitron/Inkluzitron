@@ -190,13 +190,13 @@ namespace Inkluzitron.Services
             });
         }
 
-        public Task AddPointsAsync(IUser user, int points)
+        public async Task AddPointsAsync(IUser user, int points)
         {
             if (user.IsBot)
-                return Task.CompletedTask;
+                return;
 
             using var context = DatabaseFactory.Create();
-            return AddPointsAsync(context, user, points);
+            await AddPointsAsync(context, user, points);
         }
 
         public static async Task AddPointsAsync(BotDatabaseContext context, IUser user, int points)
