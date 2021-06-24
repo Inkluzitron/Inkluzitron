@@ -74,28 +74,46 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         }
 
         [Command("")]
-        [Summary("Zobrazí výsledky odesílatele nebo uživatele.")]
-        public async Task ShowUserResultsAsync([Name("koho")] IUser target = null)
+        [Summary("Zobrazí svůj výsledek nebo výsledek uživatele.")]
+        public async Task ShowUserResultAsync([Name("kdo")] IUser target = null)
         {
             if (target is null)
                 target = Context.Message.Author;
 
-            var quizResultsOfUser = DbContext.BdsmTestOrgResults.Include(x => x.Items)
-                .Where(x => x.UserId == target.Id);
-
-            var pageCount = await quizResultsOfUser.CountAsync();
-            var mostRecentResult = await quizResultsOfUser.OrderByDescending(r => r.SubmittedAt)
+            var quizResult = await DbContext.BdsmTestOrgResults.AsQueryable()
+                .Include(x => x.Items)
+                .Where(x => x.UserId == target.Id)
+                .OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefaultAsync();
 
             var embedBuilder = new EmbedBuilder().WithAuthor(target);
 
-            if (mostRecentResult is null)
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, target);
-            else
-                embedBuilder = embedBuilder.WithBdsmTestOrgQuizResult(Settings, mostRecentResult, 1, pageCount);
+            embedBuilder = quizResult is null
+                ? embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, target)
+                : embedBuilder.WithBdsmTestOrgQuizResult(Settings, quizResult);
 
             var message = await ReplyAsync(embed: embedBuilder.Build());
-            await message.AddReactionsAsync(ReactionSettings.PaginationReactionsWithRemoval);
+        }
+
+        [Command("remove")]
+        [Alias("delete")]
+        [Summary("Odstraní svůj výsledek z databáze.")]
+        public async Task RemoveResultAsync()
+        {
+            await RemoveAllResultsAsync();
+            await DbContext.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+        }
+
+        private async Task RemoveAllResultsAsync()
+        {
+            var target = Context.Message.Author;
+
+            var quizResults = await DbContext.BdsmTestOrgResults.AsQueryable()
+                .Where(x => x.UserId == target.Id)
+                .ToArrayAsync();
+
+            DbContext.BdsmTestOrgResults.RemoveRange(quizResults);
         }
 
         [Command("graph")]
@@ -331,11 +349,12 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 });
             }
 
+            await RemoveAllResultsAsync();
             await DbContext.BdsmTestOrgResults.AddAsync(testResultDb);
             await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.BdsmTestResultAdded);
 
-            await ShowUserResultsAsync();
+            await ShowUserResultAsync();
         }
 
         [Command("last roll")]
