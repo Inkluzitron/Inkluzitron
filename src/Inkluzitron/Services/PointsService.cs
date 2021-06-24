@@ -11,6 +11,7 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ namespace Inkluzitron.Services
         private ImagesService ImagesService { get; }
         private BotSettings BotSettings { get; }
         private UsersService UsersService { get; }
+        private KisService KisService { get; }
 
         private DrawableFont DataFont { get; }
         private double DataFontSize { get; }
@@ -42,12 +44,14 @@ namespace Inkluzitron.Services
         private double SmallDataFontSize { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
-            ImagesService imagesService, BotSettings botSettings, UsersService usersService)
+            ImagesService imagesService, BotSettings botSettings, UsersService usersService,
+            KisService kisService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
             BotSettings = botSettings;
+            KisService = kisService;
             UsersService = usersService;
 
             DiscordClient.ReactionAdded += OnReactionAddedAsync;
@@ -192,6 +196,13 @@ namespace Inkluzitron.Services
                 return;
 
             using var context = DatabaseFactory.Create();
+            await AddPointsAsync(context, user, points);
+        }
+
+        static public async Task AddPointsAsync(BotDatabaseContext context, IUser user, int points)
+        {
+            if (user.IsBot)
+                return;
 
             await Patiently.HandleDbConcurrency(async () =>
             {
@@ -209,7 +220,7 @@ namespace Inkluzitron.Services
 
         static private async Task<int> GetUserPositionAsync(BotDatabaseContext context, IUser user, DateTime? from = null)
         {
-            if(user.IsBot)
+            if (user.IsBot)
                 return 0;
 
             var index = await context.Users.AsQueryable()
@@ -323,7 +334,7 @@ namespace Inkluzitron.Services
 
             var graphPoints = new List<PointD>();
             var graphData = new List<DailyUserActivity>();
-            var today = DateTime.Now;
+            var today = DateTime.Now.Date;
             var day = today.AddDays(-days);
 
             using var context = DatabaseFactory.Create();
@@ -386,7 +397,7 @@ namespace Inkluzitron.Services
             var nickname = await UsersService.GetDisplayNameAsync(user);
 
             var headerHsl = ColorHSL.FromMagickColor(headerColor);
-            var nicknameColor = headerHsl.Lightness > 0.8 ? MagickColors.Black : MagickColors.White;
+            var nicknameColor = headerHsl.Lightness > 0.75 ? MagickColors.Black : MagickColors.White;
 
             var drawable = new Drawables()
                 .TextAlignment(TextAlignment.Left)
@@ -451,6 +462,30 @@ namespace Inkluzitron.Services
             finalImage.Composite(image, 20, 20, CompositeOperator.Over);
 
             return finalImage;
+        }
+
+        public async Task<string> SynchronizeKisPointsAsync(IUser user)
+        {
+            using var context = DatabaseFactory.Create();
+
+            var now = DateTime.UtcNow;
+            var userEntity = await context.GetOrCreateUserEntityAsync(user);
+
+            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
+                return KisService.Settings.Messages["SyncTooSoon"];
+
+            var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
+
+            if (!points.IsOk)
+                return points.ErrorMessage;
+
+            await AddPointsAsync(context, user, points.Prestige);
+
+            var pointsSuffix = "bod";
+            if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
+            else if (points.Prestige > 1 && points.Prestige < 5) pointsSuffix = "body";
+
+            return string.Format(KisService.Settings.Messages["Done"], points.Prestige, pointsSuffix);
         }
     }
 }

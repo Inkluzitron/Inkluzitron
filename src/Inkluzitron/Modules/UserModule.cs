@@ -5,6 +5,8 @@ using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
 
@@ -19,14 +21,16 @@ namespace Inkluzitron.Modules
         private DatabaseFactory DatabaseFactory { get; }
         private BotDatabaseContext DbContext { get; set; }
         private UsersService UsersService { get; }
+        private KisSettings KisSettings { get; }
 
         public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
-            DatabaseFactory databaseFactory, UsersService usersService)
+            DatabaseFactory databaseFactory, UsersService usersService, KisSettings kisSettings)
         {
             Configuration = configuration;
             ReactionSettings = reactionSettings;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
+            KisSettings = kisSettings;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -44,7 +48,7 @@ namespace Inkluzitron.Modules
         [Command("pronouns")]
         [Alias("osloveni")]
         [Summary("Vypíše svoje preferované oslovení nebo oslovení vybraného uživatele.")]
-        public async Task ShowGenderAsync([Name("uživatel")]IUser user = null)
+        public async Task ShowGenderAsync([Name("uživatel")] IUser user = null)
         {
             var genderMsg = Configuration["UserModule:UserPronounsMessage"];
             var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
@@ -53,7 +57,7 @@ namespace Inkluzitron.Modules
 
             if (user.IsBot)
             {
-                if(user.Id == Context.Client.CurrentUser.Id)
+                if (user.Id == Context.Client.CurrentUser.Id)
                 {
                     await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), Configuration["UserModule:UserPronounsBotSelf"]));
                     return;
@@ -94,6 +98,61 @@ namespace Inkluzitron.Modules
         [Summary("Nastaví neutrální oslovení.")]
         public Task UnsetGenderAsync()
             => SetGenderAsync(Gender.Unspecified);
+
+        [Command("duck set")]
+        [Alias("kachna set")]
+        [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
+        public async Task SetKisNicknameAsync([Remainder][Name("přezdívka")] string nickname)
+        {
+            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            {
+                await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
+                return;
+            }
+
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+
+                if (!string.IsNullOrEmpty(user.KisNickname))
+                {
+                    await ReplyAsync(KisSettings.Messages["AlreadySet"]);
+                    return;
+                }
+
+                user.KisNickname = nickname;
+                await DbContext.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+            });
+        }
+
+        [Command("duck set")]
+        [Alias("kachna set")]
+        [Summary("Nastaví danému uživateli přezdívku používanou v kachničce.")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
+        {
+            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            {
+                await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
+                return;
+            }
+
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await DbContext.GetOrCreateUserEntityAsync(user);
+
+                userEntity.KisNickname = nickname;
+                await DbContext.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+            });
+        }
+
+        [Command("duck unset")]
+        [Alias("duck clear", "kachna unset", "kachna clear")]
+        [Summary("Smaže přezdívku používanou v kachničce.")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task UnsetKisNicknameAsync(IUser user) => SetKisNicknameAsync(user, null);
 
         public async Task SetGenderAsync(Gender gender)
         {

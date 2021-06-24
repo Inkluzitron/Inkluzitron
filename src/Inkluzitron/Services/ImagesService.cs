@@ -43,7 +43,6 @@ namespace Inkluzitron.Services
             Cache = fileCache;
             HttpClientFactory = httpClientFactory;
 
-            // TODO Change image resources from Bitmap to byte[] or ImageMagick type
             WhipFrames = GetFramesFromResources<WhipResources>();
             BonkFrames = GetFramesFromResources<BonkResources>();
             PatFrames = GetFramesFromResources<PatResources>();

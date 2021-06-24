@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Data.Common;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -85,6 +86,7 @@ namespace Inkluzitron
                 .AddSingleton<PointsGraphPaintingStrategy>()
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
+                .AddSingleton<KisSettings>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -92,7 +94,8 @@ namespace Inkluzitron
                     config.AddConfiguration(configuration.GetSection("Logging"))
                         .AddConsole()
                         .AddChannelLogger();
-                });
+                })
+                .AddSingleton<KisService>();
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)
@@ -104,6 +107,15 @@ namespace Inkluzitron
                 .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
                 .ToList()
                 .ForEach(reactionHandlerType => services.AddSingleton(typeof(IReactionHandler), reactionHandlerType));
+
+            if (!string.IsNullOrEmpty(configuration["Kis:Token"]))
+            {
+                services.AddHttpClient("Kis", c =>
+                {
+                    c.BaseAddress = new Uri(configuration["Kis:Api"]);
+                    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configuration["Kis:Token"]);
+                });
+            }
 
             var provider = services.BuildServiceProvider();
 

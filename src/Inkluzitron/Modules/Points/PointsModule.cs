@@ -1,5 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
+using Inkluzitron.Extensions;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
@@ -41,7 +43,7 @@ namespace Inkluzitron.Modules.Points
         [Command("")]
         [Alias("kde", "gde")]
         [Summary("Zobrazí aktuální stav bodů jiného uživatele.")]
-        public async Task GetPointsAsync([Name("uživatel")]IUser member)
+        public async Task GetPointsAsync([Name("uživatel")] IUser member)
         {
             if (member.IsBot)
             {
@@ -65,7 +67,7 @@ namespace Inkluzitron.Modules.Points
         [Command("board")]
         [Alias("list")]
         [Summary("Žebříček uživatelů s nejvíce body s posunem od počátku tabulky.")]
-        public async Task GetLeaderboardAsync([Name("offset")]int start)
+        public async Task GetLeaderboardAsync([Name("offset")] int start)
         {
             var count = await PointsService.GetUserCountAsync();
 
@@ -105,6 +107,15 @@ namespace Inkluzitron.Modules.Points
             graph.Write(file.Path, ImageMagick.MagickFormat.Png);
 
             await ReplyFileAsync(file.Path);
+        }
+
+        [Command("kachna")]
+        [Alias("get kis", "z kachny")]
+        [Summary("Synchronizuje body získané nákupem z kachničky.")]
+        public async Task SynchronizeKisPointsAsync()
+        {
+            var message = await PointsService.SynchronizeKisPointsAsync(Context.User);
+            await ReplyAsync(message);
         }
     }
 }
