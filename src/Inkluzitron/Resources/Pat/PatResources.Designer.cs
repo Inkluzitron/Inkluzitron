@@ -61,52 +61,52 @@ namespace Inkluzitron.Resources.Pat {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap _0 {
+        public static byte[] _0 {
             get {
                 object obj = ResourceManager.GetObject("_0", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap _1 {
+        public static byte[] _1 {
             get {
                 object obj = ResourceManager.GetObject("_1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap _2 {
+        public static byte[] _2 {
             get {
                 object obj = ResourceManager.GetObject("_2", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap _3 {
+        public static byte[] _3 {
             get {
                 object obj = ResourceManager.GetObject("_3", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        ///   Looks up a localized resource of type byte[].
         /// </summary>
-        public static System.Drawing.Bitmap _4 {
+        public static byte[] _4 {
             get {
                 object obj = ResourceManager.GetObject("_4", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
+                return ((byte[])(obj));
             }
         }
     }

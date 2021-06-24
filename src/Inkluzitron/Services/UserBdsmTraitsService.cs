@@ -143,7 +143,11 @@ namespace Inkluzitron.Services
                 return check;
             }
 
-            if (userDb.Points < 0)
+            var userPoints = await dbContext.DailyUsersActivities.AsQueryable()
+                .Where(a => a.UserId == user.Id)
+                .SumAsync(a => a.Points);
+
+            if (userPoints < 0)
             {
                 check.Result = BdsmTraitOperationCheckResult.UserNegativePoints;
                 return check;

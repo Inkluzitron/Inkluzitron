@@ -1,5 +1,6 @@
 ﻿using Inkluzitron.Enums;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -15,8 +16,7 @@ namespace Inkluzitron.Data.Entities
 
         public Gender Gender { get; set; } = Gender.Unspecified;
 
-        [Required]
-        public long Points { get; set; } = 0;
+        public List<DailyUserActivity> DailyActivity { get; set; } = new();
 
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
