@@ -41,12 +41,12 @@ namespace Inkluzitron.Services
             string version = null;
             if (cacheData.TryFind(out var path))
             {
-                version = File.ReadAllText(path);
+                version = await File.ReadAllTextAsync(path);
             }
             else
             {
                 path = cacheData.GetPathForWriting("txt");
-                File.WriteAllText(path, ThisAssembly.Git.Sha);
+                await File.WriteAllTextAsync(path, ThisAssembly.Git.Sha);
             }
 
             if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(Configuration.GetValue<ulong>("LoggingChannelId")) is IMessageChannel channel)
@@ -55,6 +55,7 @@ namespace Inkluzitron.Services
                 var message = string.Format(Configuration.GetValue<string>("OnlineAfterUpdate"), ThisAssembly.Git.Commit, commitDate.ToString("dd. MM. yyyy hh:MM:ss"));
 
                 await channel.SendMessageAsync(message);
+                await File.WriteAllTextAsync(cacheData.GetPathForWriting("txt"), ThisAssembly.Git.Sha);
             }
         }
 
