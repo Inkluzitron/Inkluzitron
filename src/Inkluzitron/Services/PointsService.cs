@@ -480,6 +480,13 @@ namespace Inkluzitron.Services
                 return points.ErrorMessage;
 
             await AddPointsAsync(context, user, points.Prestige);
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var entity = await context.GetOrCreateUserEntityAsync(user);
+
+                entity.KisLastCheck = now;
+                await context.SaveChangesAsync();
+            });
 
             var pointsSuffix = "bod";
             if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
