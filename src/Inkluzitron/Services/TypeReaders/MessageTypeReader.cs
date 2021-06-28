@@ -19,7 +19,7 @@ namespace Inkluzitron.Services.TypeReaders
             if (!Uri.IsWellFormedUriString(input, UriKind.Absolute))
                 return TypeReaderResult.FromError(CommandError.ParseFailed, "Zadaná zpráva není ani identifikátor, ani odkaz.");
 
-            var uriMatch = Regex.Match(input, @"https:\/\/discord\.com\/channels\/(@me|\d*)\/(\d+)\/(\d+)");
+            var uriMatch = Regex.Match(input, @"https?:\/\/discord\.com\/channels\/(@me|\d*)\/(\d+)\/(\d+)");
             if (!uriMatch.Success)
                 return TypeReaderResult.FromError(CommandError.ParseFailed, "Zadaný odkaz není ve správném formátu odkazující na Discord zprávu.");
 
