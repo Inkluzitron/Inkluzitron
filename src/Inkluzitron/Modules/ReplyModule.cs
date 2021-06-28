@@ -50,7 +50,7 @@ namespace Inkluzitron.Modules
             }
             else if (ContainsPhrase(message.Content, "^PR$"))
             {
-                await message.Channel.SendMessageAsync("https://github.com/Misha12/Inkluzitron");
+                await message.Channel.SendMessageAsync("https://github.com/Inkluzitron/Inkluzitron");
             }
         }
     }
