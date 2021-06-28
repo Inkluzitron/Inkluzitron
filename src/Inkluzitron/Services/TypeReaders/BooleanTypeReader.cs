@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Infrastructure.TypeReaders
+namespace Inkluzitron.Services.TypeReaders
 {
     public class BooleanTypeReader : TypeReader
     {
@@ -27,7 +27,7 @@ namespace GrillBot.App.Infrastructure.TypeReaders
                     return Task.FromResult(TypeReaderResult.FromSuccess(func.Value));
             }
 
-            return Task.FromResult(TypeReaderResult.FromError(CommandError.ParseFailed, "Provided string is not valid boolean value."));
+            return Task.FromResult(TypeReaderResult.FromError(CommandError.ParseFailed, "Řetězec není pravdivostní hodnota (ano/yes/true/tru/ne/no/false/fals)."));
         }
     }
 }

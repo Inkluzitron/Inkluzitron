@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using GrillBot.App.Infrastructure.TypeReaders;
+using Inkluzitron.Services.TypeReaders;
 using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

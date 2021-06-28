@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Infrastructure.TypeReaders
+namespace Inkluzitron.Services.TypeReaders
 {
     public class EmotesTypeReader : TypeReader
     {

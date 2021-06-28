@@ -3,7 +3,7 @@ using Discord.WebSocket;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Extensions.Discord
+namespace Inkluzitron.Extensions
 {
     static public class DiscordClientExtensions
     {
