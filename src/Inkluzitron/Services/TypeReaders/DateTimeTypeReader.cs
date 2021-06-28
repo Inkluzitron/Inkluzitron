@@ -11,13 +11,13 @@ namespace Inkluzitron.Services.TypeReaders
     {
         private const RegexOptions regexOptions = RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.IgnorePatternWhitespace;
 
-        private Dictionary<Func<Regex>, Func<DateTime>> MatchingFunctions { get; } = new Dictionary<Func<Regex>, Func<DateTime>>()
+        private Dictionary<Regex, Func<DateTime>> MatchingFunctions { get; } = new()
         {
-            { () => new Regex("^(today|dnes|dneska)$", regexOptions), () => DateTime.Today }, // today, dnes, dneska
-            { () => new Regex("^(tommorow|z[i|í]tra|za[j|v]tra)$", regexOptions), () => DateTime.Now.AddDays(1) }, // tommorow, zítra, zitra, zajtra, zavtra
-            { () => new Regex("^(v[c|č]era|yesterday|vchora)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday, vchora
-            { () => new Regex("^(poz[i|í]t[r|ř][i|í]|pozajtra|poslezavtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra, poslezavtra
-            { () => new Regex("^(te[ď|d]|now|(te|za)raz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz, zaraz
+            { new Regex("^(today|dnes|dneska)$", regexOptions), () => DateTime.Today }, // today, dnes, dneska
+            { new Regex("^(tommorow|z[i|í]tra|za[j|v]tra)$", regexOptions), () => DateTime.Now.AddDays(1) }, // tommorow, zítra, zitra, zajtra, zavtra
+            { new Regex("^(v[c|č]era|yesterday|vchora)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday, vchora
+            { new Regex("^(poz[i|í]t[r|ř][i|í]|pozajtra|poslezavtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra, poslezavtra
+            { new Regex("^(te[ď|d]|now|(te|za)raz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz, zaraz
         };
 
         private List<CultureInfo> SupportedCultures { get; } = new List<CultureInfo>()
@@ -37,9 +37,7 @@ namespace Inkluzitron.Services.TypeReaders
 
             foreach (var func in MatchingFunctions)
             {
-                var regex = func.Key();
-
-                if (regex.IsMatch(input))
+                if (func.Key.IsMatch(input))
                     return Task.FromResult(TypeReaderResult.FromSuccess(func.Value()));
             }
 
