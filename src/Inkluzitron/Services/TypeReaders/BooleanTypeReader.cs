@@ -8,10 +8,10 @@ namespace Inkluzitron.Services.TypeReaders
 {
     public class BooleanTypeReader : TypeReader
     {
-        private Dictionary<Func<Regex>, bool> MatchingFunctions { get; } = new Dictionary<Func<Regex>, bool>()
+        private Dictionary<Regex, bool> MatchingFunctions { get; } = new()
         {
-            { () => new Regex("^(ano|yes|true?)$"), true }, // ano, yes, true, tru
-            { () => new Regex("^(ne|no|false?)$"), false } // ne, no, false, fals
+            { new Regex("^(ano|yes|true?)$"), true }, // ano, yes, true, tru
+            { new Regex("^(ne|no|false?)$"), false } // ne, no, false, fals
         };
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
@@ -21,9 +21,7 @@ namespace Inkluzitron.Services.TypeReaders
 
             foreach (var func in MatchingFunctions)
             {
-                var regex = func.Key();
-
-                if (regex.IsMatch(input))
+                if (func.Key.IsMatch(input))
                     return Task.FromResult(TypeReaderResult.FromSuccess(func.Value));
             }
 
