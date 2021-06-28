@@ -13,9 +13,11 @@ namespace Inkluzitron.Modules.Points
         static private readonly NumberFormatInfo NumberFormat = new CultureInfo("cs-CZ").NumberFormat;
 
         public PointsEmbed WithBoard(
-            List<PointsLeaderboardData> board, IUser user, int count, int start = 0, int limit = 10)
+            List<PointsLeaderboardData> board, IUser user, int count, int start = 0, int limit = 10, DateTime? dateFrom = null)
         {
-            WithAuthor("Žebříček bodů", user.GetAvatarUrl());
+            WithAuthor(
+                $"Žebříček bodů{(dateFrom.HasValue ? $" od {dateFrom.Value:dd. MM. yyyy}" : "")}",
+                user.GetAvatarUrl());
             WithTimestamp(DateTime.Now);
             WithColor(new Color(241, 190, 223));
 
@@ -25,7 +27,8 @@ namespace Inkluzitron.Modules.Points
 
             this.WithMetadata(new PointsEmbedMetadata
             {
-                Start = start
+                Start = start,
+                DateFrom = dateFrom
             });
 
             var position = new StringBuilder();
