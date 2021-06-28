@@ -15,8 +15,8 @@ namespace GrillBot.App.Infrastructure.TypeReaders
         {
             { () => new Regex("^(today|dnesk?a?)$", regexOptions), () => DateTime.Today }, // today, dnes, dneska
             { () => new Regex("^(tommorow|z[i|í]tra|za[j|v]tra)$", regexOptions), () => DateTime.Now.AddDays(1) }, // tommorow, zítra, zitra, zajtra, zavtra
-            { () => new Regex("^(v[c|č]era|yesterday|vchora)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday, vchora
-            { () => new Regex("^(poz[i|í]t[r|ř][i|í]|pozajtra|pislyazavtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra, pislyazavtra
+            { () => new Regex("^(v[c|č]era|yesterday)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday, vchora
+            { () => new Regex("^(poz[i|í]t[r|ř][i|í]|pozajtra|poslezavtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra, poslezavtra
             { () => new Regex("^(te[ď|d]|now|[te|za]+raz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz, zaraz
         };
 
