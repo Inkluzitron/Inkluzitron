@@ -6,6 +6,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Extensions;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -113,7 +114,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var user = await UsersService.GetOrCreateUserDbEntityAsync(Context.Message.Author);
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.Message.Author);
 
             var testResultDb = new RicePurityResult
             {
