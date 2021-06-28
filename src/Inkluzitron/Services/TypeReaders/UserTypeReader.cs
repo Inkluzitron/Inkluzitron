@@ -1,13 +1,13 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using GrillBot.App.Extensions.Discord;
+using Inkluzitron.Extensions;
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Infrastructure.TypeReaders
+namespace Inkluzitron.Services.TypeReaders
 {
     public class UserTypeReader : TypeReader
     {

@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Infrastructure.TypeReaders
+namespace Inkluzitron.Services.TypeReaders
 {
     public class GuidTypeReader : TypeReader
     {
