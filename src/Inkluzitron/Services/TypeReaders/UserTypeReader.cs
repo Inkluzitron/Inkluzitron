@@ -14,7 +14,7 @@ namespace Inkluzitron.Services.TypeReaders
         public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
         {
             // Match on caller
-            if (Regex.IsMatch(input.Trim(), "^(me|j[aá])$", RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(input.Trim(), "^(me|j[aá]|ko?ko?t)$", RegexOptions.IgnoreCase))
                 return TypeReaderResult.FromSuccess(context.User);
 
             // Match on users in DMs by username and discriminator or only username.
@@ -45,7 +45,7 @@ namespace Inkluzitron.Services.TypeReaders
                 await guild.DownloadUsersAsync();
 
                 var matches = guild.Users
-                    .Where(o => (!string.IsNullOrEmpty(o.Nickname) && o.Nickname.Contains(input)) || o.Username.Contains(input))
+                    .Where(o => (!string.IsNullOrEmpty(o.Nickname) && o.Nickname.Contains(input, StringComparison.CurrentCultureIgnoreCase)) || o.Username.Contains(input, StringComparison.CurrentCultureIgnoreCase))
                     .Select(o => o as IGuildUser)
                     .Where(o => o != null)
                     .ToList();
