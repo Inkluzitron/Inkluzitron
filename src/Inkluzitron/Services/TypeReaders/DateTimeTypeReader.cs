@@ -13,27 +13,21 @@ namespace Inkluzitron.Services.TypeReaders
 
         private Dictionary<Regex, Func<DateTime>> MatchingFunctions { get; } = new()
         {
-            { new Regex("^(today|dnes|dneska)$", regexOptions), () => DateTime.Today }, // today, dnes, dneska
-            { new Regex("^(tommorow|z[i|í]tra|za[j|v]tra)$", regexOptions), () => DateTime.Now.AddDays(1) }, // tommorow, zítra, zitra, zajtra, zavtra
-            { new Regex("^(v[c|č]era|yesterday|vchora)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday, vchora
-            { new Regex("^(poz[i|í]t[r|ř][i|í]|pozajtra|poslezavtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra, poslezavtra
-            { new Regex("^(te[ď|d]|now|(te|za)raz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz, zaraz
-        };
-
-        private List<CultureInfo> SupportedCultures { get; } = new List<CultureInfo>()
-        {
-            new CultureInfo("cs-CZ"),
-            new CultureInfo("en-US"),
-            CultureInfo.InvariantCulture
+            { new Regex("^(today|dnes(ka)?)$", regexOptions), () => DateTime.Today }, // today, dnes, dneska
+            { new Regex("^(tommorow|z[ií]tra|zajtra)$", regexOptions), () => DateTime.Now.AddDays(1) }, // tommorow, zítra, zitra, zajtra
+            { new Regex("^(v[cč]era|yesterday)$", regexOptions), () => DateTime.Now.AddDays(-1) }, // vcera, včera, yesterday
+            { new Regex("^(poz[ií]t[rř][ií]|pozajtra)$", regexOptions), () => DateTime.Now.AddDays(2) }, // pozítří, pozitri, pozajtra
+            { new Regex("^(te[dď]|now|teraz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz
         };
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
         {
-            foreach (var culture in SupportedCultures)
-            {
-                if (DateTime.TryParse(input, culture, DateTimeStyles.None, out DateTime dateTime))
-                    return Task.FromResult(TypeReaderResult.FromSuccess(dateTime));
-            }
+            // US dates use '/' as delimeter. We use this fact to detect american dates and parse them correctly (MM/DD instead of DD.MM)
+            if (input.Contains('/') && DateTime.TryParse(input, new CultureInfo("en-US"), DateTimeStyles.None, out DateTime dateTime))
+                return Task.FromResult(TypeReaderResult.FromSuccess(dateTime));
+
+            if (DateTime.TryParse(input, CultureInfo.CurrentCulture, DateTimeStyles.None, out dateTime))
+                return Task.FromResult(TypeReaderResult.FromSuccess(dateTime));
 
             foreach (var func in MatchingFunctions)
             {
