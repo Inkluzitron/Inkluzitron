@@ -291,7 +291,7 @@ namespace Inkluzitron.Services
 
                 foreach (var avatarFrame in avatar.Frames)
                 {
-                    avatarFrame.Resize(64, 64);
+                    avatarFrame.Resize(75, 75);
                     avatarFrame.RoundImage();
                     var frame = RenderPeepoangryFrame(avatarFrame);
 
@@ -306,7 +306,7 @@ namespace Inkluzitron.Services
             else
             {
                 var avatarFrame = avatar.Frames[0];
-                avatarFrame.Resize(64, 64);
+                avatarFrame.Resize(75, 75);
                 avatarFrame.RoundImage();
 
                 using var frame = RenderPeepoangryFrame(avatarFrame);
@@ -478,7 +478,7 @@ namespace Inkluzitron.Services
             if (cacheObject.TryFind(out var filePath))
                 return filePath;
 
-            using var avatar = await GetAvatarAsync(target, 256);
+            using var avatar = await GetAvatarAsync(target);
             var isAnimated = avatar.Extension == "gif";
 
             // Large animated profile pictures have problem with gif upload.
@@ -493,7 +493,7 @@ namespace Inkluzitron.Services
 
                 foreach (var userFrame in avatar.Frames)
                 {
-                    userFrame.Resize(180, 180);
+                    userFrame.Resize(110, 110);
                     userFrame.RoundImage();
                     var frame = RenderPeepoloveFrame(userFrame);
 
@@ -508,7 +508,7 @@ namespace Inkluzitron.Services
             else
             {
                 var avatarFrame = avatar.Frames[0];
-                avatarFrame.Resize(180, 180);
+                avatarFrame.Resize(110, 110);
                 avatarFrame.RoundImage();
 
                 using var frame = RenderPeepoloveFrame(avatarFrame);
@@ -524,10 +524,9 @@ namespace Inkluzitron.Services
             avatar.BackgroundColor = MagickColors.Transparent;
             avatar.Rotate(-15);
 
-            body.Composite(avatar, -15, 290, CompositeOperator.Over);
+            body.Composite(avatar, -22, 15, CompositeOperator.Over);
             body.Composite(PeepoloveHandsFrame, 0, 0, CompositeOperator.Over);
 
-            body.Crop(new MagickGeometry(0, 115, 512, 397));
             return body;
         }
 
