@@ -6,6 +6,7 @@ using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -36,15 +37,12 @@ namespace Inkluzitron.Modules.Points
 
         [Command("")]
         [Alias("kde", "gde")]
-        [Summary("Zobrazí aktuální stav svých bodů.")]
-        public async Task GetPointsAsync()
-            => await GetPointsAsync(Context.User);
-
-        [Command("")]
-        [Alias("kde", "gde")]
-        [Summary("Zobrazí aktuální stav bodů jiného uživatele.")]
-        public async Task GetPointsAsync([Name("uživatel")] IUser member)
+        [Summary("Zobrazí aktuální stav svých bodů nebo bodů jiného uživatele.")]
+        public async Task GetPointsAsync([Name("uživatel")] IUser member = null)
         {
+            if (member == null)
+                member = Context.User;
+
             if (member.IsBot)
             {
                 await ReplyAsync($"Nelze zobrazit body pro bota {Format.Sanitize(await UsersService.GetDisplayNameAsync(member))} (botům se body nepočítají).");
@@ -58,16 +56,54 @@ namespace Inkluzitron.Modules.Points
 
         [Command("board")]
         [Alias("list")]
-        [Summary("Žebříček uživatelů s nejvíce body.")]
-        public async Task GetLeaderboardAsync()
+        [Summary("Žebříček uživatelů s nejvíce body. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
+        public async Task GetLeaderboardAsync([Name("uživatel")] IUser user = null)
         {
-            await GetLeaderboardAsync(0);
+            if (user == null)
+            {
+                await GetLeaderboardAsync(0);
+                return;
+            }
+
+            var pos = await PointsService.GetUserPositionAsync(user);
+            await GetLeaderboardAsync(pos);
         }
 
-        [Command("board")]
-        [Alias("list")]
-        [Summary("Žebříček uživatelů s nejvíce body s posunem od počátku tabulky.")]
-        public async Task GetLeaderboardAsync([Name("offset")] int start)
+        [Command("board week")]
+        [Alias("list week")]
+        [Summary("Žebříček uživatelů s nejvíce body za poslední týden. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
+        public async Task GetWeeklyLeaderboardAsync([Name("uživatel")] IUser user = null)
+        {
+            var weekly = DateTime.Today.AddDays(-6);
+
+            if (user == null)
+            {
+                await GetLeaderboardAsync(0, weekly);
+                return;
+            }
+
+            var pos = await PointsService.GetUserPositionAsync(user);
+            await GetLeaderboardAsync(pos, weekly);
+        }
+
+        [Command("board month")]
+        [Alias("list month")]
+        [Summary("Žebříček uživatelů s nejvíce body za poslední měsíc. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
+        public async Task GetMonthlyLeaderboardAsync([Name("uživatel")] IUser user = null)
+        {
+            var monthly = DateTime.Today.AddMonths(-1).AddDays(1);
+
+            if (user == null)
+            {
+                await GetLeaderboardAsync(0, monthly);
+                return;
+            }
+
+            var pos = await PointsService.GetUserPositionAsync(user);
+            await GetLeaderboardAsync(pos, monthly);
+        }
+
+        public async Task GetLeaderboardAsync(int start, DateTime? from = null)
         {
             var count = await PointsService.GetUserCountAsync();
 
@@ -75,21 +111,12 @@ namespace Inkluzitron.Modules.Points
             if (start >= count) start = count - 1;
             start -= start % BoardPageLimit;
 
-            var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit);
+            var board = await PointsService.GetLeaderboardAsync(start, BoardPageLimit, from);
             var embed = new PointsEmbed().WithBoard(
-                board, Context.Client.CurrentUser, count, start, BoardPageLimit);
+                board, Context.Client.CurrentUser, count, start, BoardPageLimit, from);
 
             var message = await ReplyAsync(embed: embed.Build());
             await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
-        }
-
-        [Command("board")]
-        [Alias("list")]
-        [Summary("Žebříček uživatelů s nejvíce body. Zobrazí žebříček kolem zadaného uživatele.")]
-        public async Task GetLeaderboardAsync([Name("uživatel")] IUser user)
-        {
-            var pos = await PointsService.GetUserPositionAsync(user);
-            await GetLeaderboardAsync(pos);
         }
 
         [Command("graph"), Alias("stats")]

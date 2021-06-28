@@ -244,11 +244,11 @@ namespace Inkluzitron.Services
                 .SumAsync(a => a.Points);
         }
 
-        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10)
+        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10, DateTime? from = null)
         {
             using var context = DatabaseFactory.Create();
             var userPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
-                .Select(u => new { u.Id, Points = u.DailyActivity.Sum(p => p.Points) })
+                .Select(u => new { u.Id, Points = u.DailyActivity.Where(p => !from.HasValue || p.Day >= from.Value).Sum(p => p.Points) })
                 .OrderByDescending(u => u.Points)
                 .Skip(startFrom).Take(count)
                 .AsAsyncEnumerable();
@@ -334,7 +334,7 @@ namespace Inkluzitron.Services
 
             var graphPoints = new List<PointD>();
             var graphData = new List<DailyUserActivity>();
-            var today = DateTime.Now.Date;
+            var today = DateTime.Today;
             var day = today.AddDays(-days);
 
             using var context = DatabaseFactory.Create();
@@ -388,8 +388,8 @@ namespace Inkluzitron.Services
 
         private async Task<MagickImage> RenderPointsBaseFrameAsync(int position, IUser user, IMagickColor<byte> headerColor)
         {
-            var pastWeek = DateTime.Now.AddDays(-6);
-            var pastMonth = DateTime.Now.AddMonths(-1).AddDays(1);
+            var pastWeek = DateTime.Today.AddDays(-6);
+            var pastMonth = DateTime.Today.AddMonths(-1).AddDays(1);
 
             using var image = new MagickImage(MagickColors.Transparent, 900, 320);
 
