@@ -14,7 +14,7 @@ namespace Inkluzitron.Services.TypeReaders
         public override async Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
         {
             // Match on caller
-            if (Regex.IsMatch(input.Trim(), "^(me|j[a|á])$", RegexOptions.IgnoreCase))
+            if (Regex.IsMatch(input.Trim(), "^(me|j[aá])$", RegexOptions.IgnoreCase))
                 return TypeReaderResult.FromSuccess(context.User);
 
             // Match on users in DMs by username and discriminator or only username.
