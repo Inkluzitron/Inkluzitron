@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GrillBot.App.Infrastructure.TypeReaders;
 using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,6 +67,13 @@ namespace Inkluzitron.Services
 
             await DiscordClient.LoginAsync(TokenType.Bot, token);
             await DiscordClient.StartAsync();
+
+            CommandService.AddTypeReader<Guid>(new GuidTypeReader());
+            CommandService.AddTypeReader<IMessage>(new MessageTypeReader(), true);
+            CommandService.AddTypeReader<IEmote>(new EmotesTypeReader());
+            CommandService.AddTypeReader<IUser>(new UserTypeReader(), true);
+            CommandService.AddTypeReader<DateTime>(new DateTimeTypeReader(), true);
+            CommandService.AddTypeReader<bool>(new BooleanTypeReader(), true);
 
             CommandServiceScope = ServiceProvider.CreateScope();
             await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), CommandServiceScope.ServiceProvider);

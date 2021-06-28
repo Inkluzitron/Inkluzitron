@@ -114,5 +114,6 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Services\TypeReaders\" />
   </ItemGroup>
 </Project>
