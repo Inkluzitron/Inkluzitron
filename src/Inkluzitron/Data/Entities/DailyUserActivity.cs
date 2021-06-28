@@ -11,7 +11,7 @@ namespace Inkluzitron.Data.Entities
         public ulong UserId { get; set; }
 
         [Required]
-        public DateTime Day { get; set; } = DateTime.Now.Date;
+        public DateTime Day { get; set; } = DateTime.Today;
 
         [Required]
         public long Points { get; set; } = 0;
