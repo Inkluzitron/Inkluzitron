@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace GrillBot.App.Infrastructure.TypeReaders
+namespace Inkluzitron.Services.TypeReaders
 {
     public class DateTimeTypeReader : TypeReader
     {
