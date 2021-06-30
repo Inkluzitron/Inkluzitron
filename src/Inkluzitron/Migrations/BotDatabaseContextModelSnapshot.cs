@@ -188,6 +188,30 @@ namespace Inkluzitron.Migrations
                     b.ToTable("RoleMenuMessageRoles");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.ScheduledTask", b =>
+                {
+                    b.Property<long>("ScheduledTaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Data")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FailCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("MsSinceUtcUnixEpoch")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ScheduledTaskId");
+
+                    b.ToTable("ScheduledTasks");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
                 {
                     b.Property<ulong>("Id")

@@ -23,6 +23,8 @@ namespace Inkluzitron.Data
         public DbSet<DailyUserActivity> DailyUsersActivities { get; set; }
 
         public DbSet<Invite> Invites { get; set; }
+        public DbSet<ScheduledTask> ScheduledTasks { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

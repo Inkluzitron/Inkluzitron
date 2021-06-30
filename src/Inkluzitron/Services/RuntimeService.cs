@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Contracts;
 using Inkluzitron.Services.TypeReaders;
 using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
-    public class RuntimeService
+    public class RuntimeService : ILifecycleControl
     {
         private DiscordSocketClient DiscordClient { get; }
         private IServiceProvider ServiceProvider { get; }

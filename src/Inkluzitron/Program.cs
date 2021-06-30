@@ -8,6 +8,7 @@ using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Modules.Points;
+using Inkluzitron.Modules.Vote;
 using Inkluzitron.Services;
 using Inkluzitron.Services.ChannelLogger;
 using Inkluzitron.Utilities;
@@ -69,6 +70,7 @@ namespace Inkluzitron
                 .AddSingleton(new CommandService(commandsConfig))
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
+                .AddSingleton<ILifecycleControl>(sp => sp.GetRequiredService<RuntimeService>())
                 .AddSingleton<LoggingService>()
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<DatabaseFactory>()
@@ -87,6 +89,10 @@ namespace Inkluzitron
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
                 .AddSingleton<KisSettings>()
+                .AddSingleton<ScheduledTasksService>()
+                .AddSingleton<ILifecycleControl>(sp => sp.GetRequiredService<ScheduledTasksService>())
+                .AddSingleton<EndOfVotingScheduledTaskHandler>()
+                .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -117,7 +123,7 @@ namespace Inkluzitron
                 });
             }
 
-            var provider = services.BuildServiceProvider();
+            await using var provider = services.BuildServiceProvider();
 
             provider.GetRequiredService<LoggingService>();
             handlers.ForEach(o => provider.GetRequiredService(o));
@@ -128,8 +134,8 @@ namespace Inkluzitron
             provider.GetRequiredService<ReactionsModule>();
             provider.GetRequiredService<PointsService>();
 
-            var runtime = provider.GetRequiredService<RuntimeService>();
-            await runtime.StartAsync();
+            foreach (var startable in provider.GetServices<ILifecycleControl>())
+                await startable.StartAsync();
 
             try
             {
@@ -140,8 +146,8 @@ namespace Inkluzitron
                 // Can ignore
             }
 
-            await runtime.StopAsync();
-            await provider.DisposeAsync();
+            foreach (var stoppable in provider.GetServices<ILifecycleControl>().Reverse())
+                await stoppable.StopAsync();
         }
 
         static public IConfiguration BuildConfiguration(string[] args)
