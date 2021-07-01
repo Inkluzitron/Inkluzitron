@@ -7,57 +7,22 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
-    [Name("Obrázkové příkazy")]
-    [Summary("Za každý příkaz v této kategorii je možné napsat libovolnou zprávu.\nTyto příkazy jdou použít jako odpověď na zprávu, podobně jako $mock.\nTaké pozor, na koho příkazy používáte. Některé spicy příkazy jsou závislé na výsledku BDSM testu.")]
-    public class ImagesModule : ModuleBase
+    [Name("Spicy obrázkové příkazy")]
+    [Summary("Obrázkové příkazy, které jsou závislé na výsledcích BDSM testu. Pro jejich použití je třeba mít vyplněný BDSM test a obě strany musí udělit souhlas s použitím.\nPoužití je stejné jako u běžných obrázkových příkazů.")]
+    public class SpicyReactionImagesModule : ModuleBase
     {
         private ImagesService ImagesService { get; }
         private UserBdsmTraitsService UserBdsmTraits { get; }
         private PointsService PointsService { get; }
 
-        public ImagesModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits,
+        public SpicyReactionImagesModule(ImagesService imagesService, UserBdsmTraitsService userBdsmTraits,
             PointsService pointsService)
         {
             ImagesService = imagesService;
             UserBdsmTraits = userBdsmTraits;
             PointsService = pointsService;
         }
-
-        [Command("peepolove")]
-        [Alias("peepo love", "love")]
-        [Summary("Vytvoří obrázek peepa objímajícího autora nebo zadaného uživatele.")]
-        public async Task PeepoLoveAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
-        {
-            if (member == null)
-                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
-
-            var imageName = await ImagesService.PeepoLoveAsync(member, Context.Guild.CalculateFileUploadLimit());
-            await ReplyFileAsync(imageName);
-        }
-
-        [Command("peepoangry")]
-        [Alias("peepo angry", "angry")]
-        [Summary("Vytvoří obrázek peepa, který je naštvaný na autora nebo zadaného uživatele.")]
-        public async Task PeepoAngryAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
-        {
-            if (member == null)
-                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
-
-            var imageName = await ImagesService.PeepoAngryAsync(member, Context.Guild.CalculateFileUploadLimit());
-            await ReplyFileAsync(imageName);
-        }
-
-        [Command("pat")]
-        [Alias("pet")]
-        [Summary("Pohladí autora nebo zadaného uživatele.")]
-        public async Task PatAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
-        {
-            if (member == null)
-                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
-
-            var gifName = await ImagesService.PatAsync(member, Context.User.Equals(member));
-            await ReplyFileAsync(gifName);
-        }
+        
 
         [Command("bonk")]
         [Summary("Bonkne autora nebo zadaného uživatele.")]
