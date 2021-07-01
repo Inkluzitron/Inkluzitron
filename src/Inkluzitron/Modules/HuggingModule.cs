@@ -20,7 +20,7 @@ namespace Inkluzitron.Modules
 
         [Command("hug")]
         [Summary("Hugne sebe nebo všechny uživatele, kteří jsou označení ve zprávě.")]
-        public async Task HuggingAsync([Name("zpráva")] params IUser[] user)
+        public async Task HuggingAsync([Name("koho")] params IUser[] user)
         {
             if (user.Length == 0)
             {
