@@ -369,34 +369,5 @@ namespace Inkluzitron.Modules.BdsmTestOrg
 
             await ReplyAsync(lastCheck.ToString());
         }
-
-        [Command("consent")]
-        [Summary("Vypíše stav souhlasu s používáním obrázkových BDSM příkazů.")]
-        public async Task ShowConsentAsync([Name("koho")] IUser target = null)
-        {
-            if (target is null)
-                target = Context.User;
-
-            var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
-            var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
-            var message = status ? Settings.ConsentRegistered : Settings.ConsentNotRegistered;
-            await ReplyAsync(string.Format(message, Format.Sanitize(await UsersService.GetDisplayNameAsync(target))));
-        }
-
-        [Command("consent grant")]
-        [Summary("Udělí souhlas s používáním obrázkových BDSM příkazů.")]
-        public Task GrantConsentAsync()
-            => UpdateConsentAsync(c => c | CommandConsent.BdsmImageCommands);
-
-        [Command("consent revoke")]
-        [Summary("Odvolá souhlas s používáním obrázkových BDSM příkazů.")]
-        public Task RevokeConsentAsync()
-            => UpdateConsentAsync(c => c & ~CommandConsent.BdsmImageCommands);
-
-        private async Task UpdateConsentAsync(Func<CommandConsent, CommandConsent> consentUpdaterFunc)
-        {
-            await DbContext.UpdateCommandConsentAsync(Context.User, consentUpdaterFunc);
-            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-        }
     }
 }
