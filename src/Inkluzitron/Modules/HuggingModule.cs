@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -21,57 +22,24 @@ namespace Inkluzitron.Modules
 
         [Command("hug")]
         [Summary("Hugne sebe nebo všechny uživatele, kteří jsou označení ve zprávě.")]
-        public async Task HuggingAsync([Remainder][Name("zpráva")] string message = null)
+        public async Task HuggingAsync([Name("zpráva")] params IUser[] user)
         {
-            var taggedList = Context.Message.MentionedUsers;
-            string userName;
-
-            // hug user sending command if no message is present
-            if (message == null && taggedList.Count == 0)
+            if (user.Length == 0)
             {
-                if (Context.User is SocketGuildUser user)
-                {
-                    userName = await UsersService.GetDisplayNameAsync(user);
-                    await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
-                    );
-                }
-
+                var userName = await UsersService.GetDisplayNameAsync(Context.User);
+                await Context.Channel.SendMessageAsync(
+                    $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
+                );
                 return;
             }
 
-            // check if someone is tagged
-            if (taggedList.Count != 0)
+            foreach (var u in user)
             {
-                foreach (var user in taggedList)
-                {
-                    if (user is not SocketGuildUser usr) continue;
-
-                    userName = await UsersService.GetDisplayNameAsync(usr);
-                    await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
-                    );
-                }
-
-                return;
+                var userName = await UsersService.GetDisplayNameAsync(u);
+                await Context.Channel.SendMessageAsync(
+                    $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
+                );
             }
-
-            // iterate over users and find if someone has same name, nickname or ID as message
-            foreach (var user in Context.Guild.Users)
-            {
-                userName = await UsersService.GetDisplayNameAsync(user);
-                if (message == userName || message == user.Id.ToString())
-                {
-                    await Context.Channel.SendMessageAsync(
-                      $"{Config["Hugging"]} **{Format.Sanitize(userName)}**"
-                    );
-                    return;
-                }
-            }
-
-            await Context.Channel.SendMessageAsync(
-              $"Nastala politováníhodná situace, nenašel jsem nikoho na ohugování... {Config["PepeHands"]}"
-            );
         }
     }
 }
