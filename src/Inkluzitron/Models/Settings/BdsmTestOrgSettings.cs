@@ -18,8 +18,6 @@ namespace Inkluzitron.Models.Settings
         public string BadFilterQueryMessage { get; }
         public string TestLinkUrl { get; }
         public string NoContentToStats { get; }
-        public string ConsentRegistered { get; }
-        public string ConsentNotRegistered { get; }
 
         public BdsmTestOrgSettings(IConfiguration config)
         {
@@ -38,8 +36,6 @@ namespace Inkluzitron.Models.Settings
             BadFilterQueryMessage = cfg.GetRequired<string>(nameof(BadFilterQueryMessage));
             TestLinkUrl = cfg.GetRequired<string>(nameof(TestLinkUrl));
             NoContentToStats = cfg.GetRequired<string>(nameof(NoContentToStats));
-            ConsentRegistered = cfg.GetRequired<string>(nameof(ConsentRegistered));
-            ConsentNotRegistered = cfg.GetRequired<string>(nameof(ConsentNotRegistered));
         }
     }
 }
