@@ -135,11 +135,11 @@ namespace Inkluzitron.Services
             }
         }
 
-        private Task<Task> CreateWaitForNextIterationAsync(BotDatabaseContext dbContext, CancellationToken cancellationToken)
+        private async Task<Task> CreateWaitForNextIterationAsync(BotDatabaseContext dbContext, CancellationToken cancellationToken)
         {
-            var nextScheduledTask = dbContext.ScheduledTasks.AsQueryable()
+            var nextScheduledTask = await dbContext.ScheduledTasks.AsQueryable()
                 .OrderBy(st => st.MsSinceUtcUnixEpoch)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync(cancellationToken);
 
             Task newItemAdded = ScheduledTaskExists.WaitOneAsync(cancellationToken);
             Task nextItemTick = Task.Delay(Timeout.Infinite, cancellationToken);
