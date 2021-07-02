@@ -69,7 +69,8 @@ namespace Inkluzitron.Modules
             {
                 await ReplyAsync(string.Format(
                     (user.Id == Context.Client.CurrentUser.Id) ? templateAboutBotSelf : templateAboutBotOther,
-                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))
+                ));
 
                 return;
             }
@@ -79,7 +80,8 @@ namespace Inkluzitron.Modules
             {
                 await ReplyAsync(string.Format(
                     templateUserNotFound,
-                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))
+                ));
 
                 return;
             }
