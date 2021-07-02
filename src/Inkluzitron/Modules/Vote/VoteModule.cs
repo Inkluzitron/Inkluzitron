@@ -1,26 +1,39 @@
 ﻿using Discord.Commands;
-using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules.Vote;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
 {
     [Name("Hlasování")]
-    [Summary("TBD")]
+    [Summary(ModuleSummary)]
     public class VoteModule : ModuleBase
     {
+        public const string ModuleSummary = "**Ukázková zadání:**\r\n" + Example1 + "\r\n" + Example2 + "\r\n" + Example3;
+
+        public const string Example1 = "$vote Otázka hlasování s pevným ukončením\r\n" +
+            ":fire: Ohýnek\r\n" +
+            ":droplet: Vodička\r\n" +
+            "konec 1.4.2021\r\n";
+
+        public const string Example2 = "$vote Otázka hlasování s relativním ukončením\r\n" +
+            ":computer: Počítač\r\n" +
+            ":book: Knížečka\r\n" +
+            "konec za 10 minut\r\n";
+
+        public const string Example3 = "$vote Otázka hlasování bez ukončení\r\n" +
+            ":dollar: Peníze\r\n" +
+            ":moneybag: Taky peníze, ale spousta\r\n";
+
         private VoteService VoteService { get; }
-        private ReactionSettings ReactionSettings { get; }
 
-
-        public VoteModule(VoteService voteService, VoteDefinitionParser parser, ReactionSettings reactionSettings)
+        public VoteModule(VoteService voteService)
         {
             VoteService = voteService;
-            ReactionSettings = reactionSettings;
         }
 
         [Command("vote")]
-        public async Task Vote([Remainder] string _)
+        [Summary("Spustí hlasování.")]
+        public async Task Vote([Remainder, Name("zadání")] string _)
             => await VoteService.ProcessVoteCommandAsync(Context.Message);
     }
 }

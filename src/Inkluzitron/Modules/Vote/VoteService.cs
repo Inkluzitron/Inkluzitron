@@ -31,6 +31,7 @@ namespace Inkluzitron.Modules.Vote
             Parser = parser;
             Cache = cache;
 
+            // TODO: interfaces
             Client.MessageDeleted += Client_MessageDeleted;
             Client.MessageUpdated += Client_MessageUpdated;
         }
@@ -131,7 +132,7 @@ namespace Inkluzitron.Modules.Vote
             if (reply is not null)
                 return reply;
 
-            await foreach (var page in voteCommandMessage.Channel.GetMessagesAsync(voteCommandMessage, Direction.After, limit: 20))
+            await foreach (var page in voteCommandMessage.Channel.GetMessagesAsync(voteCommandMessage, Direction.After))
             {
                 foreach (var replyCandidate in page)
                 {
@@ -272,9 +273,9 @@ namespace Inkluzitron.Modules.Vote
             if (winners.Length == 0)
                 return $"Nikdo zatím nehlasoval. {tail}";
             else if (winners.Length == 1)
-                return $"Prozatím vyhrává možnost {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
+                return $"Vyhrává možnost {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
             else
-                return $"Prozatím vyhrávájí možnosti {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
+                return $"Vyhrávájí možnosti {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
         }
     }
 }
