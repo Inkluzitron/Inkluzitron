@@ -3,14 +3,16 @@ using System;
 using Inkluzitron.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    partial class BotDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20210702211403_CustomPronouns")]
+    partial class CustomPronouns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

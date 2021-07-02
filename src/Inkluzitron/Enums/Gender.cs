@@ -10,11 +10,11 @@ namespace Inkluzitron.Enums
         Unspecified,
 
         [EnumMember(Value = "M")]
-        [Display(Name = "he/him, on")]
+        [Display(Name = "on")]
         Male,
 
         [EnumMember(Value = "F")]
-        [Display(Name = "she/her, ona")]
+        [Display(Name = "ona")]
         Female
     }
 }
