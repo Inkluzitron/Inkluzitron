@@ -1,5 +1,7 @@
 ﻿using Discord.Commands;
+using System;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 namespace Inkluzitron.Extensions
@@ -24,12 +26,23 @@ namespace Inkluzitron.Extensions
                 builder.Append(' ');
                 if (param == highlightArg) builder.Append("**__");
                 builder.Append('`');
-                builder.Append(param.Name).Append(param.IsOptional ? "?" : "");
+                builder.Append(GetParamFormat(param)).Append(param.IsOptional ? "?" : "");
                 builder.Append('`');
                 if (param == highlightArg) builder.Append("__**");
             }
 
             return builder.ToString();
+        }
+
+        static private string GetParamFormat(ParameterInfo param)
+        {
+            if (param.Type.IsEnum)
+            {
+                var names = Enum.GetNames(param.Type);
+                return string.Join('/', names).ToLower();
+            }
+
+            return param.Name;
         }
     }
 }
