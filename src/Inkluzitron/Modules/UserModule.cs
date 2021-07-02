@@ -1,7 +1,9 @@
 ﻿using Discord;
 using Discord.Commands;
 using Inkluzitron.Data;
+using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
+using Inkluzitron.Enums.CommandArguments;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
@@ -9,6 +11,9 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -46,59 +51,123 @@ namespace Inkluzitron.Modules
             base.AfterExecute(command);
         }
 
-        [Command("pronouns")]
-        [Alias("osloveni")]
-        [Summary("Vypíše svoje preferované oslovení nebo oslovení vybraného uživatele.")]
-        public async Task ShowGenderAsync([Name("uživatel")] IUser user = null)
+        [Command("about")]
+        [Alias("o")]
+        [Summary("Zobrazí údaje o uživateli, jako je preferované oslovení, s čím souhlasí a další věci.")]
+        public async Task ShowPronounsAsync([Name("uživatel")] IUser user = null)
         {
-            var genderMsg = Configuration["UserModule:UserPronounsMessage"];
-            var notFoundMsg = Configuration["UserModule:UserNotFoundMessage"];
+            // TODO Show user birthday
 
-            if (user == null) user = Context.User;
+            var templateAboutBotSelf = Configuration["UserModule:AboutBotSelf"];
+            var templateAboutBotOther = Configuration["UserModule:AboutBotOther"];
+            var templateUserNotFound = Configuration["UserModule:UserNotFoundMessage"];
+
+            if (user == null)
+                user = Context.User;
 
             if (user.IsBot)
             {
-                if (user.Id == Context.Client.CurrentUser.Id)
-                {
-                    await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), Configuration["UserModule:UserPronounsBotSelf"]));
-                    return;
-                }
+                await ReplyAsync(string.Format(
+                    (user.Id == Context.Client.CurrentUser.Id) ? templateAboutBotSelf : templateAboutBotOther,
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
 
-                await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), "je bot a nemá preferované oslovení."));
                 return;
             }
 
             var userDb = await DbContext.GetUserEntityAsync(user);
             if (userDb == null)
             {
-                await ReplyAsync(string.Format(notFoundMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
+                await ReplyAsync(string.Format(
+                    templateUserNotFound,
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user))));
+
                 return;
             }
 
-            var gender = userDb.Gender == Gender.Unspecified ?
-                "nemá preferované oslovení." :
-                $"je {userDb.Gender.GetDisplayName()}.";
+            var descBuilder = new StringBuilder();
+            descBuilder.AppendLine(userDb.Gender == Gender.Unspecified ?
+                "Nemá preferované oslovení" :
+                $"**Oslovení:** {userDb.Gender.GetDisplayName()}");
 
-            await ReplyAsync(string.Format(genderMsg, Format.Sanitize(await UsersService.GetDisplayNameAsync(user)), gender));
+            var guildUser = await UsersService.GetUserFromHomeGuild(user);
+            if(guildUser != null)
+                descBuilder.AppendLine($"**Na serveru od:** {guildUser.JoinedAt.Value.LocalDateTime.ToShortDateString()}");
+            else
+                descBuilder.AppendLine($"Již není na serveru");
+
+            var embed = new EmbedBuilder()
+                .WithAuthor(user)
+                .WithCurrentTimestamp()
+                .WithDescription(descBuilder.ToString())
+                .WithFooter("informace o uživateli");
+
+            EmbedAppendUserConsents(embed, userDb);
+
+            var tests = await GetUserCompletedTests(user.Id);
+
+            if(tests.Length > 0)
+                embed.AddField("Vyplněné testy:", string.Join('\n', tests));
+
+            await ReplyAsync(embed: embed.Build());
         }
 
-        [Command("pronouns set he")]
-        [Alias("pronouns set him", "pronouns set on", "osloveni set he", "osloveni set him", "osloveni set on")]
-        [Summary("Nastaví svoje preferované oslovení jako mužské - he/him, on.")]
-        public Task SetGenderMaleAsync()
-            => SetGenderAsync(Gender.Male);
+        private async Task<string[]> GetUserCompletedTests(ulong userId)
+        {
+            var tests = new List<string>();
 
-        [Command("pronouns set she")]
-        [Alias("pronouns set her", "pronouns set ona", "osloveni set she", "osloveni set her", "osloveni set ona")]
-        [Summary("Nastaví svoje preferované oslovení jako ženské - she/her, ona.")]
-        public Task SetGenderFemaleAsync()
-            => SetGenderAsync(Gender.Female);
+            if (await DbContext.BdsmTestOrgResults.AnyAsync(t => t.UserId == userId))
+                tests.Add("BDSMTest.org");
+
+            return tests.ToArray();
+        }
+
+        static private void EmbedAppendUserConsents(EmbedBuilder embed, User dbUser)
+        {
+            var userAllow = new List<string>();
+            var userDeny = new List<string>();
+
+            var consents = Enum.GetValues<CommandConsent>();
+            foreach (var consent in consents)
+            {
+                var consentDesc = consent.GetAttribute<DisplayAttribute>()?.GetDescription();
+                if (consentDesc == null) continue;
+
+                if (dbUser.HasGivenConsentTo(consent))
+                    userAllow.Add(consentDesc);
+                else
+                    userDeny.Add(consentDesc);
+            }
+
+            if (userAllow.Count > 0)
+                embed.AddField("Souhlasí:", string.Join('\n', userAllow));
+
+            if (userDeny.Count > 0)
+                embed.AddField("Nesouhlasí:", string.Join('\n', userDeny));
+        }
+
+        [Command("pronouns set")]
+        [Alias("osloveni set")]
+        [Summary("Nastaví svoje preferované oslovení.")]
+        public async Task SetPronounsAsync(Pronoun pronoun)
+        {
+            var gender = pronoun switch
+            {
+                Pronoun.He or Pronoun.Him or Pronoun.On => Gender.Male,
+                Pronoun.She or Pronoun.Her or Pronoun.Ona => Gender.Female,
+                _ => Gender.Unspecified,
+            };
+
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+            user.Gender = gender;
+            await DbContext.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+        }
 
         [Command("pronouns unset")]
-        [Alias("pronouns set other", "osloveni unset", "osloveni set other")]
+        [Alias("osloveni unset")]
         [Summary("Nastaví neutrální oslovení.")]
         public Task UnsetGenderAsync()
-            => SetGenderAsync(Gender.Unspecified);
+            => SetPronounsAsync(Pronoun.Other);
 
         [Command("duck set")]
         [Alias("kachna set")]
@@ -155,36 +224,19 @@ namespace Inkluzitron.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task UnsetKisNicknameAsync(IUser user) => SetKisNicknameAsync(user, null);
 
-        public async Task SetGenderAsync(Gender gender)
-        {
-            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
-            user.Gender = gender;
-            await DbContext.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-        }
-
         [Command("consent")]
-        [Summary("Vypíše stav souhlasu s používáním obrázkových BDSM příkazů.")]
-        public async Task ShowBdsmConsentAsync([Name("koho")] IUser target = null)
+        [Summary("Udělí nebo odvolá souhlas s funkcemi bota. Aktuální stav se zobrazí příkazem $about.")]
+        public async Task GrantConsentAsync(PermissionAction action, ConsentType consent)
         {
-            if (target is null)
-                target = Context.User;
+            var dbConsent = consent switch
+            {
+                ConsentType.All => CommandConsent.BdsmImageCommands,
+                ConsentType.Bdsm => CommandConsent.BdsmImageCommands,
+                _ => CommandConsent.None,
+            };
 
-            var userEntity = await DbContext.GetOrCreateUserEntityAsync(target);
-            var status = userEntity.HasGivenConsentTo(CommandConsent.BdsmImageCommands);
-            var message = Configuration[status ? "UserModule:ConsentRegistered" : "UserModule:ConsentNotRegistered"];
-            await ReplyAsync(string.Format(message, Format.Sanitize(await UsersService.GetDisplayNameAsync(target))));
+            await UpdateConsentAsync(c => action == PermissionAction.Grant ? (c | dbConsent) : (c & ~dbConsent));
         }
-
-        [Command("consent grant bdsm")]
-        [Summary("Udělí souhlas s používáním obrázkových BDSM příkazů.")]
-        public Task GrantBdsmConsentAsync()
-            => UpdateConsentAsync(c => c | CommandConsent.BdsmImageCommands);
-
-        [Command("consent revoke bdsm")]
-        [Summary("Odvolá souhlas s používáním obrázkových BDSM příkazů.")]
-        public Task RevokeBdsmConsentAsync()
-            => UpdateConsentAsync(c => c & ~CommandConsent.BdsmImageCommands);
 
         private async Task UpdateConsentAsync(Func<CommandConsent, CommandConsent> consentUpdaterFunc)
         {

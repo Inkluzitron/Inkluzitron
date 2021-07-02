@@ -17,6 +17,16 @@ namespace Inkluzitron.Services
             DiscordClient = discordClient;
         }
 
+        public async Task<SocketGuildUser> GetUserFromHomeGuild(ulong userId)
+        {
+            var homeGuild = DiscordClient.GetGuild(BotSettings.HomeGuildId);
+
+            return await homeGuild.GetUserAsync(userId);
+        }
+
+        public Task<SocketGuildUser> GetUserFromHomeGuild(IUser user)
+            => GetUserFromHomeGuild(user.Id);
+
         public async Task<string> GetDisplayNameAsync(ulong userId)
         {
             var homeGuild = DiscordClient.GetGuild(BotSettings.HomeGuildId);
