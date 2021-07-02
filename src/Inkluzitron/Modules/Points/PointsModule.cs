@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using Inkluzitron.Extensions;
+using EnumArg = Inkluzitron.Enums.CommandArguments;
 using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
@@ -70,38 +69,27 @@ namespace Inkluzitron.Modules.Points
             await GetLeaderboardAsync(pos);
         }
 
-        [Command("board week")]
-        [Alias("list week")]
-        [Summary("Žebříček uživatelů s nejvíce body za poslední týden. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
-        public async Task GetWeeklyLeaderboardAsync([Name("uživatel")] IUser user = null)
+        [Command("board")]
+        [Alias("list")]
+        [Summary("Žebříček uživatelů s nejvíce body za poslední den/týden/měsíc. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
+        public async Task GetWeeklyLeaderboardAsync(EnumArg.TimeSpan span, [Name("uživatel")] IUser user = null)
         {
-            var weekly = DateTime.Today.AddDays(-6);
+            var from = span switch
+            {
+                EnumArg.TimeSpan.Today => DateTime.Today,
+                EnumArg.TimeSpan.Week => DateTime.Today.AddDays(-6),
+                EnumArg.TimeSpan.Month => DateTime.Today.AddMonths(-1).AddDays(1),
+                _ => throw new NotImplementedException()
+            };
 
             if (user == null)
             {
-                await GetLeaderboardAsync(0, weekly);
+                await GetLeaderboardAsync(0, from);
                 return;
             }
 
             var pos = await PointsService.GetUserPositionAsync(user);
-            await GetLeaderboardAsync(pos, weekly);
-        }
-
-        [Command("board month")]
-        [Alias("list month")]
-        [Summary("Žebříček uživatelů s nejvíce body za poslední měsíc. Volitelně zobrazí žebříček kolem zadaného uživatele.")]
-        public async Task GetMonthlyLeaderboardAsync([Name("uživatel")] IUser user = null)
-        {
-            var monthly = DateTime.Today.AddMonths(-1).AddDays(1);
-
-            if (user == null)
-            {
-                await GetLeaderboardAsync(0, monthly);
-                return;
-            }
-
-            var pos = await PointsService.GetUserPositionAsync(user);
-            await GetLeaderboardAsync(pos, monthly);
+            await GetLeaderboardAsync(pos, from);
         }
 
         public async Task GetLeaderboardAsync(int start, DateTime? from = null)
@@ -137,8 +125,8 @@ namespace Inkluzitron.Modules.Points
             await ReplyFileAsync(file.Path);
         }
 
-        [Command("kachna")]
-        [Alias("get kis", "z kachny")]
+        [Command("z kachny")]
+        [Alias("get kis", "kachna")]
         [Summary("Synchronizuje body získané nákupem z kachničky.")]
         public async Task SynchronizeKisPointsAsync()
         {
