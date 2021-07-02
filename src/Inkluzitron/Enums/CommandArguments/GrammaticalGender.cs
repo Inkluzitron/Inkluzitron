@@ -1,12 +1,8 @@
 ﻿namespace Inkluzitron.Enums.CommandArguments
 {
-    public enum Pronoun
+    public enum GrammaticalGender
     {
-        He,
-        Him,
         On,
-        She,
-        Her,
         Ona
     }
 }
