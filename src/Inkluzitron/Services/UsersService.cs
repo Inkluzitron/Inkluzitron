@@ -2,6 +2,8 @@
 using Discord.WebSocket;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
@@ -20,6 +22,10 @@ namespace Inkluzitron.Services
         public async Task<SocketGuildUser> GetUserFromHomeGuild(ulong userId)
         {
             var homeGuild = DiscordClient.GetGuild(BotSettings.HomeGuildId);
+            if(homeGuild == null)
+            {
+                throw new ValidationException("Home guild ID not set in bot configuration file");
+            }
 
             return await homeGuild.GetUserAsync(userId);
         }
@@ -29,9 +35,7 @@ namespace Inkluzitron.Services
 
         public async Task<string> GetDisplayNameAsync(ulong userId)
         {
-            var homeGuild = DiscordClient.GetGuild(BotSettings.HomeGuildId);
-
-            var user = await homeGuild.GetUserAsync(userId);
+            var user = await GetUserFromHomeGuild(userId);
 
             if (user == null)
                 return null;
