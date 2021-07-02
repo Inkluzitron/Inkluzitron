@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using ImageMagick;
+using Inkluzitron.Contracts;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
@@ -11,14 +12,13 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
-    public class PointsService
+    public class PointsService : IReactionHandler
     {
         static private readonly DateTime FallbackDateTime = new(2000, 1, 1);
         static private readonly TimeSpan MessageIncrementCooldown = TimeSpan.FromSeconds(60);
@@ -53,9 +53,6 @@ namespace Inkluzitron.Services
             BotSettings = botSettings;
             KisService = kisService;
             UsersService = usersService;
-
-            DiscordClient.ReactionAdded += OnReactionAddedAsync;
-            DiscordClient.ReactionRemoved += OnReactionRemovedAsync;
 
             const string font = "Open Sans";
             DataFont = new DrawableFont(font) { Weight = FontWeight.Bold };
@@ -112,17 +109,13 @@ namespace Inkluzitron.Services
             return result;
         }
 
-        private async Task OnReactionAddedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        async Task<bool> IReactionHandler.HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user)
         {
-            if (channel is not IGuildChannel)
-                return; // Only server messages increments points.
-
-            var user = reaction.User.IsSpecified
-                ? reaction.User.Value
-                : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+            if (message.Channel is not IGuildChannel)
+                return false; // Only server messages increments points.
 
             if (user.IsBot)
-                return;
+                return false;
 
             await AddIncrementalPointsAsync(
                 user,
@@ -132,21 +125,23 @@ namespace Inkluzitron.Services
                 UserActivityType.ReactionAdded
             );
 
-            var msg = await message.GetOrDownloadAsync();
-            if (msg == null || msg.Author == user || msg.Author.IsBot) return;
-            await AddPointsAsync(msg.Author, BotSettings.PointsKarmaIncrement);
+            if (message == null || message.Author == user || message.Author.IsBot)
+                return false;
+
+            await AddPointsAsync(message.Author, BotSettings.PointsKarmaIncrement);
+            return false;
         }
 
-        private async Task OnReactionRemovedAsync(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        async Task<bool> IReactionHandler.HandleReactionRemovedAsync(IUserMessage message, IEmote _, IUser user)
         {
-            if (channel is not IGuildChannel) return;
+            if (message.Channel is not IGuildChannel)
+                return false;
 
-            var user = reaction.User.IsSpecified ? reaction.User.Value : await DiscordClient.Rest.GetUserAsync(reaction.UserId);
+            if (message == null || message.Author == user || message.Author.IsBot)
+                return false;
 
-            var msg = await message.GetOrDownloadAsync();
-            if (msg == null || msg.Author == user || msg.Author.IsBot) return;
-
-            await AddPointsAsync(msg.Author, -BotSettings.PointsKarmaIncrement);
+            await AddPointsAsync(message.Author, -BotSettings.PointsKarmaIncrement);
+            return false;
         }
 
         public async Task IncrementAsync(SocketMessage message)

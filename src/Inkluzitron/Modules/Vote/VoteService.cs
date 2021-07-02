@@ -184,14 +184,12 @@ namespace Inkluzitron.Modules.Vote
             var allEmotes = new HashSet<IEmote>(parse.Definition.Options.Keys);
             allEmotes.UnionWith(voteCommandMessage.Reactions.Keys);
             var failedEmotes = new List<IEmote>();
-
-            
             var summary = ComposeSummary(voteCommandMessage, parse.Definition);
 
             foreach (var emote in allEmotes)
             {
                 var shouldBePresent = parse.Definition.Options.ContainsKey(emote);
-                var isPresent = voteCommandMessage.Reactions.TryGetValue(emote, out var reaction) && reaction.IsMe;
+                var isPresent = voteCommandMessage.Reactions.TryGetValue(emote, out var reaction);
 
                 if (!shouldBePresent && isPresent)
                 {
