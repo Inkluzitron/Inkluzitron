@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
@@ -20,7 +18,6 @@ namespace Inkluzitron.Modules
     public class InviteModule : ModuleBase
     {
         private IConfiguration Config { get; }
-        private DiscordSocketClient DiscordSocketClient { get; }
 
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
@@ -28,13 +25,11 @@ namespace Inkluzitron.Modules
 
         public InviteModule(IConfiguration config,
             DatabaseFactory databaseFactory,
-            UsersService usersService,
-            DiscordSocketClient discordSocketClient)
+            UsersService usersService)
         {
             Config = config;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
-            DiscordSocketClient = discordSocketClient;
         }
 
         override protected void BeforeExecute(CommandInfo command)

@@ -54,7 +54,7 @@ namespace Inkluzitron.Modules
         [Command("about")]
         [Alias("o")]
         [Summary("Zobrazí údaje o uživateli, jako je preferované oslovení, s čím souhlasí a další věci.")]
-        public async Task ShowPronounsAsync([Name("uživatel")] IUser user = null)
+        public async Task ShowUserInfoAsync([Name("uživatel")] IUser user = null)
         {
             // TODO Show user birthday
 
@@ -86,10 +86,19 @@ namespace Inkluzitron.Modules
                 return;
             }
 
+            var pronouns = userDb.Pronouns;
+            if (pronouns == null)
+            {
+                if (userDb.Gender == Gender.Male)
+                    pronouns = "he/him";
+                else if (userDb.Gender == Gender.Female)
+                    pronouns = "she/her";
+            }
+
             var descBuilder = new StringBuilder();
             descBuilder.AppendLine(userDb.Gender == Gender.Unspecified ?
                 "Nemá preferované oslovení" :
-                $"**Oslovení:** {userDb.Gender.GetDisplayName()}");
+                $"**Oslovení:** {pronouns}, {userDb.Gender.GetDisplayName()}");
 
             var guildUser = await UsersService.GetUserFromHomeGuild(user);
             if(guildUser != null)
@@ -159,17 +168,38 @@ namespace Inkluzitron.Modules
                 _ => Gender.Unspecified,
             };
 
-            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
-            user.Gender = gender;
-            await DbContext.SaveChangesAsync();
-            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+            await SetUserGenderAndPronouns(gender);
+        }
+
+        [Command("pronouns set custom")]
+        [Alias("osloveni set custom", "pronouns set other", "osloveni set other")]
+        [Summary("Nastaví vlastní preferované oslovení. Jako druhý argument se uvádí preferované skloňování v textu.")]
+        public async Task SetPronounsAsync(string pronoun, GrammaticalGender gender)
+        {
+            var dbGender = gender switch
+            {
+                GrammaticalGender.On => Gender.Male,
+                GrammaticalGender.Ona => Gender.Female,
+                _ => Gender.Unspecified,
+            };
+
+            await SetUserGenderAndPronouns(dbGender, pronoun);
         }
 
         [Command("pronouns unset")]
         [Alias("osloveni unset")]
-        [Summary("Nastaví neutrální oslovení.")]
-        public Task UnsetGenderAsync()
-            => SetPronounsAsync(Pronoun.Other);
+        [Summary("Odstraní uložené informace o oslovení.")]
+        public Task UnsetPronounsAsync()
+            => SetUserGenderAndPronouns(Gender.Unspecified);
+
+        private async Task SetUserGenderAndPronouns(Gender gender, string pronouns = null)
+        {
+            var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
+            user.Gender = gender;
+            user.Pronouns = pronouns;
+            await DbContext.SaveChangesAsync();
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+        }
 
         [Command("duck set")]
         [Alias("kachna set")]
@@ -228,7 +258,7 @@ namespace Inkluzitron.Modules
 
         [Command("consent")]
         [Summary("Udělí nebo odvolá souhlas s funkcemi bota. Aktuální stav se zobrazí příkazem $about.")]
-        public async Task GrantConsentAsync(PermissionAction action, ConsentType consent)
+        public async Task ChangeConsentAsync(PermissionAction action, ConsentType consent)
         {
             var dbConsent = consent switch
             {
