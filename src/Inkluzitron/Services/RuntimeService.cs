@@ -8,12 +8,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
-    public class RuntimeService : ILifecycleControl
+    public class RuntimeService
     {
         private DiscordSocketClient DiscordClient { get; }
         private IServiceProvider ServiceProvider { get; }
@@ -34,6 +35,7 @@ namespace Inkluzitron.Services
             DiscordClient.Ready += OnReadyAsync;
         }
 
+        // TODO: interface this
         private async Task OnReadyAsync()
         {
             var cacheData = Cache.WithCategory("App")

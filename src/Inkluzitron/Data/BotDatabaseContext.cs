@@ -25,7 +25,6 @@ namespace Inkluzitron.Data
         public DbSet<Invite> Invites { get; set; }
         public DbSet<ScheduledTask> ScheduledTasks { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>(builder =>

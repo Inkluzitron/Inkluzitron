@@ -2,6 +2,8 @@
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -16,17 +18,17 @@ namespace Inkluzitron.Services
         private const int FailCountThreshold = 5;
 
         private DatabaseFactory DbFactory { get; }
-        private IScheduledTaskHandler[] Handlers { get; }
+        private Lazy<IScheduledTaskHandler[]> Handlers { get; }
         private ILogger Logger { get; }
 
         private ManualResetEvent ScheduledTaskExists { get; } = new(false);
         private CancellationTokenSource CancellationTokenSource { get; set; }
         private Task Worker { get; set; }
 
-        public ScheduledTasksService(DatabaseFactory databaseFactory, IEnumerable<IScheduledTaskHandler> handlers, ILogger<ScheduledTasksService> logger)
+        public ScheduledTasksService(DatabaseFactory databaseFactory, IServiceProvider serviceProvider, ILogger<ScheduledTasksService> logger)
         {
             DbFactory = databaseFactory;
-            Handlers = handlers.ToArray();
+            Handlers = new Lazy<IScheduledTaskHandler[]>(() => serviceProvider.GetServices<IScheduledTaskHandler>().ToArray());
             Logger = logger;
         }
 
@@ -54,6 +56,45 @@ namespace Inkluzitron.Services
             GC.SuppressFinalize(this);
             CancellationTokenSource.Dispose();
             ScheduledTaskExists.Dispose();
+        }
+
+        public async Task<ScheduledTask> LookupAsync(int taskId)
+        {
+            using var dbContext = DbFactory.Create();
+            return await dbContext.ScheduledTasks.FindAsync(taskId);
+        }
+
+        public async Task<IReadOnlyCollection<ScheduledTask>> LookupAsync(string discriminator, string tag)
+        {
+            using var dbContext = DbFactory.Create();
+            return await dbContext.ScheduledTasks.AsQueryable()
+                .Where(t => t.Discriminator == discriminator && t.Tag == tag)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CancelAsync(long scheduledTaskId)
+        {
+            using var dbContext = DbFactory.Create();
+            var scheduledTask = await dbContext.ScheduledTasks.FindAsync(scheduledTaskId);
+            if (scheduledTask == null)
+                return false;
+
+            dbContext.ScheduledTasks.Remove(scheduledTask);
+            await dbContext.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<int> CancelAsync(string discriminator, string tag)
+        {
+            using var dbContext = DbFactory.Create();
+            var results = await dbContext.ScheduledTasks.AsQueryable()
+                .Where(t => t.Discriminator == discriminator && t.Tag == tag)
+                .ToListAsync();
+
+            dbContext.RemoveRange(results);
+            await dbContext.SaveChangesAsync();
+
+            return results.Count;
         }
 
         public async Task EnqueueAsync(ScheduledTask scheduledTask)
@@ -117,7 +158,7 @@ namespace Inkluzitron.Services
 
         private async Task FindAndProcessPendingTasks(BotDatabaseContext dbContext, CancellationToken cancellationToken)
         {
-            var now = ScheduledTask.ConvertDateTimeOffset(DateTimeOffset.UtcNow);
+            var now = DateTimeOffset.UtcNow.ConvertDateTimeOffsetToLong();
             var pendingTasks = dbContext.ScheduledTasks.AsQueryable()
                 .OrderBy(st => st.MsSinceUtcUnixEpoch)
                 .Where(st => st.MsSinceUtcUnixEpoch <= now)
@@ -136,10 +177,10 @@ namespace Inkluzitron.Services
         {
             try
             {
-                foreach (var handler in Handlers)
+                foreach (var handler in Handlers.Value)
                 {
-                    var taskWasHandled = await handler.TryHandleAsync(scheduledTask);
-                    if (taskWasHandled)
+                    var handled = await handler.HandleAsync(scheduledTask);
+                    if (handled)
                         return true;
                 }
 

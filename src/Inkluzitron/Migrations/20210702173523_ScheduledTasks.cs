@@ -13,8 +13,10 @@ namespace Inkluzitron.Migrations
                     ScheduledTaskId = table.Column<long>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Discriminator = table.Column<string>(type: "TEXT", nullable: false),
+                    Tag = table.Column<string>(type: "TEXT", nullable: true),
                     MsSinceUtcUnixEpoch = table.Column<long>(type: "INTEGER", nullable: false),
-                    Data = table.Column<string>(type: "TEXT", nullable: true)
+                    Data = table.Column<string>(type: "TEXT", nullable: true),
+                    FailCount = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {

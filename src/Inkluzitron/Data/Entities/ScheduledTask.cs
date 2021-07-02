@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Inkluzitron.Extensions;
+using Newtonsoft.Json;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -13,6 +14,8 @@ namespace Inkluzitron.Data.Entities
         [Required]
         public string Discriminator { get; set; }
 
+        public string Tag { get; set; }
+
         public long MsSinceUtcUnixEpoch { get; set; }
 
         public string Data { get; set; }
@@ -24,20 +27,11 @@ namespace Inkluzitron.Data.Entities
         public DateTimeOffset When
         {
             get => DateTimeOffset.UnixEpoch.AddMilliseconds(MsSinceUtcUnixEpoch);
-            set => MsSinceUtcUnixEpoch = ConvertDateTimeOffset(value);
+            set => MsSinceUtcUnixEpoch = value.ConvertDateTimeOffsetToLong();
         }
 
         public T ParseData<T>()
             => Data == null ? default : JsonConvert.DeserializeObject<T>(Data);
-
-        static public long ConvertDateTimeOffset(DateTimeOffset value)
-        {
-            if (value < DateTimeOffset.UnixEpoch)
-                throw new ArgumentException("The value is too far in the past.", nameof(value));
-
-            return (long)Math.Round((value - DateTimeOffset.UnixEpoch).TotalMilliseconds);
-        }
-
         public string Serialize()
             => JsonConvert.SerializeObject(this);
     }

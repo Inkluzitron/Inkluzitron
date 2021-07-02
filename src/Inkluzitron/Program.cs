@@ -70,7 +70,6 @@ namespace Inkluzitron
                 .AddSingleton(new CommandService(commandsConfig))
                 .AddSingleton(configuration)
                 .AddSingleton<RuntimeService>()
-                .AddSingleton<ILifecycleControl>(sp => sp.GetRequiredService<RuntimeService>())
                 .AddSingleton<LoggingService>()
                 .AddDbContext<BotDatabaseContext>(c => c.UseSqlite(BuildConnectionString(dbFileLocation)))
                 .AddSingleton<DatabaseFactory>()
@@ -93,6 +92,8 @@ namespace Inkluzitron
                 .AddSingleton<ILifecycleControl>(sp => sp.GetRequiredService<ScheduledTasksService>())
                 .AddSingleton<EndOfVotingScheduledTaskHandler>()
                 .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
+                .AddSingleton<VoteDefinitionParser>()
+                .AddSingleton<VoteService>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -123,7 +124,7 @@ namespace Inkluzitron
                 });
             }
 
-            await using var provider = services.BuildServiceProvider();
+            var provider = services.BuildServiceProvider();
 
             provider.GetRequiredService<LoggingService>();
             handlers.ForEach(o => provider.GetRequiredService(o));
@@ -133,6 +134,9 @@ namespace Inkluzitron
 
             provider.GetRequiredService<ReactionsModule>();
             provider.GetRequiredService<PointsService>();
+
+            var runtimeService = provider.GetRequiredService<RuntimeService>();
+            await runtimeService.StartAsync();
 
             foreach (var startable in provider.GetServices<ILifecycleControl>())
                 await startable.StartAsync();
@@ -148,6 +152,9 @@ namespace Inkluzitron
 
             foreach (var stoppable in provider.GetServices<ILifecycleControl>().Reverse())
                 await stoppable.StopAsync();
+
+            await runtimeService.StopAsync();
+            await provider.DisposeAsync();
         }
 
         static public IConfiguration BuildConfiguration(string[] args)

@@ -207,6 +207,9 @@ namespace Inkluzitron.Migrations
                     b.Property<long>("MsSinceUtcUnixEpoch")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Tag")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("ScheduledTaskId");
 
                     b.ToTable("ScheduledTasks");

@@ -5,6 +5,6 @@ namespace Inkluzitron.Contracts
 {
     public interface IScheduledTaskHandler
     {
-        Task<bool> TryHandleAsync(ScheduledTask scheduledTask);
+        Task<bool> HandleAsync(ScheduledTask scheduledTask);
     }
 }

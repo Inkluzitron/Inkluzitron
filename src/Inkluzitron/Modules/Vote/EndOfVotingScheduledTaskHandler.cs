@@ -1,34 +1,46 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data.Entities;
-using Inkluzitron.Extensions;
+using Inkluzitron.Models;
+using System;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Vote
 {
     public class EndOfVotingScheduledTaskHandler : IScheduledTaskHandler
     {
+        private VoteService VoteService { get; }
         private DiscordSocketClient Client { get; }
 
-        public EndOfVotingScheduledTaskHandler(DiscordSocketClient client)
+        public EndOfVotingScheduledTaskHandler(VoteService voteService, DiscordSocketClient client)
         {
+            VoteService = voteService;
             Client = client;
         }
 
-        public async Task<bool> TryHandleAsync(ScheduledTask scheduledTask)
+        public async Task<bool> HandleAsync(ScheduledTask scheduledTask)
         {
             if (scheduledTask.Discriminator != "EndOfVoting")
                 return false;
 
             var data = scheduledTask.ParseData<EndOfVotingScheduledTaskData>();
-            var message = await Client.GetGuild(data.GuildId)
-                .GetTextChannel(data.ChannelId)
-                .GetMessageAsync(data.MessageId);
+            var channel = Client.GetGuild(data.GuildId)?.GetTextChannel(data.ChannelId);
+            if (channel is null)
+                throw new InvalidOperationException("Unable to locate guild or channel");
 
-            /*if (message is null)
-                return true;*/
+            var message = await channel.GetMessageAsync(data.MessageId) as IUserMessage;
+            if (message is null)
+                return true; // vote doesnt exist anymore
 
-            await message.AddReactionAsync("🔥".ToDiscordEmote());
+            if (await VoteService.TryParseVoteCommand(message) is not VoteDefinition voteDefinition)
+                return true; // it is not a vote anymore
+
+            if (!voteDefinition.IsPastDeadline())
+                return true; // vote has an updated deadline, should not be finished yet
+
+            var summary = VoteService.ComposeSummary(message, voteDefinition);
+            await VoteService.UpdateVoteReplyAsync(message, summary);
             return true;
         }
     }

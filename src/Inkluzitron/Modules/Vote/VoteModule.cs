@@ -1,13 +1,6 @@
 ﻿using Discord.Commands;
-using Inkluzitron.Data;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules.Vote;
-using Inkluzitron.Services;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -16,32 +9,18 @@ namespace Inkluzitron.Modules
     [Summary("TBD")]
     public class VoteModule : ModuleBase
     {
-        private DatabaseFactory DatabaseFactory { get; }
-        private ScheduledTasksService ScheduledTasks { get; }
+        private VoteService VoteService { get; }
+        private ReactionSettings ReactionSettings { get; }
 
 
-        public VoteModule(DatabaseFactory databaseFactory, ScheduledTasksService scheduledTasks)
+        public VoteModule(VoteService voteService, VoteDefinitionParser parser, ReactionSettings reactionSettings)
         {
-            DatabaseFactory = databaseFactory;
-            ScheduledTasks = scheduledTasks;
+            VoteService = voteService;
+            ReactionSettings = reactionSettings;
         }
 
-        [Command("ohýnek")]
-        public async Task Ohýnek()
-        {
-            await ScheduledTasks.EnqueueAsync(new Data.Entities.ScheduledTask
-            {
-                Discriminator = "EndOfVoting",
-                When = DateTimeOffset.UtcNow.AddSeconds(10),
-                Data = JsonConvert.SerializeObject(new EndOfVotingScheduledTaskData
-                {
-                    GuildId = Context.Guild.Id,
-                    ChannelId = Context.Channel.Id,
-                    MessageId = Context.Message.Id
-                })
-            });
-
-            await ReplyAsync("Tak si počkej.");
-        }
+        [Command("vote")]
+        public async Task Vote([Remainder] string _)
+            => await VoteService.ProcessVoteCommandAsync(Context.Message);
     }
 }
