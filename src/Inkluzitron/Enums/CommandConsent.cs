@@ -8,7 +8,9 @@ namespace Inkluzitron.Enums
     {
         None = 0,
 
-        [Display(Name = "BDSM Image Commands")]
+        [Display(
+            Name = "BDSM Obrázkové příkazy",
+            Description = "s používáním obrázkových BDSM příkazů")]
         BdsmImageCommands = 1 << 0
     }
 }
