@@ -471,7 +471,15 @@ namespace Inkluzitron.Services
             var userEntity = await context.GetOrCreateUserEntityAsync(user);
 
             if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays) > DateTime.UtcNow)
-                return KisService.Settings.Messages["SyncTooSoon"];
+            {
+                var until = userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays + 1).ToString("d.M.");
+
+                var daysStr = KisService.Settings.SyncDays == 1 ? "den"
+                    : KisService.Settings.SyncDays <= 4 ? "dny"
+                    : "dní";
+
+                return string.Format(KisService.Settings.Messages["SyncTooSoon"], KisService.Settings.SyncDays, daysStr, until);
+            }
 
             var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
 
