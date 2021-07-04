@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Extensions;
@@ -45,6 +46,15 @@ namespace Inkluzitron.Handlers
             var inviteLinks = await user.Guild.GetInvitesAsync();
             var inviteeDb = await dbContext.GetOrCreateUserEntityAsync(user);
 
+            try
+            {
+                await user.SendMessageAsync(Config.GetValue<string>("Welcoming:DirectMessage"));
+            }
+            catch (HttpException)
+            {
+                // User has disabled DMs
+            }
+
             foreach (var link in inviteLinks)
             {
                 if (link.Inviter.Id != DiscordSocketClient.CurrentUser.Id) continue;
@@ -61,15 +71,12 @@ namespace Inkluzitron.Handlers
 
                 await link.DeleteAsync();
 
-                var welcomeMessage = Config.GetValue<string>("Welcoming:Message");
-                var rooms = Config.GetValue<string>("Welcoming:Rooms");
-                var formattedMessage = string.Format(
-                    welcomeMessage,
-                    inviteeDb.Name,
-                    rooms
+                var welcomeMessage = string.Format(
+                    Config.GetValue<string>("Welcoming:Message"),
+                    await UsersService.GetDisplayNameAsync(user)
                 );
 
-                await user.Guild.DefaultChannel.SendMessageAsync(formattedMessage);
+                await user.Guild.DefaultChannel.SendMessageAsync(welcomeMessage);
                 return;
             }
 
