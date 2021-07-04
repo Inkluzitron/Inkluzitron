@@ -101,7 +101,7 @@ namespace Inkluzitron.Modules
                 $"**Oslovení:** {pronouns}, {userDb.Gender.GetDisplayName()}");
 
             var guildUser = await UsersService.GetUserFromHomeGuild(user);
-            if(guildUser != null)
+            if (guildUser != null)
                 descBuilder.AppendLine($"**Na serveru od:** {guildUser.JoinedAt.Value.LocalDateTime.ToShortDateString()}");
             else
                 descBuilder.AppendLine($"Již není na serveru");
@@ -116,7 +116,7 @@ namespace Inkluzitron.Modules
 
             var tests = await GetUserCompletedTests(user.Id);
 
-            if(tests.Length > 0)
+            if (tests.Length > 0)
                 embed.AddField("Vyplněné testy:", string.Join('\n', tests));
 
             await ReplyAsync(embed: embed.Build());
@@ -234,7 +234,7 @@ namespace Inkluzitron.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
         {
-            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            if (nickname != null && await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
             {
                 await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
                 return;
