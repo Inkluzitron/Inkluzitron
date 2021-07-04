@@ -472,13 +472,10 @@ namespace Inkluzitron.Services
 
             if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays) > DateTime.UtcNow)
             {
-                var until = userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays + 1).ToString("d.M.");
-
-                var daysStr = KisService.Settings.SyncDays == 1 ? "den"
-                    : KisService.Settings.SyncDays <= 4 ? "dny"
-                    : "dní";
-
-                return string.Format(KisService.Settings.Messages["SyncTooSoon"], KisService.Settings.SyncDays, daysStr, until);
+                return string.Format(KisService.Settings.Messages["SyncTooSoon"],
+                    KisService.Settings.SyncDays,
+                    new FormatByValue(KisService.Settings.SyncDays),
+                    userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays + 1));
             }
 
             var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
@@ -496,11 +493,9 @@ namespace Inkluzitron.Services
                 await context.SaveChangesAsync();
             });
 
-            var pointsSuffix = "bod";
-            if (calculatedPoints == 0 || calculatedPoints > 5) pointsSuffix = "bodů";
-            else if (calculatedPoints > 1 && calculatedPoints < 5) pointsSuffix = "body";
-
-            return string.Format(KisService.Settings.Messages["Done"], calculatedPoints, pointsSuffix);
+            return string.Format(KisService.Settings.Messages["Done"],
+                calculatedPoints,
+                new FormatByValue(calculatedPoints));
         }
     }
 }
