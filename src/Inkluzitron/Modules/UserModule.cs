@@ -245,6 +245,8 @@ namespace Inkluzitron.Modules
                 var userEntity = await DbContext.GetOrCreateUserEntityAsync(user);
 
                 userEntity.KisNickname = nickname;
+                if (nickname == null)
+                    userEntity.KisLastCheck = null;
                 await DbContext.SaveChangesAsync();
                 await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
             });
