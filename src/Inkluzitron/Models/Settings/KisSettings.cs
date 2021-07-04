@@ -16,11 +16,13 @@ namespace Inkluzitron.Models.Settings
             Messages = kis.GetSection("Messages")
                 .GetChildren()
                 .ToDictionary(o => o.Key, o => o.Value);
-            SyncMonths = kis.GetValue<int>(nameof(SyncMonths));
+            SyncDays = kis.GetValue<int>(nameof(SyncDays));
+            PointsMultiplication = kis.GetValue<int>(nameof(PointsMultiplication));
         }
 
         public string DateTimeFormat { get; }
         public Dictionary<string, string> Messages { get; }
-        public int SyncMonths { get; }
+        public int SyncDays { get; }
+        public int PointsMultiplication { get; }
     }
 }

@@ -11,7 +11,6 @@ using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -471,7 +470,7 @@ namespace Inkluzitron.Services
             var now = DateTime.UtcNow;
             var userEntity = await context.GetOrCreateUserEntityAsync(user);
 
-            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
+            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays) > DateTime.UtcNow)
                 return KisService.Settings.Messages["SyncTooSoon"];
 
             var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
@@ -479,7 +478,8 @@ namespace Inkluzitron.Services
             if (!points.IsOk)
                 return points.ErrorMessage;
 
-            await AddPointsAsync(context, user, points.Prestige);
+            var calculatedPoints = points.Prestige * KisService.Settings.PointsMultiplication;
+            await AddPointsAsync(context, user, calculatedPoints);
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var entity = await context.GetOrCreateUserEntityAsync(user);
@@ -489,10 +489,10 @@ namespace Inkluzitron.Services
             });
 
             var pointsSuffix = "bod";
-            if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
-            else if (points.Prestige > 1 && points.Prestige < 5) pointsSuffix = "body";
+            if (calculatedPoints == 0 || calculatedPoints > 5) pointsSuffix = "bodů";
+            else if (calculatedPoints > 1 && calculatedPoints < 5) pointsSuffix = "body";
 
-            return string.Format(KisService.Settings.Messages["Done"], points.Prestige, pointsSuffix);
+            return string.Format(KisService.Settings.Messages["Done"], calculatedPoints, pointsSuffix);
         }
     }
 }
