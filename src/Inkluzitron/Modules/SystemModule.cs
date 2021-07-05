@@ -16,10 +16,9 @@ namespace Inkluzitron.Modules
         {
             var process = Process.GetCurrentProcess();
             var uptime = (DateTime.Now - process.StartTime).FullTextFormat();
-            var start = process.StartTime.ToString("dd. MM. yyyy HH:mm:ss");
             var activeTime = process.TotalProcessorTime.FullTextFormat();
 
-            await ReplyAsync($"Start proběhl **{start}**. To znamená, že běžím {uptime} (ale reálně jsem pracoval {activeTime}).");
+            await ReplyAsync($"Start proběhl **{process.StartTime:dd. MM. yyyy HH:mm:ss}**. To znamená, že běžím {uptime} (ale reálně jsem pracoval {activeTime}).");
         }
 
         [Command("version")]

@@ -2,6 +2,7 @@
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
+using Inkluzitron.Utilities;
 using System;
 
 namespace Inkluzitron.Models
@@ -71,10 +72,12 @@ namespace Inkluzitron.Models
                     break;
 
                 case BdsmTraitOperationCheckResult.UserDidNotConsent:
-                    return _translations.MissingUserConsentGendered[(int)_userGender];
+                    return string.Format(_translations.MissingUserConsent, new FormatByValue(_userGender));
 
                 case BdsmTraitOperationCheckResult.TargetDidNotConsent:
-                    return string.Format(_translations.MissingTargetConsentGendered[(int)_targetGender], TargetDisplayName);
+                    return string.Format(_translations.MissingTargetConsent,
+                        TargetDisplayName,
+                        new FormatByValue(_targetGender));
 
                 case BdsmTraitOperationCheckResult.UserNegativePoints:
                     return _translations.NegativePoints;
@@ -88,8 +91,8 @@ namespace Inkluzitron.Models
                 UserDisplayName, UserSubmissiveness, UserDominance,
                 TargetDisplayName, TargetSubmissiveness, TargetDominance,
                 RolledValue, RollMaximum, RequiredValue, PointsToSubtract,
-                _translations.RollFailedLossGendered[(int)_userGender],
-                _translations.RollFailedGainGendered[(int)_targetGender]
+                new FormatByValue(_userGender),
+                new FormatByValue(_targetGender)
             );
         }
     }

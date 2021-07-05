@@ -53,7 +53,7 @@ namespace Inkluzitron.Services
             if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(Configuration.GetValue<ulong>("LoggingChannelId")) is IMessageChannel channel)
             {
                 var commitDate = DateTime.Parse(ThisAssembly.Git.CommitDate);
-                var message = string.Format(Configuration.GetValue<string>("OnlineAfterUpdate"), ThisAssembly.Git.Commit, commitDate.ToString("dd. MM. yyyy HH:MM:ss"));
+                var message = string.Format(Configuration.GetValue<string>("OnlineAfterUpdate"), ThisAssembly.Git.Commit, commitDate);
 
                 await channel.SendMessageAsync(message);
                 await File.WriteAllTextAsync(cacheData.GetPathForWriting("txt"), ThisAssembly.Git.Sha);
