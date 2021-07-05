@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    [Migration("20210702173523_ScheduledTasks")]
+    [Migration("20210705134043_ScheduledTasks")]
     partial class ScheduledTasks
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -242,6 +242,9 @@ namespace Inkluzitron.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Pronouns")
                         .HasColumnType("TEXT");
 
                     b.Property<byte[]>("Timestamp")

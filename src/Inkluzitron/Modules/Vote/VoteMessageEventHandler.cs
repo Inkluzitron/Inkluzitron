@@ -38,7 +38,10 @@ namespace Inkluzitron.Modules.Vote
 
         public async Task<bool> HandleMessageDeletedAsync(IMessageChannel channel, ulong messageId)
         {
-            await VoteService.DeleteAssociatedVoteReplyIfExistsAsync(channel, messageId);
+            var wasVoteCommand = await VoteService.DeleteAssociatedVoteReplyIfExistsAsync(channel, messageId);
+            if (!wasVoteCommand)
+                await VoteService.DeleteVoteReplyRecordIfExistsAsync(channel, messageId);
+
             return false;
         }
 
@@ -46,11 +49,14 @@ namespace Inkluzitron.Modules.Vote
         {
             foreach (var messageId in messageIds)
             {
-                var wasVoteCommand = await VoteService.DeleteAssociatedVoteReplyIfExistsAsync(channel, messageId);
-                if (wasVoteCommand)
-                    continue;
-
-                await VoteService.DeleteVoteReplyRecordIfExistsAsync(channel, messageId);
+                try
+                {
+                    await HandleMessageDeletedAsync(channel, messageId);
+                }
+                catch
+                {
+                    // we tried
+                }
             }
 
             return false;

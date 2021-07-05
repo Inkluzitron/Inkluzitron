@@ -7,6 +7,7 @@ using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Models.Vote;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
@@ -65,7 +66,7 @@ namespace Inkluzitron.Modules.Vote
         {
             if (channel is IGuildChannel guildChannel)
             {
-                guildId = guildChannel.Id;
+                guildId = guildChannel.GuildId;
                 return true;
             }
 
@@ -82,7 +83,10 @@ namespace Inkluzitron.Modules.Vote
 
             using var dbContext = DbFactory.Create();
 
-            var voteReplyRecord = await dbContext.VoteReplyRecords.FindAsync(guildId, channel.Id, messageId);
+            var voteReplyRecord = await dbContext.VoteReplyRecords.AsQueryable().SingleOrDefaultAsync(
+                r => r.GuildId == guildId && r.ChannelId == channel.Id && r.MessageId == messageId
+            );
+
             if (voteReplyRecord is null)
                 return false;
 
@@ -139,7 +143,10 @@ namespace Inkluzitron.Modules.Vote
 
             using var dbContext = DbFactory.Create();
 
-            var voteReplyRecord = await dbContext.VoteReplyRecords.FindAsync(guildId, channel.Id, messageId);
+            var voteReplyRecord = await dbContext.VoteReplyRecords.AsQueryable().SingleOrDefaultAsync(
+                r => r.GuildId == guildId && r.ChannelId == channel.Id && r.MessageId == messageId
+            );
+
             if (voteReplyRecord is null)
                 return null;
 
@@ -167,6 +174,9 @@ namespace Inkluzitron.Modules.Vote
                 return;
             }
 
+            if (!ExtractGuildId(voteCommandMessage.Channel, out var guildId))
+                return;
+
             await ReplySemaphore.WaitAsync();
 
             try
@@ -181,7 +191,7 @@ namespace Inkluzitron.Modules.Vote
                 var voteCommandReference = new MessageReference(
                     voteCommandMessage.Id,
                     voteCommandMessage.Channel.Id,
-                    (voteCommandMessage.Channel as IGuildChannel)?.GuildId
+                    guildId
                 );
 
                 var newVoteReply = await voteCommandMessage.Channel.SendMessageAsync(
@@ -191,12 +201,11 @@ namespace Inkluzitron.Modules.Vote
                 );
 
                 using var dbContext = DbFactory.Create();
-
                 dbContext.VoteReplyRecords.Add(new VoteReplyRecord
                 {
-                    GuildId = voteCommandReference.GuildId.Value,
+                    GuildId = guildId,
                     ChannelId = voteCommandReference.ChannelId,
-                    MessageId = voteCommandReference.MessageId.Value,
+                    MessageId = voteCommandMessage.Id,
                     ReplyId = newVoteReply.Id
                 });
 
@@ -254,7 +263,13 @@ namespace Inkluzitron.Modules.Vote
                 tailItems.Add(parse.Notice);
 
             if (failedEmotes.Count > 0)
-                tailItems.Add("Následující reakce jsem nemohl nastřelit, protože k nim nemám přístup: " + string.Join(", ", failedEmotes.Select(e => e.ToString())));
+            {
+                tailItems.Add(string.Format(
+                    VoteTranslations.UnaccessibleEmotes,
+                    failedEmotes.Count,
+                    string.Join(", ", failedEmotes.Select(e => e.ToString()))
+                ));
+            }
 
             var tail = string.Concat(tailItems.Select(item => Environment.NewLine + item));
             await UpdateVoteReplyAsync(voteCommandMessage, summary + tail);
@@ -293,8 +308,8 @@ namespace Inkluzitron.Modules.Vote
                     .Where(def.Options.ContainsKey)
                     .ToArray();
 
-            var optionsList = string.Join(", ", winners.Select(w => "**" + Format.Sanitize(def.Options[w]) + "**"));
-            var voteIsUnderway = def.Deadline is DateTimeOffset deadline && DateTimeOffset.UtcNow < deadline;
+            var optionsList = string.Join(", ", winners.Select(winner => "**" + Format.Sanitize(def.Options[winner]) + "**"));
+            var voteIsUnderway = def.Deadline is not DateTimeOffset deadline || DateTimeOffset.UtcNow < deadline;
             var translations = voteIsUnderway ? VoteTranslations.VoteUnderway : VoteTranslations.VoteFinished;
             var lines = new List<string>();
 
@@ -307,9 +322,12 @@ namespace Inkluzitron.Modules.Vote
 
                     optionsList,
                     winningVoteCount,
-                    winningVoteCount // TODO formatter                    
+                    new FormatByValue(winningVoteCount)
                 ));
             }
+
+            if (def.Deadline is DateTimeOffset voteDeadline)
+                lines.Add(string.Format(translations.DeadlineNotice, voteDeadline.ToLocalTime()));
 
             return string.Join(Environment.NewLine, lines);
         }

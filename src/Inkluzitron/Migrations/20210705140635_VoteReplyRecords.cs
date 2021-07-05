@@ -11,10 +11,10 @@ namespace Inkluzitron.Migrations
                 name: "VoteReplyRecords",
                 columns: table => new
                 {
-                    GuildId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    ChannelId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    MessageId = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    ReplyId = table.Column<ulong>(type: "INTEGER", nullable: false),
+                    GuildId = table.Column<string>(type: "TEXT", nullable: false),
+                    ChannelId = table.Column<string>(type: "TEXT", nullable: false),
+                    MessageId = table.Column<string>(type: "TEXT", nullable: false),
+                    ReplyId = table.Column<string>(type: "TEXT", nullable: false),
                     RecordCreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>

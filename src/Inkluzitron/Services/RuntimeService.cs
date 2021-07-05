@@ -37,6 +37,17 @@ namespace Inkluzitron.Services
             DiscordClient.MessageUpdated += OnMessageUpdatedAsync;
             DiscordClient.MessageDeleted += OnMessageDeletedAsync;
             DiscordClient.MessagesBulkDeleted += OnMessagesBulkDeletedAsync;
+            DiscordClient.GuildAvailable += OnGuildAvailableAsync;
+        }
+
+        private async Task OnGuildAvailableAsync(SocketGuild arg)
+        {
+            if (arg.Id.ToString() != Configuration["HomeGuildId"])
+                return;
+
+            foreach (var startable in ServiceProvider.GetServices<ILifecycleControl>())
+                if (!startable.IsStarted && startable.WhenToStart == StartCondition.WhenHomeGuildBecomesAvailable)
+                    await startable.StartAsync();
         }
 
         private async Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)

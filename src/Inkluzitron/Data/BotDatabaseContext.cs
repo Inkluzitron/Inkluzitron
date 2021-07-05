@@ -53,6 +53,17 @@ namespace Inkluzitron.Data
                     to => DateTime.ParseExact(to, "yyyy-MM-dd", null)
                 ));
 
+            var ulongStringConverter = new ValueConverter<ulong, string>(
+                from => from.ToString(),
+                to => ulong.Parse(to)
+            );
+
+
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.GuildId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.ChannelId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.MessageId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.ReplyId).HasConversion(ulongStringConverter);
+
             modelBuilder
                 .Entity<VoteReplyRecord>()
                 .HasKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.MessageId));

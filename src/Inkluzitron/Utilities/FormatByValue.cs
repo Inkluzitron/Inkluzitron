@@ -1,6 +1,7 @@
 ﻿using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Inkluzitron.Utilities
 {
@@ -33,12 +34,38 @@ namespace Inkluzitron.Utilities
                 };
             }
 
-            return ValueNumber.Value switch
+            if (options.Length == 3 && options[0] != "ext")
             {
-                0 => options[0],
-                1 or 2 or 3 or 4 => options[1],
-                _ => options[2]
-            };
+                return ValueNumber.Value switch
+                {
+                    0 => options[0],
+                    1 or 2 or 3 or 4 => options[1],
+                    _ => options[2]
+                };
+            }
+            else
+            {
+                options = options[1..];
+
+                var lookupTable = options[0].Split(",");
+                if (lookupTable.Length != options.Length - 1)
+                    throw new ArgumentException("Format string '" + format + "' has an unexpected number of items in the lookup table");
+
+                int? destinationIndex = default;
+                for (var i = 0; i < lookupTable.Length; i++)
+                {
+                    if (ValueNumber.Value.ToString() == lookupTable[i])
+                    {
+                        destinationIndex = i + 1;
+                        break;
+                    }
+                }
+
+                if (destinationIndex is not int chosenIndex || chosenIndex >= options.Length)
+                    destinationIndex = null;
+
+                return options[destinationIndex ?? options.Length - 1];
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    [Migration("20210705133407_VoteReplyRecords")]
+    [Migration("20210705140635_VoteReplyRecords")]
     partial class VoteReplyRecords
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -244,6 +244,9 @@ namespace Inkluzitron.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Pronouns")
+                        .HasColumnType("TEXT");
+
                     b.Property<byte[]>("Timestamp")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -259,20 +262,21 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.VoteReplyRecord", b =>
                 {
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("GuildId")
+                        .HasColumnType("TEXT");
 
-                    b.Property<ulong>("ChannelId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ChannelId")
+                        .HasColumnType("TEXT");
 
-                    b.Property<ulong>("MessageId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("MessageId")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("RecordCreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<ulong>("ReplyId")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("ReplyId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("GuildId", "ChannelId", "MessageId");
 

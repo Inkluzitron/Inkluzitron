@@ -94,7 +94,9 @@ namespace Inkluzitron
                 .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
                 .AddSingleton<VoteDefinitionParser>()
                 .AddSingleton<VoteService>()
-                .AddSingleton<VoteWinnersTranslations>()
+                .AddSingleton<VoteTranslations>()
+                .AddSingleton<VoteMessageEventHandler>()
+                .AddSingleton<IMessageEventHandler>(sp => sp.GetRequiredService<VoteMessageEventHandler>())
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -140,7 +142,8 @@ namespace Inkluzitron
             await runtimeService.StartAsync();
 
             foreach (var startable in provider.GetServices<ILifecycleControl>())
-                await startable.StartAsync();
+                if (!startable.IsStarted && startable.WhenToStart == StartCondition.Immediately)
+                    await startable.StartAsync();
 
             try
             {
@@ -152,7 +155,8 @@ namespace Inkluzitron
             }
 
             foreach (var stoppable in provider.GetServices<ILifecycleControl>().Reverse())
-                await stoppable.StopAsync();
+                if (stoppable.IsStarted)
+                    await stoppable.StopAsync();
 
             await runtimeService.StopAsync();
             await provider.DisposeAsync();

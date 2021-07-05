@@ -25,6 +25,10 @@ namespace Inkluzitron.Services
         private CancellationTokenSource CancellationTokenSource { get; set; }
         private Task Worker { get; set; }
 
+        private bool IsStarted { get; set; }
+        StartCondition ILifecycleControl.WhenToStart => StartCondition.WhenHomeGuildBecomesAvailable;
+        bool ILifecycleControl.IsStarted => IsStarted;
+
         public ScheduledTasksService(DatabaseFactory databaseFactory, IServiceProvider serviceProvider, ILogger<ScheduledTasksService> logger)
         {
             DbFactory = databaseFactory;
@@ -32,8 +36,10 @@ namespace Inkluzitron.Services
             Logger = logger;
         }
 
+
         Task ILifecycleControl.StartAsync()
         {
+            IsStarted = true;
             CancellationTokenSource = new CancellationTokenSource();
             Worker = Task.Factory.StartNew(
                 () => ProcessScheduledTasksAsync(CancellationTokenSource.Token),
@@ -46,6 +52,7 @@ namespace Inkluzitron.Services
 
         async Task ILifecycleControl.StopAsync()
         {
+            IsStarted = false;
             CancellationTokenSource.Cancel();
             CancellationTokenSource.Dispose();
             await Worker.ContinueWith(_ => { });
