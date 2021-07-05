@@ -51,8 +51,11 @@ namespace Inkluzitron.Services
 
             if (userPrestige == null)
             {
-                var dateStr = from.HasValue ? from.Value.ToString("(d.M.) ") : "";
-                return new KisPrestigeResult() { ErrorMessage = string.Format(Settings.Messages["NoData"], dateStr) };
+                return new KisPrestigeResult() {
+                    ErrorMessage = from.HasValue
+                        ? string.Format(Settings.Messages["NoDataLastSync"], from.Value)
+                        : Settings.Messages["NoData"]
+                };
             }
 
             return new KisPrestigeResult() { Prestige = (int)userPrestige.PrestigeGain };
