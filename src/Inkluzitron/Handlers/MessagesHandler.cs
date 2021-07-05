@@ -66,33 +66,27 @@ namespace Inkluzitron.Handlers
         private bool HasCommandPrefix(IUserMessage message, ref int argPos)
             => message.Content.Length > CommandPrefix.Length && message.HasStringPrefix(CommandPrefix, ref argPos);
 
-        public bool TryMatchSingleCommand(IUserMessage message, out string commandName, out string commandArguments)
+        public async Task<(bool success, string commandName, string commandArguments)> TryMatchSingleCommand(IUserMessage message)
         {
-            commandName = null;
-            commandArguments = null;
-
             int argPos = default;
             if (!IsCommand(message, ref argPos))
-                return false;
+                return (false, null, null);
 
             var postPrefixContent = message.Content[argPos..];
             var searchResult = CommandService.Search(postPrefixContent);
 
             if (!searchResult.IsSuccess)
-                return false;
+                return (false, null, null);
 
             if (searchResult.Commands.Count != 1)
-                return false;
+                return (false, null, null);
 
             var match = searchResult.Commands.SingleOrDefault();
-            commandName = match.Alias;
+            var parse = await match.ParseAsync(new CommandContext(DiscordClient, message), searchResult, services: ServiceProvider);
+            if (!parse.IsSuccess)
+                return (false, null, null);
 
-            var argumentsStartIndex = postPrefixContent.IndexOf(match.Alias) + match.Alias.Length;
-            commandArguments = argumentsStartIndex < postPrefixContent.Length
-                ? postPrefixContent[argumentsStartIndex..]
-                : string.Empty;
-
-            return true;
+            return (true, match.Alias, parse.ArgValues[0].BestMatch.ToString());
         }
     }
 }

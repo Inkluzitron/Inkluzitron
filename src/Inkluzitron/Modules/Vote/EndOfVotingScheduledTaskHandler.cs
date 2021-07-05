@@ -30,8 +30,7 @@ namespace Inkluzitron.Modules.Vote
             if (channel is null)
                 throw new InvalidOperationException("Unable to locate guild or channel");
 
-            var message = await channel.GetMessageAsync(data.MessageId) as IUserMessage;
-            if (message is null)
+            if (await channel.GetMessageAsync(data.MessageId) is not IUserMessage message)
                 return ScheduledTaskResult.HandledAndCompleted; // vote doesnt exist anymore
 
             if (await VoteService.ParseVoteCommand(message) is not VoteDefinition voteDefinition)

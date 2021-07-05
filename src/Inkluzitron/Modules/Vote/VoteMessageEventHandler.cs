@@ -19,7 +19,8 @@ namespace Inkluzitron.Modules.Vote
         {
             var newMessage = await freshMessageFactory.Value;
 
-            if (VoteService.TryMatchVoteCommand(newMessage, out var voteCommandName, out var commandArgs))
+            var (success, _, commandArgs) = await VoteService.TryMatchVoteCommand(newMessage);
+            if (success)
             {
                 // newMessage has Reactions.Count == 0, always
                 var freshMessage = await channel.GetMessageAsync(newMessage.Id);

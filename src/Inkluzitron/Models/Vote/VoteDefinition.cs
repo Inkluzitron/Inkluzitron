@@ -12,20 +12,5 @@ namespace Inkluzitron.Models.Vote
 
         public bool IsPastDeadline()
             => Deadline is DateTimeOffset specifiedDeadline && DateTimeOffset.UtcNow >= specifiedDeadline;
-
-        public bool Validate(out string problemDescription)
-        {
-            if (string.IsNullOrWhiteSpace(Question))
-                problemDescription = "Chybí otázka.";
-            else if (Options.Count == 0)
-                problemDescription = "Chybí odpověď.";
-            else
-            {
-                problemDescription = null;
-                return true;
-            }
-
-            return false;
-        }
     }
 }

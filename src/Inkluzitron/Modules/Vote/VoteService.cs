@@ -46,20 +46,19 @@ namespace Inkluzitron.Modules.Vote
             ReplySemaphore.Dispose();
         }
 
-        public bool TryMatchVoteCommand(IMessage message, out string commandName, out string commandArgs)
+        public async Task<(bool success, string commandName, string commandArgs)> TryMatchVoteCommand(IMessage message)
         {
-            commandName = commandArgs = null;
-
             if (message is not IUserMessage userMessage)
-                return false;
+                return (false, null, null);
 
             if (userMessage.Author.IsBot)
-                return false;
+                return (false, null, null);
 
-            if (!MessagesHandler.TryMatchSingleCommand(userMessage, out commandName, out commandArgs))
-                return false;
+            var (success, commandName, commandArgs) = await MessagesHandler.TryMatchSingleCommand(userMessage);
+            if (!success || !VoteModule.VoteStartingCommands.Contains(commandName))
+                return (false, null, null);
 
-            return VoteModule.VoteStartingCommands.Contains(commandName);
+            return (success, commandName, commandArgs);
         }
 
         private static bool ExtractGuildId(IChannel channel, out ulong guildId)
@@ -122,7 +121,8 @@ namespace Inkluzitron.Modules.Vote
 
         public async Task<VoteDefinition> ParseVoteCommand(IUserMessage userMessage)
         {
-            if (!MessagesHandler.TryMatchSingleCommand(userMessage, out var commandName, out var commandArgs))
+            var (success, commandName, commandArgs) = await TryMatchVoteCommand(userMessage);
+            if (!success)
                 return null;
 
             if (!VoteModule.VoteStartingCommands.Contains(commandName))
@@ -257,21 +257,14 @@ namespace Inkluzitron.Modules.Vote
                 }
             }
 
-            var tailItems = new List<string>();
-
-            if (parse.Notice is string parseNotice)
-                tailItems.Add(parse.Notice);
-
-            if (failedEmotes.Count > 0)
-            {
-                tailItems.Add(string.Format(
+            var tail = failedEmotes.Count == 0
+                ? string.Empty
+                : Environment.NewLine + string.Format(
                     VoteTranslations.UnaccessibleEmotes,
-                    failedEmotes.Count,
+                    new FormatByValue(failedEmotes.Count),
                     string.Join(", ", failedEmotes.Select(e => e.ToString()))
-                ));
-            }
+                );
 
-            var tail = string.Concat(tailItems.Select(item => Environment.NewLine + item));
             await UpdateVoteReplyAsync(voteCommandMessage, summary + tail);
 
             if (parse.Definition.Deadline is DateTimeOffset votingDeadline)
@@ -314,7 +307,9 @@ namespace Inkluzitron.Modules.Vote
             var lines = new List<string>();
 
             if (winners.Length == 0)
+            {
                 lines.Add(translations.NoWinners);
+            }
             else
             {
                 lines.Add(string.Format(

@@ -102,9 +102,9 @@ namespace Inkluzitron.Modules
 
             var guildUser = await UsersService.GetUserFromHomeGuild(user);
             if (guildUser != null)
-                descBuilder.AppendLine($"**Na serveru od:** {guildUser.JoinedAt.Value.LocalDateTime.ToShortDateString()}");
+                descBuilder.Append("**Na serveru od:** ").AppendLine(guildUser.JoinedAt.Value.LocalDateTime.ToShortDateString());
             else
-                descBuilder.AppendLine($"Již není na serveru");
+                descBuilder.AppendLine("Již není na serveru");
 
             var embed = new EmbedBuilder()
                 .WithAuthor(user)
