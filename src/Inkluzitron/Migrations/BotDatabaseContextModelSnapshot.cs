@@ -255,6 +255,30 @@ namespace Inkluzitron.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Inkluzitron.Data.Entities.VoteReplyRecord", b =>
+                {
+                    b.Property<ulong>("GuildId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("ChannelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<ulong>("MessageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("RecordCreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<ulong>("ReplyId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("GuildId", "ChannelId", "MessageId");
+
+                    b.HasAlternateKey("GuildId", "ChannelId", "ReplyId");
+
+                    b.ToTable("VoteReplyRecords");
+                });
+
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgItem", b =>
                 {
                     b.HasOne("Inkluzitron.Data.Entities.BdsmTestOrgResult", "Parent")

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Inkluzitron.Models
+namespace Inkluzitron.Models.Vote
 {
     public class VoteDefinition
     {

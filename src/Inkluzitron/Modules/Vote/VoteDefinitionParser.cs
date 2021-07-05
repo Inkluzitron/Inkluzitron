@@ -1,6 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
-using Inkluzitron.Models;
+using Inkluzitron.Models.Vote;
 using Inkluzitron.Services.TypeReaders;
 using System;
 using System.IO;
@@ -12,50 +12,25 @@ namespace Inkluzitron.Modules.Vote
 {
     public class VoteDefinitionParser
     {
-        private Regex Segments = new Regex(@"(\S+)");
-        private EmotesTypeReader EmoteReader = new();
-        private TimeSpanTypeReader TsTypeReader = new(); // todo: inject
-        private DateTimeTypeReader DateTimeTypeReader = new();
+        private Regex Segments { get; } = new Regex(@"(\S+)");
+        private EmotesTypeReader EmoteReader { get; } = new();
+        private TimeSpanTypeReader TsTypeReader { get; } = new();
+        private DateTimeTypeReader DateTimeTypeReader { get; } = new();
 
-        public struct ParseResult
-        {
-            public bool Success => ProblemDescription == null;
-            public VoteDefinition Definition { get; set; }
-            public string ProblemDescription { get; set; }
-            public string Notice { get; set; }
-        }
-
-        public bool IsVoteCommand(IMessage message)
-            => message != null
-            && message.Channel is ITextChannel
-            && message.Content.StartsWith("$vote")
-            && !message.Author.IsBot;
-
-        public async Task<ParseResult> TryParse(ICommandContext ctx, string prefix, string message)
+        public async Task<VoteDefinitionParserResult> TryParse(ICommandContext context, string voteDefinitionText)
         {
             var def = new VoteDefinition();
             string desc = null;
             string notice = null;
 
-            if (!IsVoteCommand(ctx.Message))
-            {
-                return new ParseResult
-                {
-                    Definition = null,
-                    ProblemDescription = "Chybí hlasovací příkaz."
-                };
-            }
-
-            using var reader = new StringReader(message);
+            using var reader = new StringReader(voteDefinitionText);
             string line;
-
-            var prefixTrimmer = new Regex("^" + Regex.Escape(prefix) + @"\w+\s*");
 
             while ((line = reader.ReadLine()) != null)
             {
                 if (def.Question == null)
                 {
-                    def.Question = prefixTrimmer.Replace(line, string.Empty);
+                    def.Question = line.Trim();
                     continue;
                 }
 
@@ -65,7 +40,7 @@ namespace Inkluzitron.Modules.Vote
                 if (lineSegments.Count == 0)
                     continue;
 
-                var readResult = await EmoteReader.ReadAsync(ctx, lineSegments[0].Value, null);
+                var readResult = await EmoteReader.ReadAsync(context, lineSegments[0].Value, null);
                 if (readResult.IsSuccess)
                 {
                     var optionEmote = (IEmote)readResult.Values.First().Value;
@@ -98,7 +73,7 @@ namespace Inkluzitron.Modules.Vote
                 else if (isDeadlineTimeSpan)
                 {
                     var gde = line.Substring(lineSegments[1].Index + lineSegments[1].Value.Length).Trim();
-                    var deadlineInResult = await TsTypeReader.ReadAsync(ctx, gde, null);
+                    var deadlineInResult = await TsTypeReader.ReadAsync(context, gde, null);
                     if (!deadlineInResult.IsSuccess)
                     {
                         desc = $"Na řádku `{Format.Sanitize(line)}` se nepovedlo rozluštit čas obsažený v `{Format.Sanitize(gde)}`.";
@@ -113,13 +88,13 @@ namespace Inkluzitron.Modules.Vote
                             break;
                         }
 
-                        def.Deadline = (ctx.Message.EditedTimestamp ?? ctx.Message.CreatedAt) + zaGdy;
+                        def.Deadline = (context.Message.EditedTimestamp ?? context.Message.CreatedAt) + zaGdy;
                     }
                 }
                 else if (isDeadlineDate)
                 {
                     var gde = line.Substring(lineSegments[0].Index + lineSegments[0].Value.Length).Trim();
-                    var deadlineInResult = await DateTimeTypeReader.ReadAsync(ctx, gde, null);
+                    var deadlineInResult = await DateTimeTypeReader.ReadAsync(context, gde, null);
                     if (!deadlineInResult.IsSuccess)
                     {
                         desc = $"Na řádku `{Format.Sanitize(line)}` se nepovedlo rozluštit datum a čas obsažený v `{Format.Sanitize(gde)}`.";
@@ -149,7 +124,12 @@ namespace Inkluzitron.Modules.Vote
             if (desc == null)
                 def.Validate(out desc);
 
-            return new ParseResult { Definition = def, ProblemDescription = desc, Notice = notice };
+            return new VoteDefinitionParserResult
+            {
+                Definition = def,
+                ProblemDescription = desc,
+                Notice = notice
+            };
         }
     }
 }

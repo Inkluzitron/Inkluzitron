@@ -1,5 +1,8 @@
 ﻿using Discord.Commands;
+using Inkluzitron.Extensions;
 using Inkluzitron.Modules.Vote;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules
@@ -24,6 +27,8 @@ namespace Inkluzitron.Modules
             ":dollar: Peníze\r\n" +
             ":moneybag: Taky peníze, ale spousta\r\n";
 
+        public static readonly IReadOnlySet<string> VoteStartingCommands = typeof(VoteModule).ExtractCommandNames(nameof(VoteModule.Vote)).ToHashSet();
+
         private VoteService VoteService { get; }
 
         public VoteModule(VoteService voteService)
@@ -33,7 +38,7 @@ namespace Inkluzitron.Modules
 
         [Command("vote")]
         [Summary("Spustí hlasování.")]
-        public async Task Vote([Remainder, Name("zadání")] string _)
-            => await VoteService.ProcessVoteCommandAsync(Context.Message);
+        public async Task Vote([Remainder, Name("zadání")] string voteDefinitionText)
+            => await VoteService.ProcessVoteCommandAsync(Context.Message, voteDefinitionText);
     }
 }

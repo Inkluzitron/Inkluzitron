@@ -94,6 +94,7 @@ namespace Inkluzitron
                 .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
                 .AddSingleton<VoteDefinitionParser>()
                 .AddSingleton<VoteService>()
+                .AddSingleton<VoteWinnersTranslations>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>

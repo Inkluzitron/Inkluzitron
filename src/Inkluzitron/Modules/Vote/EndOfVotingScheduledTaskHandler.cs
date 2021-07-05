@@ -2,7 +2,7 @@
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data.Entities;
-using Inkluzitron.Models;
+using Inkluzitron.Models.Vote;
 using System;
 using System.Threading.Tasks;
 
@@ -33,7 +33,7 @@ namespace Inkluzitron.Modules.Vote
             if (message is null)
                 return true; // vote doesnt exist anymore
 
-            if (await VoteService.TryParseVoteCommand(message) is not VoteDefinition voteDefinition)
+            if (await VoteService.ParseVoteCommand(message) is not VoteDefinition voteDefinition)
                 return true; // it is not a vote anymore
 
             if (!voteDefinition.IsPastDeadline())

@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Inkluzitron.Contracts;
 using Inkluzitron.Enums;
-using Inkluzitron.Models;
+using Inkluzitron.Models.Vote;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Vote
@@ -20,7 +20,7 @@ namespace Inkluzitron.Modules.Vote
             if (user.IsBot)
                 return false;
 
-            if (await VoteService.TryParseVoteCommand(message) is not VoteDefinition voteDefinition)
+            if (await VoteService.ParseVoteCommand(message) is not VoteDefinition voteDefinition)
                 return false;
 
             if (voteDefinition.IsPastDeadline())

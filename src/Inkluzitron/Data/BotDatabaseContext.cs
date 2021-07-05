@@ -24,6 +24,7 @@ namespace Inkluzitron.Data
 
         public DbSet<Invite> Invites { get; set; }
         public DbSet<ScheduledTask> ScheduledTasks { get; set; }
+        public DbSet<VoteReplyRecord> VoteReplyRecords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -51,6 +52,14 @@ namespace Inkluzitron.Data
                     from => from.ToString("yyyy-MM-dd"),
                     to => DateTime.ParseExact(to, "yyyy-MM-dd", null)
                 ));
+
+            modelBuilder
+                .Entity<VoteReplyRecord>()
+                .HasKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.MessageId));
+
+            modelBuilder
+                .Entity<VoteReplyRecord>()
+                .HasAlternateKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.ReplyId));
         }
     }
 }

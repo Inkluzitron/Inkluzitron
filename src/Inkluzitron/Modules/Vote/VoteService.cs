@@ -1,180 +1,219 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
-using Inkluzitron.Models;
+using Inkluzitron.Handlers;
+using Inkluzitron.Models.Settings;
+using Inkluzitron.Models.Vote;
 using Inkluzitron.Services;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Vote
 {
-    public class VoteService
+    public sealed class VoteService : IDisposable
     {
-        private string CommandPrefix { get; }
         private DiscordSocketClient Client { get; }
         private ScheduledTasksService ScheduledTasksService { get; }
         private VoteDefinitionParser Parser { get; }
-        private IMemoryCache Cache { get; }
+        private DatabaseFactory DbFactory { get; }
+        private MessagesHandler MessagesHandler { get; }
+        private VoteTranslations VoteTranslations { get; }
 
-        public VoteService(DiscordSocketClient client, ScheduledTasksService scheduledTasksService, VoteDefinitionParser parser, IMemoryCache cache, IConfiguration config)
+        private SemaphoreSlim ReplySemaphore { get; } = new SemaphoreSlim(1);
+
+        public VoteService(DiscordSocketClient client, ScheduledTasksService scheduledTasksService, VoteDefinitionParser parser, DatabaseFactory dbFactory, MessagesHandler messagesHandler, VoteTranslations voteTranslations)
         {
-            CommandPrefix = config["Prefix"];
+            MessagesHandler = messagesHandler;
             Client = client;
             ScheduledTasksService = scheduledTasksService;
             Parser = parser;
-            Cache = cache;
-
-            // TODO: interfaces
-            Client.MessageDeleted += Client_MessageDeleted;
-            Client.MessageUpdated += Client_MessageUpdated;
+            DbFactory = dbFactory;
+            VoteTranslations = voteTranslations;
         }
 
-        private bool IsVoteCommand(IMessage userMessage)
-            => userMessage != null
-            && !userMessage.Author.IsBot
-            && userMessage.Content.StartsWith("$vote"); // todo: unify with parser
-
-        private bool WasVoteCommand(Cacheable<IMessage, ulong> changedOrDeletedMessage, IMessageChannel channel)
+        public void Dispose()
         {
-            var msg = changedOrDeletedMessage;
-            if (channel is not IGuildChannel guildChannel)
+            GC.SuppressFinalize(this);
+            ReplySemaphore.Dispose();
+        }
+
+        public bool TryMatchVoteCommand(IMessage message, out string commandName, out string commandArgs)
+        {
+            commandName = commandArgs = null;
+
+            if (message is not IUserMessage userMessage)
                 return false;
 
-            var cacheKey = GetReplyMessageCacheKey(guildChannel.Guild.Id, guildChannel.Id, msg.Id);
-            if (Cache.TryGetValue(cacheKey, out _))
+            if (userMessage.Author.IsBot)
+                return false;
+
+            if (!MessagesHandler.TryMatchSingleCommand(userMessage, out commandName, out commandArgs))
+                return false;
+
+            return VoteModule.VoteStartingCommands.Contains(commandName);
+        }
+
+        private static bool ExtractGuildId(IChannel channel, out ulong guildId)
+        {
+            if (channel is IGuildChannel guildChannel)
+            {
+                guildId = guildChannel.Id;
                 return true;
+            }
 
-            if (msg.HasValue && msg.Value is IUserMessage deletedUserMessage)
-                return IsVoteCommand(deletedUserMessage);
-
+            guildId = default;
             return false;
         }
 
-        private async Task Client_MessageUpdated(Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel sourceChannel)
+        public async Task<bool> DeleteAssociatedVoteReplyIfExistsAsync(IChannel channel, ulong messageId)
         {
-            if (IsVoteCommand(newMessage) || WasVoteCommand(oldMessage, sourceChannel))
-            {
-                // newMessage has Reactions.Count == 0, always
-                var freshMessage = await sourceChannel.GetMessageAsync(newMessage.Id);
-                if (freshMessage is IUserMessage freshUserMessage)
-                    await ProcessVoteCommandAsync(freshUserMessage);
-            }
+            if (channel is not ITextChannel textChannel)
+                return false;
+            if (!ExtractGuildId(channel, out var guildId))
+                return false;
+
+            using var dbContext = DbFactory.Create();
+
+            var voteReplyRecord = await dbContext.VoteReplyRecords.FindAsync(guildId, channel.Id, messageId);
+            if (voteReplyRecord is null)
+                return false;
+
+            var voteReply = await LocateVoteReply(dbContext, textChannel, voteReplyRecord);
+            if (voteReply is null)
+                return false;
+
+            await voteReply.DeleteAsync();
+
+            dbContext.VoteReplyRecords.Remove(voteReplyRecord);
+            await dbContext.SaveChangesAsync();
+
+            return true;
         }
 
-        private async Task Client_MessageDeleted(Cacheable<IMessage, ulong> deletedMessage, ISocketMessageChannel sourceChannel)
+        public async Task<bool> DeleteVoteReplyRecordIfExistsAsync(IChannel channel, ulong messageId)
         {
-            if (sourceChannel is not IGuildChannel guildChannel)
-                return;
+            if (!ExtractGuildId(channel, out var guildId))
+                return false;
 
-            if (!WasVoteCommand(deletedMessage, sourceChannel))
-                return;
+            using var dbContext = DbFactory.Create();
+            var voteReplyRecord = await dbContext.VoteReplyRecords.AsQueryable()
+                .Where(r => r.GuildId == guildId && r.ChannelId == channel.Id && r.ReplyId == messageId)
+                .FirstOrDefaultAsync();
 
-            var reply = deletedMessage.HasValue
-                ? await LocateVoteReplyTo(deletedMessage.Value)
-                : await LocateVoteReplyTo(GetReplyMessageCacheKey(
-                    guildChannel.GuildId,
-                    guildChannel.Id,
-                    deletedMessage.Id
-                ), sourceChannel);
+            if (voteReplyRecord is null)
+                return false;
 
-            if (reply != null)
-                await reply.DeleteAsync();
+            dbContext.VoteReplyRecords.Remove(voteReplyRecord);
+            await dbContext.SaveChangesAsync();
+            return true;
         }
 
-        private static string GetReplyMessageCacheKey(IMessage voteMessage)
-            => GetReplyMessageCacheKey(
-                (voteMessage.Channel as IGuildChannel)?.GuildId ?? 0,
-                voteMessage.Channel.Id,
-                voteMessage.Id
-            );
-
-        private static string GetReplyMessageCacheKey(ulong guildId, ulong channelId, ulong messageId)
-            => $"VoteReply/{guildId}/{channelId}/{messageId}";
-
-        private bool IsVoteReply(IMessage voteReplyCandidate, IMessage voteMessage)
-            => voteReplyCandidate.Author.IsBot
-            && voteReplyCandidate.Author.Id == Client.CurrentUser.Id
-            && voteReplyCandidate.Reference is MessageReference msgReference
-            && voteMessage.Channel is IGuildChannel guildChannel
-            && msgReference.GuildId.GetValueOrDefault() == guildChannel.Guild.Id
-            && msgReference.ChannelId == voteMessage.Channel.Id
-            && msgReference.MessageId.GetValueOrDefault() == voteMessage.Id;
-
-        public async Task<VoteDefinition> TryParseVoteCommand(IUserMessage userMessage)
+        public async Task<VoteDefinition> ParseVoteCommand(IUserMessage userMessage)
         {
+            if (!MessagesHandler.TryMatchSingleCommand(userMessage, out var commandName, out var commandArgs))
+                return null;
+
+            if (!VoteModule.VoteStartingCommands.Contains(commandName))
+                return null;
+
             var commandContext = new CommandContext(Client, userMessage);
-            var parseResult = await Parser.TryParse(commandContext, CommandPrefix, userMessage.Content);
+            var parseResult = await Parser.TryParse(commandContext, commandArgs);
             return parseResult.Success ? parseResult.Definition : null;
         }
 
-        private async Task<IUserMessage> LocateVoteReplyTo(string cacheKey, IMessageChannel channel)
+        private async Task<IUserMessage> LocateVoteReplyTo(IChannel channel, ulong messageId)
         {
-            if (Cache.TryGetValue<ulong>(cacheKey, out var replyMessageId) && await channel.GetMessageAsync(replyMessageId) is IUserMessage cachedVoteReply)
-            {
-                return cachedVoteReply;
-            }
+            if (channel is not ITextChannel textChannel)
+                return null;
 
-            return null;
+            if (!ExtractGuildId(channel, out var guildId))
+                return null;
+
+            using var dbContext = DbFactory.Create();
+
+            var voteReplyRecord = await dbContext.VoteReplyRecords.FindAsync(guildId, channel.Id, messageId);
+            if (voteReplyRecord is null)
+                return null;
+
+            return await LocateVoteReply(dbContext, textChannel, voteReplyRecord);
         }
 
-        private async Task<IUserMessage> LocateVoteReplyTo(IMessage voteCommandMessage)
+        static private async Task<IUserMessage> LocateVoteReply(BotDatabaseContext dbContext, ITextChannel channel, VoteReplyRecord voteReplyRecord)
         {
-            var cacheKey = GetReplyMessageCacheKey(voteCommandMessage);
-            var reply = await LocateVoteReplyTo(cacheKey, voteCommandMessage.Channel);
-
-            if (reply is not null)
-                return reply;
-
-            await foreach (var page in voteCommandMessage.Channel.GetMessagesAsync(voteCommandMessage, Direction.After))
+            var voteReply = await channel.GetMessageAsync(voteReplyRecord.ReplyId) as IUserMessage;
+            if (voteReply is null)
             {
-                foreach (var replyCandidate in page)
-                {
-                    if (IsVoteReply(replyCandidate, voteCommandMessage) && replyCandidate is IUserMessage foundVoteReply)
-                    {
-                        Cache.Set(cacheKey, foundVoteReply.Id);
-                        return foundVoteReply;
-                    }
-                }
+                dbContext.VoteReplyRecords.Remove(voteReplyRecord);
+                await dbContext.SaveChangesAsync();
             }
 
-            return null;
+            return voteReply;
         }
 
         public async Task UpdateVoteReplyAsync(IMessage voteCommandMessage, string voteReplyText)
         {
-            if (await LocateVoteReplyTo(voteCommandMessage) is IUserMessage existingVoteReply)
+            var existingVoteReply = await LocateVoteReplyTo(voteCommandMessage.Channel, voteCommandMessage.Id);
+            if (existingVoteReply is not null)
             {
                 await existingVoteReply.ModifyAsync(p => p.Content = voteReplyText);
                 return;
             }
 
-            var newVoteReply = await voteCommandMessage.Channel.SendMessageAsync(
-                text: voteReplyText,
-                allowedMentions: AllowedMentions.None,
-                messageReference: new MessageReference(
+            await ReplySemaphore.WaitAsync();
+
+            try
+            {
+                existingVoteReply = await LocateVoteReplyTo(voteCommandMessage.Channel, voteCommandMessage.Id);
+                if (existingVoteReply is not null)
+                {
+                    await existingVoteReply.ModifyAsync(p => p.Content = voteReplyText);
+                    return;
+                }
+
+                var voteCommandReference = new MessageReference(
                     voteCommandMessage.Id,
                     voteCommandMessage.Channel.Id,
                     (voteCommandMessage.Channel as IGuildChannel)?.GuildId
-                )
-            );
+                );
 
-            var cacheKey = GetReplyMessageCacheKey(voteCommandMessage);
-            Cache.Set(cacheKey, newVoteReply.Id);
+                var newVoteReply = await voteCommandMessage.Channel.SendMessageAsync(
+                    text: voteReplyText,
+                    allowedMentions: AllowedMentions.None,
+                    messageReference: voteCommandReference
+                );
+
+                using var dbContext = DbFactory.Create();
+
+                dbContext.VoteReplyRecords.Add(new VoteReplyRecord
+                {
+                    GuildId = voteCommandReference.GuildId.Value,
+                    ChannelId = voteCommandReference.ChannelId,
+                    MessageId = voteCommandReference.MessageId.Value,
+                    ReplyId = newVoteReply.Id
+                });
+
+                await dbContext.SaveChangesAsync();
+            }
+            finally
+            {
+                ReplySemaphore.Release();
+            }
         }
 
-        public async Task ProcessVoteCommandAsync(IUserMessage voteCommandMessage)
+        public async Task ProcessVoteCommandAsync(IUserMessage voteCommandMessage, string voteDefinitionText)
         {
             if (voteCommandMessage.Channel is not IGuildChannel guildChannel)
                 return;
 
-            var parse = await Parser.TryParse(new CommandContext(Client, voteCommandMessage), CommandPrefix, voteCommandMessage.Content);
+            var parse = await Parser.TryParse(new CommandContext(Client, voteCommandMessage), voteDefinitionText);
 
             if (!parse.Success)
             {
@@ -242,40 +281,37 @@ namespace Inkluzitron.Modules.Vote
             }
         }
 
-        static public string ComposeSummary(IUserMessage message, VoteDefinition def)
+        public string ComposeSummary(IUserMessage message, VoteDefinition def)
         {
-            var counts = message.Reactions.ToDictionary(r => r.Key, r => r.Value.ReactionCount - (r.Value.IsMe ? 1 : 0));
-            var winningVoteCount = counts.Any() ? counts.Max(kvp => kvp.Value) : 0;
+            var currentResults = message.Reactions.ToDictionary(r => r.Key, r => r.Value.ReactionCount - (r.Value.IsMe ? 1 : 0));
+            var winningVoteCount = currentResults.Count > 0 ? currentResults.Max(kvp => kvp.Value) : 0;
             var winners = winningVoteCount == 0
                 ? Array.Empty<IEmote>()
-                : counts
+                : currentResults
                     .Where(kvp => kvp.Value == winningVoteCount)
                     .Select(kvp => kvp.Key)
                     .Where(def.Options.ContainsKey)
                     .ToArray();
 
             var optionsList = string.Join(", ", winners.Select(w => "**" + Format.Sanitize(def.Options[w]) + "**"));
-
-            if (def.Deadline is DateTimeOffset deadline && DateTimeOffset.UtcNow > deadline)
-            {
-                if (winners.Length == 0)
-                    return "Hlasování skončilo. Nevyhrála žádná možnost.";
-                else if (winners.Length == 1)
-                    return $"Hlasování skončilo. Vyhrála možnost {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}.";
-                else
-                    return $"Hlasování skončilo. Vyhrály možnosti {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}.";
-            }
-
-            var tail = string.Empty;
-            if (def.Deadline is DateTimeOffset něgdy)
-                tail = $"Hlasování skončí {něgdy.ToLocalTime().ToString("G", CultureInfo.GetCultureInfo("cs-CZ"))}";
+            var voteIsUnderway = def.Deadline is DateTimeOffset deadline && DateTimeOffset.UtcNow < deadline;
+            var translations = voteIsUnderway ? VoteTranslations.VoteUnderway : VoteTranslations.VoteFinished;
+            var lines = new List<string>();
 
             if (winners.Length == 0)
-                return $"Nikdo zatím nehlasoval. {tail}";
-            else if (winners.Length == 1)
-                return $"Vyhrává možnost {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
+                lines.Add(translations.NoWinners);
             else
-                return $"Vyhrávájí možnosti {optionsList} s {winningVoteCount} hlas{(winningVoteCount == 1 ? "em" : "y")}. {tail}";
+            {
+                lines.Add(string.Format(
+                    winners.Length == 1 ? translations.OneWinner : translations.MultipleWinners,
+
+                    optionsList,
+                    winningVoteCount,
+                    winningVoteCount // TODO formatter                    
+                ));
+            }
+
+            return string.Join(Environment.NewLine, lines);
         }
     }
 }

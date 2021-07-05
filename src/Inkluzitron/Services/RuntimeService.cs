@@ -7,6 +7,7 @@ using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -33,9 +34,45 @@ namespace Inkluzitron.Services
             Cache = cache;
 
             DiscordClient.Ready += OnReadyAsync;
+            DiscordClient.MessageUpdated += OnMessageUpdatedAsync;
+            DiscordClient.MessageDeleted += OnMessageDeletedAsync;
+            DiscordClient.MessagesBulkDeleted += OnMessagesBulkDeletedAsync;
         }
 
-        // TODO: interface this
+        private async Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)
+        {
+            var freshMessageFactory = new Lazy<Task<IMessage>>(() => channel.GetMessageAsync(newMessage.Id));
+
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessageUpdatedAsync(channel, newMessage, freshMessageFactory);
+                if (handled)
+                    break;
+            }
+        }
+
+        private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> deletedMessage, ISocketMessageChannel channel)
+        {
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessageDeletedAsync(channel, deletedMessage.Id);
+                if (handled)
+                    break;
+            }
+        }
+
+        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> deletedMessages, ISocketMessageChannel channel)
+        {
+            var messageIds = deletedMessages.Select(msg => msg.Id).ToList();
+
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessagesBulkDeletedAsync(channel, messageIds);
+                if (handled)
+                    break;
+            }
+        }
+
         private async Task OnReadyAsync()
         {
             var cacheData = Cache.WithCategory("App")
