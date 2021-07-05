@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Models;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,27 +67,27 @@ namespace Inkluzitron.Handlers
         private bool HasCommandPrefix(IUserMessage message, ref int argPos)
             => message.Content.Length > CommandPrefix.Length && message.HasStringPrefix(CommandPrefix, ref argPos);
 
-        public async Task<(bool success, string commandName, string commandArguments)> TryMatchSingleCommand(IUserMessage message)
+        public async Task<SingleCommandMatch> MatchSingleCommandAsync(IUserMessage message)
         {
             int argPos = default;
             if (!IsCommand(message, ref argPos))
-                return (false, null, null);
+                return null;
 
             var postPrefixContent = message.Content[argPos..];
             var searchResult = CommandService.Search(postPrefixContent);
 
             if (!searchResult.IsSuccess)
-                return (false, null, null);
+                return null;
 
             if (searchResult.Commands.Count != 1)
-                return (false, null, null);
+                return null;
 
             var match = searchResult.Commands.SingleOrDefault();
             var parse = await match.ParseAsync(new CommandContext(DiscordClient, message), searchResult, services: ServiceProvider);
             if (!parse.IsSuccess)
-                return (false, null, null);
+                return null;
 
-            return (true, match.Alias, parse.ArgValues[0].BestMatch.ToString());
+            return new SingleCommandMatch(match, parse);
         }
     }
 }

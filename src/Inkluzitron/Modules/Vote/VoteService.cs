@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Handlers;
+using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Models.Vote;
 using Inkluzitron.Services;
@@ -46,7 +47,7 @@ namespace Inkluzitron.Modules.Vote
             ReplySemaphore.Dispose();
         }
 
-        public async Task<(bool success, string commandName, string commandArgs)> TryMatchVoteCommand(IMessage message)
+        public async Task<(bool success, string commandName, string voteDefinitionText)> TryMatchVoteCommand(IMessage message)
         {
             if (message is not IUserMessage userMessage)
                 return (false, null, null);
@@ -54,11 +55,11 @@ namespace Inkluzitron.Modules.Vote
             if (userMessage.Author.IsBot)
                 return (false, null, null);
 
-            var (success, commandName, commandArgs) = await MessagesHandler.TryMatchSingleCommand(userMessage);
-            if (!success || !VoteModule.VoteStartingCommands.Contains(commandName))
+            var commandMatch = await MessagesHandler.MatchSingleCommandAsync(userMessage);
+            if (commandMatch is null || !VoteModule.VoteStartingCommands.Contains(commandMatch.CommandMatch.Alias))
                 return (false, null, null);
 
-            return (success, commandName, commandArgs);
+            return (true, commandMatch.CommandMatch.Alias, commandMatch.ParseResult.ArgValues[0].BestMatch.ToString());
         }
 
         private static bool ExtractGuildId(IChannel channel, out ulong guildId)

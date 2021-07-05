@@ -20,6 +20,7 @@ namespace Inkluzitron.Modules.Vote
             var newMessage = await freshMessageFactory.Value;
 
             var (success, _, commandArgs) = await VoteService.TryMatchVoteCommand(newMessage);
+
             if (success)
             {
                 // newMessage has Reactions.Count == 0, always
