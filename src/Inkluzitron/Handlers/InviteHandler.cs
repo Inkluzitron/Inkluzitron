@@ -71,8 +71,12 @@ namespace Inkluzitron.Handlers
 
                 await link.DeleteAsync();
 
+                var welcomeMessageTemplate = Config.GetValue<string>("Welcoming:Message");
+                if (welcomeMessageTemplate == null)
+                    return;
+
                 var welcomeMessage = string.Format(
-                    Config.GetValue<string>("Welcoming:Message"),
+                    welcomeMessageTemplate,
                     await UsersService.GetDisplayNameAsync(user)
                 );
 
