@@ -34,13 +34,14 @@ namespace Inkluzitron.Modules.Vote
 
             while ((line = reader.ReadLine()) != null)
             {
+                line = line.Trim();
+
                 if (definition.Question == null)
                 {
-                    definition.Question = line.Trim();
+                    definition.Question = line;
                     continue;
                 }
 
-                line = line.Trim();
                 var lineSegments = Segments.Matches(line);
 
                 if (lineSegments.Count == 0)

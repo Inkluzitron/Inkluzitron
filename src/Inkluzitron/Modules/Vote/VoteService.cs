@@ -305,7 +305,7 @@ namespace Inkluzitron.Modules.Vote
             var optionsList = string.Join(", ", winners.Select(winner => "**" + Format.Sanitize(def.Options[winner]) + "**"));
             var voteIsUnderway = def.Deadline is not DateTimeOffset deadline || DateTimeOffset.UtcNow < deadline;
             var translations = voteIsUnderway ? VoteTranslations.VoteUnderway : VoteTranslations.VoteFinished;
-            var lines = new List<string>();
+            var lines = new List<string> { "**" + Format.Sanitize(def.Question) + "**" };
 
             if (winners.Length == 0)
             {
