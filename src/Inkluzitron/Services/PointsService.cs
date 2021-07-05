@@ -466,15 +466,21 @@ namespace Inkluzitron.Services
             var now = DateTime.UtcNow;
             var userEntity = await context.GetOrCreateUserEntityAsync(user);
 
-            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddMonths(KisService.Settings.SyncMonths) > DateTime.UtcNow)
-                return KisService.Settings.Messages["SyncTooSoon"];
+            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays) > DateTime.UtcNow)
+            {
+                return string.Format(KisService.Settings.Messages["SyncTooSoon"],
+                    KisService.Settings.SyncDays,
+                    new FormatByValue(KisService.Settings.SyncDays),
+                    userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays + 1));
+            }
 
             var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
 
             if (!points.IsOk)
                 return points.ErrorMessage;
 
-            await AddPointsAsync(context, user, points.Prestige);
+            var calculatedPoints = points.Prestige * KisService.Settings.PointsMultiplication;
+            await AddPointsAsync(context, user, calculatedPoints);
             await Patiently.HandleDbConcurrency(async () =>
             {
                 var entity = await context.GetOrCreateUserEntityAsync(user);
@@ -483,11 +489,9 @@ namespace Inkluzitron.Services
                 await context.SaveChangesAsync();
             });
 
-            var pointsSuffix = "bod";
-            if (points.Prestige == 0 || points.Prestige > 5) pointsSuffix = "bodů";
-            else if (points.Prestige > 1 && points.Prestige < 5) pointsSuffix = "body";
-
-            return string.Format(KisService.Settings.Messages["Done"], points.Prestige, pointsSuffix);
+            return string.Format(KisService.Settings.Messages["Done"],
+                calculatedPoints,
+                new FormatByValue(calculatedPoints));
         }
     }
 }

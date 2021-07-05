@@ -50,7 +50,13 @@ namespace Inkluzitron.Services
             var userPrestige = data.Find(o => o.Nickname == nickname);
 
             if (userPrestige == null)
-                return new KisPrestigeResult() { ErrorMessage = Settings.Messages["NoData"] };
+            {
+                return new KisPrestigeResult() {
+                    ErrorMessage = from.HasValue
+                        ? string.Format(Settings.Messages["NoDataLastSync"], from.Value)
+                        : Settings.Messages["NoData"]
+                };
+            }
 
             return new KisPrestigeResult() { Prestige = (int)userPrestige.PrestigeGain };
         }

@@ -20,6 +20,8 @@ namespace Inkluzitron.Services.TypeReaders
             { new Regex("^(te[dď]|now|teraz)$", regexOptions), () => DateTime.Now } // teď, ted, now, teraz
         };
 
+        private Regex TimeShiftRegex { get; } = new(@"(\d+)(m|h|d|M|y|r)", regexOptions);
+
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
         {
             // US dates use '/' as delimeter. We use this fact to detect american dates and parse them correctly (MM/DD instead of DD.MM)
@@ -35,7 +37,39 @@ namespace Inkluzitron.Services.TypeReaders
                     return Task.FromResult(TypeReaderResult.FromSuccess(func.Value()));
             }
 
-            return Task.FromResult(TypeReaderResult.FromError(CommandError.ParseFailed, "Datum a čas není ve správném formátu."));
+            var timeShift = TimeShiftRegex.Match(input);
+            var timeShiftMatched = timeShift.Success;
+            var result = DateTime.Now;
+            while (timeShift.Success)
+            {
+                var timeValue = Convert.ToInt32(timeShift.Groups[1].Value);
+
+                switch (timeShift.Groups[2].Value)
+                {
+                    case "m": // minutes
+                        result = result.AddMinutes(timeValue);
+                        break;
+                    case "h": // hours
+                        result = result.AddHours(timeValue);
+                        break;
+                    case "d": // days
+                        result = result.AddDays(timeValue);
+                        break;
+                    case "M": // months
+                        result = result.AddMonths(timeValue);
+                        break;
+                    case "r":
+                    case "y": // years
+                        result = result.AddYears(timeValue);
+                        break;
+                }
+
+                timeShift = timeShift.NextMatch();
+            }
+
+            return timeShiftMatched
+                ? Task.FromResult(TypeReaderResult.FromSuccess(result))
+                : Task.FromResult(TypeReaderResult.FromError(CommandError.ParseFailed, "Datum a čas není ve správném formátu."));
         }
     }
 }
