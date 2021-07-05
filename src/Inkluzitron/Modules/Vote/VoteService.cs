@@ -263,7 +263,7 @@ namespace Inkluzitron.Modules.Vote
                 : Environment.NewLine + string.Format(
                     VoteTranslations.UnaccessibleEmotes,
                     new FormatByValue(failedEmotes.Count),
-                    string.Join(", ", failedEmotes.Select(e => e.ToString()))
+                    string.Join(", ", failedEmotes.Select(e => $"`{e}`"))
                 );
 
             await UpdateVoteReplyAsync(voteCommandMessage, summary + tail);

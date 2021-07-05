@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Services
 {
-    public sealed class ScheduledTasksService : ILifecycleControl, IDisposable
+    public sealed class ScheduledTasksService : IRuntimeEventHandler, IDisposable
     {
         private const int FailCountThreshold = 5;
 
@@ -22,12 +22,8 @@ namespace Inkluzitron.Services
         private ILogger Logger { get; }
 
         private ManualResetEvent ScheduledTaskExists { get; } = new(false);
-        private CancellationTokenSource CancellationTokenSource { get; set; }
-        private Task Worker { get; set; }
-
-        private bool IsStarted { get; set; }
-        StartCondition ILifecycleControl.WhenToStart => StartCondition.WhenHomeGuildBecomesAvailable;
-        bool ILifecycleControl.IsStarted => IsStarted;
+        private CancellationTokenSource CancellationTokenSource { get; set; } = new();
+        private Task Worker { get; set; } = Task.CompletedTask;
 
         public ScheduledTasksService(DatabaseFactory databaseFactory, IServiceProvider serviceProvider, ILogger<ScheduledTasksService> logger)
         {
@@ -36,10 +32,8 @@ namespace Inkluzitron.Services
             Logger = logger;
         }
 
-
-        Task ILifecycleControl.StartAsync()
+        Task IRuntimeEventHandler.OnHomeGuildReadyAsync()
         {
-            IsStarted = true;
             CancellationTokenSource = new CancellationTokenSource();
             Worker = Task.Factory.StartNew(
                 () => ProcessScheduledTasksAsync(CancellationTokenSource.Token),
@@ -50,9 +44,8 @@ namespace Inkluzitron.Services
             return Task.CompletedTask;
         }
 
-        async Task ILifecycleControl.StopAsync()
+        async Task IRuntimeEventHandler.OnBotStoppingAsync()
         {
-            IsStarted = false;
             CancellationTokenSource.Cancel();
             CancellationTokenSource.Dispose();
             await Worker.ContinueWith(_ => { });

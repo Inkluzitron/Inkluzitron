@@ -89,7 +89,7 @@ namespace Inkluzitron
                 .AddSingleton<UsersService>()
                 .AddSingleton<KisSettings>()
                 .AddSingleton<ScheduledTasksService>()
-                .AddSingleton<ILifecycleControl>(sp => sp.GetRequiredService<ScheduledTasksService>())
+                .AddSingleton<IRuntimeEventHandler>(sp => sp.GetRequiredService<ScheduledTasksService>())
                 .AddSingleton<EndOfVotingScheduledTaskHandler>()
                 .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
                 .AddSingleton<VoteDefinitionParser>()
@@ -141,9 +141,8 @@ namespace Inkluzitron
             var runtimeService = provider.GetRequiredService<RuntimeService>();
             await runtimeService.StartAsync();
 
-            foreach (var startable in provider.GetServices<ILifecycleControl>())
-                if (!startable.IsStarted && startable.WhenToStart == StartCondition.Immediately)
-                    await startable.StartAsync();
+            foreach (var runtimeEventHandler in provider.GetServices<IRuntimeEventHandler>())
+                await runtimeEventHandler.OnBotStartingAsync();
 
             try
             {
@@ -154,9 +153,8 @@ namespace Inkluzitron
                 // Can ignore
             }
 
-            foreach (var stoppable in provider.GetServices<ILifecycleControl>().Reverse())
-                if (stoppable.IsStarted)
-                    await stoppable.StopAsync();
+            foreach (var runtimeEventHandler in provider.GetServices<IRuntimeEventHandler>().Reverse())
+                await runtimeEventHandler.OnBotStoppingAsync();
 
             await runtimeService.StopAsync();
             await provider.DisposeAsync();

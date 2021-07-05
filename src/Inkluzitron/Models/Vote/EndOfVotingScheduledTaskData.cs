@@ -1,4 +1,4 @@
-﻿namespace Inkluzitron.Modules.Vote
+﻿namespace Inkluzitron.Models.Vote
 {
     public class EndOfVotingScheduledTaskData
     {

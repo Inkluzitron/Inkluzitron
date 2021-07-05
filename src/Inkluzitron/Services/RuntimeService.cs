@@ -23,6 +23,7 @@ namespace Inkluzitron.Services
         private IConfiguration Configuration { get; }
         private IServiceScope CommandServiceScope { get; set; }
         private FileCache Cache { get; }
+        private bool GuildReadyStateAnnounced { get; set; }
 
         public RuntimeService(DiscordSocketClient discordClient, IServiceProvider serviceProvider, CommandService commandService,
             IConfiguration configuration, FileCache cache)
@@ -39,15 +40,18 @@ namespace Inkluzitron.Services
             DiscordClient.MessagesBulkDeleted += OnMessagesBulkDeletedAsync;
             DiscordClient.GuildAvailable += OnGuildAvailableAsync;
         }
-
+        
         private async Task OnGuildAvailableAsync(SocketGuild arg)
         {
             if (arg.Id.ToString() != Configuration["HomeGuildId"])
                 return;
+            else if (GuildReadyStateAnnounced)
+                return;
 
-            foreach (var startable in ServiceProvider.GetServices<ILifecycleControl>())
-                if (!startable.IsStarted && startable.WhenToStart == StartCondition.WhenHomeGuildBecomesAvailable)
-                    await startable.StartAsync();
+            GuildReadyStateAnnounced = true;
+
+            foreach (var runtimeEventHandler in ServiceProvider.GetServices<IRuntimeEventHandler>())
+                await runtimeEventHandler.OnHomeGuildReadyAsync();
         }
 
         private async Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)
