@@ -1,10 +1,11 @@
 ﻿using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Contracts
 {
     public interface IScheduledTaskHandler
     {
-        Task<bool> HandleAsync(ScheduledTask scheduledTask);
+        Task<ScheduledTaskResult> HandleAsync(ScheduledTask scheduledTask);
     }
 }

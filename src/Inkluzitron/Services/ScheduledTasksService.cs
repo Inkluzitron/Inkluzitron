@@ -145,7 +145,7 @@ namespace Inkluzitron.Services
         private async Task<Task> CreateWaitForNextIterationAsync(BotDatabaseContext dbContext, CancellationToken cancellationToken)
         {
             var nextScheduledTask = await dbContext.ScheduledTasks.AsQueryable()
-                .OrderBy(st => st.MsSinceUtcUnixEpoch)
+                .OrderBy(st => st.When)
                 .FirstOrDefaultAsync(cancellationToken);
 
             Task newItemAdded = ScheduledTaskExists.WaitOneAsync(cancellationToken);
@@ -165,10 +165,10 @@ namespace Inkluzitron.Services
 
         private async Task FindAndProcessPendingTasks(BotDatabaseContext dbContext, CancellationToken cancellationToken)
         {
-            var now = DateTimeOffset.UtcNow.ConvertDateTimeOffsetToLong();
+            var now = DateTimeOffset.UtcNow;
             var pendingTasks = dbContext.ScheduledTasks.AsQueryable()
-                .OrderBy(st => st.MsSinceUtcUnixEpoch)
-                .Where(st => st.MsSinceUtcUnixEpoch <= now)
+                .OrderBy(st => st.When)
+                .Where(st => st.When <= now)
                 .ToAsyncEnumerable();
 
             await foreach (var pendingTask in pendingTasks)
@@ -186,9 +186,21 @@ namespace Inkluzitron.Services
             {
                 foreach (var handler in Handlers.Value)
                 {
-                    var handled = await handler.HandleAsync(scheduledTask);
-                    if (handled)
-                        return true;
+                    var result = await handler.HandleAsync(scheduledTask);
+                    switch (result)
+                    {
+                        case Enums.ScheduledTaskResult.NotHandled:
+                            continue;
+
+                        case Enums.ScheduledTaskResult.HandledAndCompleted:
+                            return true;
+
+                        case Enums.ScheduledTaskResult.HandledAndPostponed:
+                            return false;
+
+                        default:
+                            throw new NotSupportedException($"Unsupported scheduled task result '{result}' yielded from {handler}");
+                    }
                 }
 
                 Logger.LogError("A scheduled task was refused for handling by all known handlers, postponing: {0}", scheduledTask.Serialize());

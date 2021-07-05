@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using Inkluzitron.Models.Vote;
 using System;
 using System.Threading.Tasks;
@@ -19,10 +20,10 @@ namespace Inkluzitron.Modules.Vote
             Client = client;
         }
 
-        public async Task<bool> HandleAsync(ScheduledTask scheduledTask)
+        public async Task<ScheduledTaskResult> HandleAsync(ScheduledTask scheduledTask)
         {
             if (scheduledTask.Discriminator != "EndOfVoting")
-                return false;
+                return ScheduledTaskResult.NotHandled;
 
             var data = scheduledTask.ParseData<EndOfVotingScheduledTaskData>();
             var channel = Client.GetGuild(data.GuildId)?.GetTextChannel(data.ChannelId);
@@ -31,17 +32,23 @@ namespace Inkluzitron.Modules.Vote
 
             var message = await channel.GetMessageAsync(data.MessageId) as IUserMessage;
             if (message is null)
-                return true; // vote doesnt exist anymore
+                return ScheduledTaskResult.HandledAndCompleted; // vote doesnt exist anymore
 
             if (await VoteService.ParseVoteCommand(message) is not VoteDefinition voteDefinition)
-                return true; // it is not a vote anymore
+                return ScheduledTaskResult.HandledAndCompleted; // it is not a vote anymore
+
+            if (voteDefinition.Deadline is not DateTimeOffset deadline)
+                return ScheduledTaskResult.HandledAndCompleted; // the vote no longer has a deadline
 
             if (!voteDefinition.IsPastDeadline())
-                return true; // vote has an updated deadline, should not be finished yet
+            {
+                scheduledTask.When = deadline;
+                return ScheduledTaskResult.HandledAndPostponed; // the vote should not be ended yet
+            }
 
             var summary = VoteService.ComposeSummary(message, voteDefinition);
             await VoteService.UpdateVoteReplyAsync(message, summary);
-            return true;
+            return ScheduledTaskResult.HandledAndCompleted;
         }
     }
 }

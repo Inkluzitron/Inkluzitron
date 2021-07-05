@@ -204,10 +204,11 @@ namespace Inkluzitron.Migrations
                     b.Property<int>("FailCount")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("MsSinceUtcUnixEpoch")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Tag")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("When")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ScheduledTaskId");

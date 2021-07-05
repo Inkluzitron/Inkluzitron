@@ -125,6 +125,7 @@ namespace Inkluzitron.Services
             CommandService.AddTypeReader<IUser>(new UserTypeReader(), true);
             CommandService.AddTypeReader<DateTime>(new DateTimeTypeReader(), true);
             CommandService.AddTypeReader<bool>(new BooleanTypeReader(), true);
+            CommandService.AddTypeReader<TimeSpan>(new TimeSpanTypeReader(), true);
 
             CommandServiceScope = ServiceProvider.CreateScope();
             await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), CommandServiceScope.ServiceProvider);

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
+using System.Globalization;
 
 namespace Inkluzitron.Data
 {
@@ -58,6 +59,13 @@ namespace Inkluzitron.Data
                 to => ulong.Parse(to)
             );
 
+            modelBuilder
+                .Entity<ScheduledTask>()
+                .Property(i => i.When)
+                .HasConversion(new ValueConverter<DateTimeOffset, string>(
+                    from => from.ToUniversalTime().ToString("O"),
+                    to => DateTimeOffset.ParseExact(to, "O", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal)
+                ));
 
             modelBuilder.Entity<VoteReplyRecord>().Property(i => i.GuildId).HasConversion(ulongStringConverter);
             modelBuilder.Entity<VoteReplyRecord>().Property(i => i.ChannelId).HasConversion(ulongStringConverter);
