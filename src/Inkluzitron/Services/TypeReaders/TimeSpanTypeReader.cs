@@ -14,14 +14,14 @@ namespace Inkluzitron.Services.TypeReaders
         private Dictionary<Regex, Func<Match, TimeSpan>> MatchingFunctions { get; } = new()
         {
             { new Regex(@"(\d+)\s*(dn[ůíy]?|d)", regexOptions), m => TimeSpan.FromDays(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(hodin[auy]?|hod|h)", regexOptions), m => TimeSpan.FromHours(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(minut[auy]?|min|m)", regexOptions), m => TimeSpan.FromMinutes(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(sekund[auy]?|sec|s)", regexOptions), m => TimeSpan.FromSeconds(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(hodin[y]?|hod|h)", regexOptions), m => TimeSpan.FromHours(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(minut[y]?|min|m)", regexOptions), m => TimeSpan.FromMinutes(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(sekund[y]?|sec|s)", regexOptions), m => TimeSpan.FromSeconds(int.Parse(m.Groups[1].Value)) },
 
-            { new Regex(@"(^|\s+)(1\s+den|den|dny)($|\s+)", regexOptions), _ => TimeSpan.FromDays(1) },
-            { new Regex(@"(^|\s+)hodin[auy]($|\s+)", regexOptions), _ => TimeSpan.FromHours(1) },
-            { new Regex(@"(^|\s+)minut[auy]($|\s+)", regexOptions), _ => TimeSpan.FromMinutes(1) },
-            { new Regex(@"(^|\s+)sekund[auy]($|\s+)", regexOptions), _ => TimeSpan.FromSeconds(1) }
+            { new Regex(@"(^|\s+)(1\s+den|den)($|\s+)", regexOptions), _ => TimeSpan.FromDays(1) },
+            { new Regex(@"(^|\s+)(1\s+hodin[au]|hodin[au])($|\s+)", regexOptions), _ => TimeSpan.FromHours(1) },
+            { new Regex(@"(^|\s+)(1\s+minut[au]|minut[au])($|\s+)", regexOptions), _ => TimeSpan.FromMinutes(1) },
+            { new Regex(@"(^|\s+)(1\s+sekund[au]|sekund[au])($|\s+)", regexOptions), _ => TimeSpan.FromSeconds(1) }
         };
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)

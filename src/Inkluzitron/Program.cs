@@ -3,6 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
+using Inkluzitron.Extensions;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
@@ -88,15 +89,8 @@ namespace Inkluzitron
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
                 .AddSingleton<KisSettings>()
-                .AddSingleton<ScheduledTasksService>()
-                .AddSingleton<IRuntimeEventHandler>(sp => sp.GetRequiredService<ScheduledTasksService>())
-                .AddSingleton<EndOfVotingScheduledTaskHandler>()
-                .AddSingleton<IScheduledTaskHandler>(sp => sp.GetRequiredService<EndOfVotingScheduledTaskHandler>())
-                .AddSingleton<VoteDefinitionParser>()
-                .AddSingleton<VoteService>()
-                .AddSingleton<VoteTranslations>()
-                .AddSingleton<VoteMessageEventHandler>()
-                .AddSingleton<IMessageEventHandler>(sp => sp.GetRequiredService<VoteMessageEventHandler>())
+                .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
+                .AddVoteModule()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -111,12 +105,12 @@ namespace Inkluzitron
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)
                 .ToList();
 
-            handlers.ForEach(handler => services.AddSingleton(handler));
+            handlers.ForEach(handler => services.RegisterAs(handler, typeof(IHandler)));
 
             Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
                 .ToList()
-                .ForEach(reactionHandlerType => services.AddSingleton(typeof(IReactionHandler), reactionHandlerType));
+                .ForEach(reactionHandlerType => services.RegisterAs(reactionHandlerType, typeof(IReactionHandler)));
 
             if (!string.IsNullOrEmpty(configuration["Kis:Token"]))
             {

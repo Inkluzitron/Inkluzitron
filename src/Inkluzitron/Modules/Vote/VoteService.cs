@@ -1,10 +1,10 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Handlers;
-using Inkluzitron.Models;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Models.Vote;
 using Inkluzitron.Services;
@@ -13,7 +13,6 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,7 +61,7 @@ namespace Inkluzitron.Modules.Vote
             return (true, commandMatch.CommandMatch.Alias, commandMatch.ParseResult.ArgValues[0].BestMatch.ToString());
         }
 
-        private static bool ExtractGuildId(IChannel channel, out ulong guildId)
+        static private bool TryExtractGuildId(IChannel channel, out ulong guildId)
         {
             if (channel is IGuildChannel guildChannel)
             {
@@ -78,7 +77,7 @@ namespace Inkluzitron.Modules.Vote
         {
             if (channel is not ITextChannel textChannel)
                 return false;
-            if (!ExtractGuildId(channel, out var guildId))
+            if (!TryExtractGuildId(channel, out var guildId))
                 return false;
 
             using var dbContext = DbFactory.Create();
@@ -104,7 +103,7 @@ namespace Inkluzitron.Modules.Vote
 
         public async Task<bool> DeleteVoteReplyRecordIfExistsAsync(IChannel channel, ulong messageId)
         {
-            if (!ExtractGuildId(channel, out var guildId))
+            if (!TryExtractGuildId(channel, out var guildId))
                 return false;
 
             using var dbContext = DbFactory.Create();
@@ -139,7 +138,7 @@ namespace Inkluzitron.Modules.Vote
             if (channel is not ITextChannel textChannel)
                 return null;
 
-            if (!ExtractGuildId(channel, out var guildId))
+            if (!TryExtractGuildId(channel, out var guildId))
                 return null;
 
             using var dbContext = DbFactory.Create();
@@ -175,7 +174,7 @@ namespace Inkluzitron.Modules.Vote
                 return;
             }
 
-            if (!ExtractGuildId(voteCommandMessage.Channel, out var guildId))
+            if (!TryExtractGuildId(voteCommandMessage.Channel, out var guildId))
                 return;
 
             await ReplySemaphore.WaitAsync();
@@ -251,7 +250,7 @@ namespace Inkluzitron.Modules.Vote
                     {
                         await voteCommandMessage.AddReactionAsync(emote);
                     }
-                    catch
+                    catch (HttpException)
                     {
                         failedEmotes.Add(emote);
                     }
@@ -272,15 +271,16 @@ namespace Inkluzitron.Modules.Vote
             {
                 var scheduledTaskTag = voteCommandMessage.GetJumpUrl();
 
-                foreach (var existingScheduledTask in await ScheduledTasksService.LookupAsync("EndOfVoting", scheduledTaskTag))
-                    await ScheduledTasksService.CancelAsync(existingScheduledTask.ScheduledTaskId);
+                var previouslyScheduledEndsOfVote = await ScheduledTasksService.LookupAsync(EndOfVotingScheduledTask.Identifier, scheduledTaskTag);
+                foreach (var endOfVoteTask in previouslyScheduledEndsOfVote)
+                    await ScheduledTasksService.CancelAsync(endOfVoteTask.ScheduledTaskId);
 
                 await ScheduledTasksService.EnqueueAsync(new ScheduledTask
                 {
-                    Discriminator = "EndOfVoting",
+                    Discriminator = EndOfVotingScheduledTask.Identifier,
                     Tag = scheduledTaskTag,
                     When = votingDeadline,
-                    Data = JsonConvert.SerializeObject(new EndOfVotingScheduledTaskData
+                    Data = JsonConvert.SerializeObject(new EndOfVotingScheduledTask
                     {
                         GuildId = guildChannel.GuildId,
                         ChannelId = guildChannel.Id,

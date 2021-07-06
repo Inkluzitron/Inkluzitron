@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
+using Inkluzitron.Extensions;
 using Inkluzitron.Services.TypeReaders;
 using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +26,10 @@ namespace Inkluzitron.Services
         private FileCache Cache { get; }
         private bool GuildReadyStateAnnounced { get; set; }
 
+        private ulong HomeGuildId { get; }
+        private ulong LoggingChannelId { get; }
+        private string OnlineAfterUpdate { get; }
+
         public RuntimeService(DiscordSocketClient discordClient, IServiceProvider serviceProvider, CommandService commandService,
             IConfiguration configuration, FileCache cache)
         {
@@ -34,16 +39,20 @@ namespace Inkluzitron.Services
             Configuration = configuration;
             Cache = cache;
 
+            LoggingChannelId = Configuration.GetRequired<ulong>("LoggingChannelId");
+            HomeGuildId = Configuration.GetRequired<ulong>("HomeGuildId");
+            OnlineAfterUpdate = Configuration.GetRequired<string>("OnlineAfterUpdate");
+
             DiscordClient.Ready += OnReadyAsync;
             DiscordClient.MessageUpdated += OnMessageUpdatedAsync;
             DiscordClient.MessageDeleted += OnMessageDeletedAsync;
             DiscordClient.MessagesBulkDeleted += OnMessagesBulkDeletedAsync;
             DiscordClient.GuildAvailable += OnGuildAvailableAsync;
         }
-        
+
         private async Task OnGuildAvailableAsync(SocketGuild arg)
         {
-            if (arg.Id.ToString() != Configuration["HomeGuildId"])
+            if (arg.Id != HomeGuildId)
                 return;
             else if (GuildReadyStateAnnounced)
                 return;
@@ -105,10 +114,10 @@ namespace Inkluzitron.Services
                 await File.WriteAllTextAsync(path, ThisAssembly.Git.Sha);
             }
 
-            if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(Configuration.GetValue<ulong>("LoggingChannelId")) is IMessageChannel channel)
+            if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(LoggingChannelId) is IMessageChannel channel)
             {
                 var commitDate = DateTime.Parse(ThisAssembly.Git.CommitDate);
-                var message = string.Format(Configuration.GetValue<string>("OnlineAfterUpdate"), ThisAssembly.Git.Commit, commitDate);
+                var message = string.Format(OnlineAfterUpdate, ThisAssembly.Git.Commit, commitDate);
 
                 await channel.SendMessageAsync(message);
                 await File.WriteAllTextAsync(cacheData.GetPathForWriting("txt"), ThisAssembly.Git.Sha);

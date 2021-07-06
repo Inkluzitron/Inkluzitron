@@ -22,10 +22,10 @@ namespace Inkluzitron.Modules.Vote
 
         public async Task<ScheduledTaskResult> HandleAsync(ScheduledTask scheduledTask)
         {
-            if (scheduledTask.Discriminator != "EndOfVoting")
+            if (scheduledTask.Discriminator != EndOfVotingScheduledTask.Identifier)
                 return ScheduledTaskResult.NotHandled;
 
-            var data = scheduledTask.ParseData<EndOfVotingScheduledTaskData>();
+            var data = scheduledTask.ParseData<EndOfVotingScheduledTask>();
             var channel = Client.GetGuild(data.GuildId)?.GetTextChannel(data.ChannelId);
             if (channel is null)
                 throw new InvalidOperationException("Unable to locate guild or channel");

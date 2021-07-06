@@ -184,13 +184,10 @@ namespace Inkluzitron.Services
                     {
                         case Enums.ScheduledTaskResult.NotHandled:
                             continue;
-
                         case Enums.ScheduledTaskResult.HandledAndCompleted:
                             return true;
-
                         case Enums.ScheduledTaskResult.HandledAndPostponed:
                             return false;
-
                         default:
                             throw new NotSupportedException($"Unsupported scheduled task result '{result}' yielded from {handler}");
                     }
