@@ -50,7 +50,7 @@ namespace Inkluzitron.Handlers
             {
                 await user.SendMessageAsync(Config.GetValue<string>("Welcoming:DirectMessage"));
             }
-            catch (HttpException)
+            catch (HttpException ex) when (ex.DiscordCode == 50007)
             {
                 // User has disabled DMs
             }
