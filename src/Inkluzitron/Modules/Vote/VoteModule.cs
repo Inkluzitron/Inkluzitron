@@ -38,7 +38,7 @@ namespace Inkluzitron.Modules
             ":droplet: Wet\r\n" +
             "deadline 1.4.2021\r\n";
 
-        public const string Example5 = "$vote Fixed deadline in English\r\n" +
+        public const string Example5 = "$vote Relative deadline in English\r\n" +
             ":fire: Hot\r\n" +
             ":droplet: Wet\r\n" +
             "deadline in 10 minutes\r\n";
