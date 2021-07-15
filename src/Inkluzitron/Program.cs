@@ -3,11 +3,13 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Inkluzitron.Contracts;
 using Inkluzitron.Data;
+using Inkluzitron.Extensions;
 using Inkluzitron.Handlers;
 using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Modules.Points;
+using Inkluzitron.Modules.Vote;
 using Inkluzitron.Services;
 using Inkluzitron.Services.ChannelLogger;
 using Inkluzitron.Utilities;
@@ -87,6 +89,8 @@ namespace Inkluzitron
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
                 .AddSingleton<KisSettings>()
+                .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
+                .AddVoteModule()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>
@@ -101,12 +105,12 @@ namespace Inkluzitron
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)
                 .ToList();
 
-            handlers.ForEach(handler => services.AddSingleton(handler));
+            handlers.ForEach(handler => services.RegisterAs(handler, typeof(IHandler)));
 
             Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
                 .ToList()
-                .ForEach(reactionHandlerType => services.AddSingleton(typeof(IReactionHandler), reactionHandlerType));
+                .ForEach(reactionHandlerType => services.RegisterAs(reactionHandlerType, typeof(IReactionHandler)));
 
             if (!string.IsNullOrEmpty(configuration["Kis:Token"]))
             {
@@ -128,8 +132,11 @@ namespace Inkluzitron
             provider.GetRequiredService<ReactionsModule>();
             provider.GetRequiredService<PointsService>();
 
-            var runtime = provider.GetRequiredService<RuntimeService>();
-            await runtime.StartAsync();
+            var runtimeService = provider.GetRequiredService<RuntimeService>();
+            await runtimeService.StartAsync();
+
+            foreach (var runtimeEventHandler in provider.GetServices<IRuntimeEventHandler>())
+                await runtimeEventHandler.OnBotStartingAsync();
 
             try
             {
@@ -140,7 +147,10 @@ namespace Inkluzitron
                 // Can ignore
             }
 
-            await runtime.StopAsync();
+            foreach (var runtimeEventHandler in provider.GetServices<IRuntimeEventHandler>().Reverse())
+                await runtimeEventHandler.OnBotStoppingAsync();
+
+            await runtimeService.StopAsync();
             await provider.DisposeAsync();
         }
 

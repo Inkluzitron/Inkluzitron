@@ -1,12 +1,16 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Contracts;
+using Inkluzitron.Extensions;
 using Inkluzitron.Services.TypeReaders;
 using Inkluzitron.Utilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
@@ -20,6 +24,11 @@ namespace Inkluzitron.Services
         private IConfiguration Configuration { get; }
         private IServiceScope CommandServiceScope { get; set; }
         private FileCache Cache { get; }
+        private bool GuildReadyStateAnnounced { get; set; }
+
+        private ulong HomeGuildId { get; }
+        private ulong LoggingChannelId { get; }
+        private string OnlineAfterUpdate { get; }
 
         public RuntimeService(DiscordSocketClient discordClient, IServiceProvider serviceProvider, CommandService commandService,
             IConfiguration configuration, FileCache cache)
@@ -30,7 +39,62 @@ namespace Inkluzitron.Services
             Configuration = configuration;
             Cache = cache;
 
+            LoggingChannelId = Configuration.GetRequired<ulong>("LoggingChannelId");
+            HomeGuildId = Configuration.GetRequired<ulong>("HomeGuildId");
+            OnlineAfterUpdate = Configuration.GetRequired<string>("OnlineAfterUpdate");
+
             DiscordClient.Ready += OnReadyAsync;
+            DiscordClient.MessageUpdated += OnMessageUpdatedAsync;
+            DiscordClient.MessageDeleted += OnMessageDeletedAsync;
+            DiscordClient.MessagesBulkDeleted += OnMessagesBulkDeletedAsync;
+            DiscordClient.GuildAvailable += OnGuildAvailableAsync;
+        }
+
+        private async Task OnGuildAvailableAsync(SocketGuild arg)
+        {
+            if (arg.Id != HomeGuildId)
+                return;
+            else if (GuildReadyStateAnnounced)
+                return;
+
+            GuildReadyStateAnnounced = true;
+
+            foreach (var runtimeEventHandler in ServiceProvider.GetServices<IRuntimeEventHandler>())
+                await runtimeEventHandler.OnHomeGuildReadyAsync();
+        }
+
+        private async Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage, ISocketMessageChannel channel)
+        {
+            var freshMessageFactory = new Lazy<Task<IMessage>>(() => channel.GetMessageAsync(newMessage.Id));
+
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessageUpdatedAsync(channel, newMessage, freshMessageFactory);
+                if (handled)
+                    break;
+            }
+        }
+
+        private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> deletedMessage, ISocketMessageChannel channel)
+        {
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessageDeletedAsync(channel, deletedMessage.Id);
+                if (handled)
+                    break;
+            }
+        }
+
+        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> deletedMessages, ISocketMessageChannel channel)
+        {
+            var messageIds = deletedMessages.Select(msg => msg.Id).ToList();
+
+            foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
+            {
+                var handled = await messageEventHandler.HandleMessagesBulkDeletedAsync(channel, messageIds);
+                if (handled)
+                    break;
+            }
         }
 
         private async Task OnReadyAsync()
@@ -50,10 +114,10 @@ namespace Inkluzitron.Services
                 await File.WriteAllTextAsync(path, ThisAssembly.Git.Sha);
             }
 
-            if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(Configuration.GetValue<ulong>("LoggingChannelId")) is IMessageChannel channel)
+            if (version != ThisAssembly.Git.Sha && DiscordClient.GetChannel(LoggingChannelId) is IMessageChannel channel)
             {
                 var commitDate = DateTime.Parse(ThisAssembly.Git.CommitDate);
-                var message = string.Format(Configuration.GetValue<string>("OnlineAfterUpdate"), ThisAssembly.Git.Commit, commitDate);
+                var message = string.Format(OnlineAfterUpdate, ThisAssembly.Git.Commit, commitDate);
 
                 await channel.SendMessageAsync(message);
                 await File.WriteAllTextAsync(cacheData.GetPathForWriting("txt"), ThisAssembly.Git.Sha);
@@ -74,6 +138,7 @@ namespace Inkluzitron.Services
             CommandService.AddTypeReader<IUser>(new UserTypeReader(), true);
             CommandService.AddTypeReader<DateTime>(new DateTimeTypeReader(), true);
             CommandService.AddTypeReader<bool>(new BooleanTypeReader(), true);
+            CommandService.AddTypeReader<TimeSpan>(new TimeSpanTypeReader(), true);
 
             CommandServiceScope = ServiceProvider.CreateScope();
             await CommandService.AddModulesAsync(Assembly.GetEntryAssembly(), CommandServiceScope.ServiceProvider);

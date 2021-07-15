@@ -1,9 +1,12 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
+using Inkluzitron.Models;
 using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Handlers
@@ -16,15 +19,15 @@ namespace Inkluzitron.Handlers
         private DiscordSocketClient DiscordClient { get; }
         private CommandService CommandService { get; }
         private IServiceProvider ServiceProvider { get; }
-        private IConfiguration Configuration { get; }
 
-        public MessagesHandler(DiscordSocketClient discordClient, CommandService commandService, IServiceProvider serviceProvider,
-            IConfiguration configuration)
+        public string CommandPrefix { get; }
+
+        public MessagesHandler(DiscordSocketClient discordClient, CommandService commandService, IServiceProvider serviceProvider, IConfiguration configuration)
         {
             DiscordClient = discordClient;
             CommandService = commandService;
             ServiceProvider = serviceProvider;
-            Configuration = configuration;
+            CommandPrefix = configuration["Prefix"];
 
             DiscordClient.MessageReceived += OnMessageReceivedAsync;
         }
@@ -58,13 +61,33 @@ namespace Inkluzitron.Handlers
             return true;
         }
 
-        private bool IsCommand(SocketUserMessage message, ref int argPos)
-        {
-            if (message.HasMentionPrefix(DiscordClient.CurrentUser, ref argPos))
-                return true;
+        private bool IsCommand(IUserMessage message, ref int argPos)
+            => message.HasMentionPrefix(DiscordClient.CurrentUser, ref argPos) || HasCommandPrefix(message, ref argPos);
 
-            var prefix = Configuration["Prefix"];
-            return message.Content.Length > prefix.Length && message.HasStringPrefix(prefix, ref argPos);
+        private bool HasCommandPrefix(IUserMessage message, ref int argPos)
+            => message.Content.Length > CommandPrefix.Length && message.HasStringPrefix(CommandPrefix, ref argPos);
+
+        public async Task<SingleCommandMatch> MatchSingleCommandAsync(IUserMessage message)
+        {
+            int argPos = default;
+            if (!IsCommand(message, ref argPos))
+                return null;
+
+            var postPrefixContent = message.Content[argPos..];
+            var searchResult = CommandService.Search(postPrefixContent);
+
+            if (!searchResult.IsSuccess)
+                return null;
+
+            if (searchResult.Commands.Count != 1)
+                return null;
+
+            var match = searchResult.Commands.SingleOrDefault();
+            var parse = await match.ParseAsync(new CommandContext(DiscordClient, message), searchResult, services: ServiceProvider);
+            if (!parse.IsSuccess)
+                return null;
+
+            return new SingleCommandMatch(match, parse);
         }
     }
 }
