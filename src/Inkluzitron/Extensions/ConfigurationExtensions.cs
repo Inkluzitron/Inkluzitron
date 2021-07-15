@@ -12,6 +12,13 @@ namespace Inkluzitron.Extensions
             return itemSection.Get<T>();
         }
 
+        static public T GetRequired<T>(this IConfiguration config, string key)
+        {
+            var itemSection = config.GetSection(key);
+            itemSection.AssertExists();
+            return itemSection.Get<T>();
+        }
+
         static public void AssertExists(this IConfigurationSection configSection)
         {
             if (!configSection.Exists())

@@ -44,7 +44,7 @@ namespace Inkluzitron.Modules
 
             var ownUser = DiscordClient.CurrentUser;
             var ownId = ownUser.Id;
-            if (user.Id == ownId || message.Author.Id != ownId)
+            if (user.Id == ownId)
                 return;
 
             foreach (var reactionHandler in ReactionHandlers)

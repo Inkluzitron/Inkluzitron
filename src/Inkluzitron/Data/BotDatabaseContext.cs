@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
+using System.Globalization;
 
 namespace Inkluzitron.Data
 {
@@ -23,6 +24,8 @@ namespace Inkluzitron.Data
         public DbSet<DailyUserActivity> DailyUsersActivities { get; set; }
 
         public DbSet<Invite> Invites { get; set; }
+        public DbSet<ScheduledTask> ScheduledTasks { get; set; }
+        public DbSet<VoteReplyRecord> VoteReplyRecords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,6 +53,32 @@ namespace Inkluzitron.Data
                     from => from.ToString("yyyy-MM-dd"),
                     to => DateTime.ParseExact(to, "yyyy-MM-dd", null)
                 ));
+
+            var ulongStringConverter = new ValueConverter<ulong, string>(
+                from => from.ToString(),
+                to => ulong.Parse(to)
+            );
+
+            modelBuilder
+                .Entity<ScheduledTask>()
+                .Property(i => i.When)
+                .HasConversion(new ValueConverter<DateTimeOffset, string>(
+                    from => from.ToUniversalTime().ToString("O"),
+                    to => DateTimeOffset.ParseExact(to, "O", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal)
+                ));
+
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.GuildId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.ChannelId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.MessageId).HasConversion(ulongStringConverter);
+            modelBuilder.Entity<VoteReplyRecord>().Property(i => i.ReplyId).HasConversion(ulongStringConverter);
+
+            modelBuilder
+                .Entity<VoteReplyRecord>()
+                .HasKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.MessageId));
+
+            modelBuilder
+                .Entity<VoteReplyRecord>()
+                .HasAlternateKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.ReplyId));
         }
     }
 }
