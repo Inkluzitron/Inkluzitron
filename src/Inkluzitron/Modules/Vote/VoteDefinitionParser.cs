@@ -64,9 +64,9 @@ namespace Inkluzitron.Modules.Vote
                     continue;
                 }
 
-                var isDeadline = lineSegments[0].Value == "konec";
-                var isDeadlineTimeSpan = lineSegments.Count >= 3 && lineSegments[1].Value == "za";
-                var isDeadlineDate = lineSegments.Count >= 2 && lineSegments[1].Value != "za";
+                var isDeadline = lineSegments[0].Value == "konec" || lineSegments[0].Value == "deadline";
+                var isDeadlineTimeSpan = lineSegments.Count >= 3 && (lineSegments[1].Value == "za" || lineSegments[1].Value == "in");
+                var isDeadlineDate = lineSegments.Count >= 2 && (lineSegments[1].Value != "za" && lineSegments[1].Value != "in");
 
                 if (!isDeadline || (!isDeadlineTimeSpan && !isDeadlineDate))
                 {

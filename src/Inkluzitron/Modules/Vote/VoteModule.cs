@@ -11,7 +11,7 @@ namespace Inkluzitron.Modules
     [Summary(ModuleSummary)]
     public class VoteModule : ModuleBase
     {
-        public const string ModuleSummary = "**Ukázková zadání:**\r\n" + Example1 + "\r\n" + Example2 + "\r\n" + Example3;
+        public const string ModuleSummary = "**Ukázková zadání:**\r\n" + Example1 + "\r\n" + Example2 + "\r\n" + Example3 + "\r\n" + Example4 + "\r\n" + Example5;
 
         public const string Example1 = "$vote Otázka hlasování s pevným ukončením\r\n" +
             ":fire: Ohýnek\r\n" +
@@ -26,6 +26,16 @@ namespace Inkluzitron.Modules
         public const string Example3 = "$vote Otázka hlasování bez ukončení\r\n" +
             ":dollar: Peníze\r\n" +
             ":moneybag: Taky peníze, ale spousta\r\n";
+
+        public const string Example4 = "$vote Fixed deadline in English\r\n" +
+            ":fire: Hot\r\n" +
+            ":droplet: Wet\r\n" +
+            "deadline 1.4.2021\r\n";
+
+        public const string Example5 = "$vote Fixed deadline in English\r\n" +
+            ":fire: Hot\r\n" +
+            ":droplet: Wet\r\n" +
+            "deadline in 10 minutes\r\n";
 
         public static readonly IReadOnlySet<string> VoteStartingCommands = typeof(VoteModule).ExtractCommandNames(nameof(VoteModule.Vote)).ToHashSet();
 
