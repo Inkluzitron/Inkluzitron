@@ -193,19 +193,20 @@ namespace Inkluzitron.Services
                     }
                 }
 
-                Logger.LogError("A scheduled task was refused for handling by all known handlers, postponing: {0}", scheduledTask.Serialize());
-                scheduledTask.When += TimeSpan.FromHours(1);
+                Logger.LogError("A scheduled task was refused for handling by all known handlers, postponing (attempt {0}/{1}: {2}", scheduledTask.FailCount, FailCountThreshold, scheduledTask.Serialize());
+                scheduledTask.When += TimeSpan.FromMinutes(59);
+                scheduledTask.FailCount++;
             }
             catch (Exception e)
             {
                 scheduledTask.FailCount++;
                 Logger.LogError(e, "Error handling scheduled task (attempt {0}/{1}: {2}", scheduledTask.FailCount, FailCountThreshold, scheduledTask.Serialize());
-
-                if (scheduledTask.FailCount >= FailCountThreshold)
-                    return true;
-                else
-                    scheduledTask.When = DateTimeOffset.UtcNow.AddMinutes(1);
             }
+
+            if (scheduledTask.FailCount >= FailCountThreshold)
+                return true;
+            else
+                scheduledTask.When = DateTimeOffset.UtcNow.AddMinutes(1);
 
             return false;
         }
