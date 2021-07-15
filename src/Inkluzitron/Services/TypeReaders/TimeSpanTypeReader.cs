@@ -13,20 +13,20 @@ namespace Inkluzitron.Services.TypeReaders
 
         private Dictionary<Regex, Func<Match, TimeSpan>> MatchingFunctions { get; } = new()
         {
-            { new Regex(@"(^|\s+)(1\s+den|den)($|\s+)", regexOptions), _ => TimeSpan.FromDays(1) },
-            { new Regex(@"(^|\s+)(1\s+hodin[au]|hodin[au])($|\s+)", regexOptions), _ => TimeSpan.FromHours(1) },
-            { new Regex(@"(^|\s+)(1\s+minut[au]|minut[au])($|\s+)", regexOptions), _ => TimeSpan.FromMinutes(1) },
-            { new Regex(@"(^|\s+)(1\s+sekund[au]|sekund[au])($|\s+)", regexOptions), _ => TimeSpan.FromSeconds(1) },
+            { new Regex(@"(^|\s+)(1\s+day|den|den)($|\s+)", regexOptions), _ => TimeSpan.FromDays(1) },
+            { new Regex(@"(^|\s+)(1\s+hour|hodin[au]|hodin[au])($|\s+)", regexOptions), _ => TimeSpan.FromHours(1) },
+            { new Regex(@"(^|\s+)(1\s+minute|minut[au]|minut[au])($|\s+)", regexOptions), _ => TimeSpan.FromMinutes(1) },
+            { new Regex(@"(^|\s+)(1\s+second|sekund[au]|sekund[au])($|\s+)", regexOptions), _ => TimeSpan.FromSeconds(1) },
 
             { new Regex(@"(^|\s+)(2|3|4)\s+dny($|\s+)", regexOptions), m => TimeSpan.FromDays(int.Parse(m.Groups[2].Value)) },
             { new Regex(@"(^|\s+)(2|3|4)\s+hodiny($|\s+)", regexOptions), m => TimeSpan.FromHours(int.Parse(m.Groups[2].Value)) },
             { new Regex(@"(^|\s+)(2|3|4)\s+minuty($|\s+)", regexOptions), m => TimeSpan.FromMinutes(int.Parse(m.Groups[2].Value)) },
             { new Regex(@"(^|\s+)(2|3|4)\s+sekundy($|\s+)", regexOptions), m => TimeSpan.FromSeconds(int.Parse(m.Groups[2].Value)) },
 
-            { new Regex(@"(\d+)\s*(dn[ůí]?|d)", regexOptions), m => TimeSpan.FromDays(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(hodin|hod|h)", regexOptions), m => TimeSpan.FromHours(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(minut|min|m)", regexOptions), m => TimeSpan.FromMinutes(int.Parse(m.Groups[1].Value)) },
-            { new Regex(@"(\d+)\s*(sekund|sec|s)", regexOptions), m => TimeSpan.FromSeconds(int.Parse(m.Groups[1].Value)) }
+            { new Regex(@"(\d+)\s*(days|dn[ůí]?|d)", regexOptions), m => TimeSpan.FromDays(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(hours|hodin|hod|h)", regexOptions), m => TimeSpan.FromHours(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(minutes|mins|minut|min|m)", regexOptions), m => TimeSpan.FromMinutes(int.Parse(m.Groups[1].Value)) },
+            { new Regex(@"(\d+)\s*(seconds|secs|sekund|sec|s)", regexOptions), m => TimeSpan.FromSeconds(int.Parse(m.Groups[1].Value)) }
         };
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
