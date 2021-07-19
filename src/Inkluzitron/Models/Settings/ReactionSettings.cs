@@ -16,9 +16,14 @@ namespace Inkluzitron.Models.Settings
         public IEmote Shrunk { get; }
         public IEmote Loading { get; }
         public IEmote Checkmark { get; }
+        public IEmote PointLeft { get; }
+        public IEmote PointRight { get; }
+        public IEmote Superlike { get; }
+        public IEmote Blobshhh { get; }
 
         public IEmote[] PaginationReactions { get; }
         public IEmote[] PaginationReactionsWithRemoval { get; }
+        public IEmote[] TinderReactions { get; }
 
         public ReactionSettings(IConfiguration config)
         {
@@ -36,8 +41,14 @@ namespace Inkluzitron.Models.Settings
             Loading = config["ReactionSettings:Loading"].ToDiscordEmote();
             Checkmark = config["ReactionSettings:Checkmark"].ToDiscordEmote();
 
+            PointLeft = config["ReactionSettings:PointLeft"].ToDiscordEmote();
+            PointRight = config["ReactionSettings:PointRight"].ToDiscordEmote();
+            Superlike = config["ReactionSettings:Superlike"].ToDiscordEmote();
+            Blobshhh = config["ReactionSettings:Blobshhh"].ToDiscordEmote();
+
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
             PaginationReactionsWithRemoval = new[] { MoveToFirst, MoveToPrevious, Remove, MoveToNext, MoveToLast };
+            TinderReactions = new[] { PointLeft, Superlike, PointRight, Blobshhh};
         }
     }
 }
