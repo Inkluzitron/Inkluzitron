@@ -48,7 +48,7 @@ namespace Inkluzitron.Models.Settings
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
             PaginationReactionsWithRemoval = new[] { MoveToFirst, MoveToPrevious, Remove, MoveToNext, MoveToLast };
-            TinderReactions = new[] { PointLeft, Superlike, PointRight, Blobshhh};
+            TinderReactions = new[] { PointLeft, Superlike, PointRight, Blobshhh };
         }
     }
 }
