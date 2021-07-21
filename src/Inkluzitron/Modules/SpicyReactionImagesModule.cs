@@ -22,17 +22,6 @@ namespace Inkluzitron.Modules
             UserBdsmTraits = userBdsmTraits;
             PointsService = pointsService;
         }
-        
-
-        [Command("bonk")]
-        [Summary("Bonkne autora nebo zadaného uživatele.")]
-        public Task BonkAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
-            => DomSubRolledImageAsync(user, false, ImagesService.BonkAsync);
-
-        [Command("bonk roll")]
-        [Summary("Bonkne autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
-        public Task BonkWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
-            => DomSubRolledImageAsync(user, true, ImagesService.BonkAsync);
 
         [Command("whip")]
         [Summary("Použije bič na autora nebo zadaného uživatele.")]
