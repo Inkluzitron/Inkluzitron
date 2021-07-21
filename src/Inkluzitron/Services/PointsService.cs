@@ -391,8 +391,8 @@ namespace Inkluzitron.Services
             var positionText = $"#{position}";
             var nickname = await UsersService.GetDisplayNameAsync(user);
 
-            var headerHsl = ColorHSL.FromMagickColor(headerColor);
-            var nicknameColor = headerHsl.Lightness > 0.75 ? MagickColors.Black : MagickColors.White;
+            var headerLuminance = headerColor.GetPerceivedLuminance();
+            var nicknameColor = headerLuminance > 0.6 ? MagickColors.Black : MagickColors.White;
 
             var drawable = new Drawables()
                 .TextAlignment(TextAlignment.Left)
