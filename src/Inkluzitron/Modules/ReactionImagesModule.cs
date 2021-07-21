@@ -73,5 +73,16 @@ namespace Inkluzitron.Modules
             var gifName = await ImagesService.PatAsync(member, Context.User.Equals(member));
             await ReplyFileAsync(gifName);
         }
+
+        [Command("bonk")]
+        [Summary("Bonkne autora nebo zadaného uživatele.")]
+        public async Task BonkAsync([Name("uživatel")] IUser member = null, [Remainder][Name("")] string _ = null)
+        {
+            if (member == null)
+                member = Context.Message.ReferencedMessage?.Author ?? Context.User;
+
+            var gifName = await ImagesService.BonkAsync(member, Context.User.Equals(member));
+            await ReplyFileAsync(gifName);
+        }
     }
 }
