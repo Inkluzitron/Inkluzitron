@@ -38,8 +38,8 @@ namespace Inkluzitron.Utilities
             {
                 return ValueNumber.Value switch
                 {
-                    0 => options[0],
-                    1 or 2 or 3 or 4 => options[1],
+                    1 => options[0],
+                    2 or 3 or 4 => options[1],
                     _ => options[2]
                 };
             }
