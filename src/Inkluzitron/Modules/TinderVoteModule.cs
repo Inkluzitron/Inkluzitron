@@ -39,13 +39,11 @@ namespace Inkluzitron.Modules
 
         private async Task OnMessageReceivedAsync(SocketMessage message)
         {
-            if (message.Channel.Id == TinderRoomId && message.Attachments.Any())
-            {
-                if (message is IUserMessage userMessage)
-                {
-                    await userMessage.AddReactionsAsync(ReactionSettings.TinderReactions);
-                }
-            }
+            if (message.Channel.Id != TinderRoomId || !message.Attachments.Any())
+                return;
+
+            if (message is IUserMessage userMessage)
+                await userMessage.AddReactionsAsync(ReactionSettings.TinderReactions);
         }
 
         public async Task<bool> HandleReactionAddedAsync(IUserMessage message, IEmote reaction, IUser user )
