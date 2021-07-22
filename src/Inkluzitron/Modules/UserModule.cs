@@ -52,7 +52,7 @@ namespace Inkluzitron.Modules
         }
 
         [Command("about")]
-        [Alias("o")]
+        [Alias("o", "whois", "user")]
         [Summary("Zobrazí údaje o uživateli, jako je preferované oslovení, s čím souhlasí a další věci.")]
         public async Task ShowUserInfoAsync([Name("uživatel")] IUser user = null)
         {
