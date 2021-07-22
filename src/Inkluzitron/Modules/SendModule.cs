@@ -7,7 +7,7 @@ using Inkluzitron.Models.Settings;
 
 namespace Inkluzitron.Modules
 {
-    [Name("Odesílání zpráv")]
+    [Name("Anonymní odesílání zpráv")]
     public class SendModule : ModuleBase
     {
         private BotSettings BotSettings { get; }
@@ -21,7 +21,7 @@ namespace Inkluzitron.Modules
 
         [Command("send")]
         [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky.")]
-        public async Task SendAsync([Name("#cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
+        public async Task SendAsync([Name("cílová roomka")] string roomName, [Remainder][Name("zpráva")] string messageText = null)
         {
             var guild = Context.Client.GetGuild(BotSettings.HomeGuildId);
             if (guild is null)
@@ -29,6 +29,9 @@ namespace Inkluzitron.Modules
                 await ReplyAsync(SendSettings.ErrorGuildNotFound);
                 return;
             }
+
+            if (roomName.StartsWith('#'))
+                roomName = roomName[1..];
 
             var channel = guild.TextChannels.FirstOrDefault(c => c.Name == roomName);
             if (channel is null || channel.GetUser(Context.User.Id) is null)
@@ -43,7 +46,7 @@ namespace Inkluzitron.Modules
 
         [Command("send")]
         [Summary("Odešle anonymně zprávu (včetně příloh) do zadané roomky.")]
-        public async Task SendAsync([Name("cílová roomka")] IMessageChannel channel, [Remainder][Name("zpráva")] string messageText = null)
+        public async Task SendAsync([Name("#cílová roomka")] IMessageChannel channel, [Remainder][Name("zpráva")] string messageText = null)
         {
             var attachments = Context.Message.Attachments;
             if (messageText == null && attachments.Count == 0)
