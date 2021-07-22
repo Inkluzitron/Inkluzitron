@@ -60,8 +60,10 @@ namespace Inkluzitron.Handlers
                 if (link.Inviter.Id != DiscordSocketClient.CurrentUser.Id) continue;
                 if (link.Uses == 0) continue;
 
+                var code = link.Url.Split('/').Last();
+
                 var invite = await dbContext.Invites.AsQueryable()
-                    .Where(i => i.InviteLink == link.Url)
+                    .Where(i => i.InviteCode == code)
                     .FirstOrDefaultAsync();
 
                 if (invite == null) continue;
