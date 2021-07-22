@@ -35,7 +35,7 @@ namespace Inkluzitron.Data
                 builder.HasIndex(o => o.KisNickname).IsUnique();
             });
 
-            modelBuilder.Entity<Invite>().HasIndex(o => o.InviteLink).IsUnique();
+            modelBuilder.Entity<Invite>().HasIndex(o => o.InviteCode).IsUnique();
 
             modelBuilder.Entity<BdsmTestOrgResult>().HasIndex(r => r.Link).IsUnique();
             modelBuilder.Entity<BdsmTestOrgItem>().Property("Trait").HasConversion<string>();

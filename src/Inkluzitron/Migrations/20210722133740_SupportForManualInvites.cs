@@ -35,6 +35,9 @@ namespace Inkluzitron.Migrations
                 defaultValue: 0L)
                 .Annotation("Sqlite:Autoincrement", true);
 
+            // Transform invite URL to invite code
+            migrationBuilder.Sql("UPDATE Invites SET InviteLink = REPLACE(InviteLink, \"https://discord.gg/\", \"\")");
+
             // Generate autoincrement values
             migrationBuilder.Sql("UPDATE Invites SET Id = ROWID");
 

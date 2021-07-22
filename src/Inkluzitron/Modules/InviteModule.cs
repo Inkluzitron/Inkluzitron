@@ -70,7 +70,7 @@ namespace Inkluzitron.Modules
             {
                 GeneratedAt = DateTime.Now,
                 GeneratedByUserId = user.Id,
-                InviteLink = invite.Url,
+                InviteCode = invite.Url.Split('/').Last(),
             };
 
             await DbContext.Invites.AddAsync(inviteDb);

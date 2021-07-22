@@ -9,7 +9,7 @@ namespace Inkluzitron.Data.Entities
         [Key]
         public long Id { get; set; }
 
-        public string InviteLink { get; set; }
+        public string InviteCode { get; set; }
 
         public DateTime? GeneratedAt { get; set; }
 
