@@ -5,8 +5,11 @@ using Discord;
 using Discord.Commands;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
+using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
+using Inkluzitron.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -22,14 +25,16 @@ namespace Inkluzitron.Modules
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
         private UsersService UsersService { get; }
+        private ReactionSettings ReactionSettings { get; }
 
         public InviteModule(IConfiguration config,
             DatabaseFactory databaseFactory,
-            UsersService usersService)
+            UsersService usersService, ReactionSettings reactionSettings)
         {
             Config = config;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
+            ReactionSettings = reactionSettings;
         }
 
         override protected void BeforeExecute(CommandInfo command)
@@ -51,11 +56,9 @@ namespace Inkluzitron.Modules
         public async Task CreateInviteAsync()
         {
             var invite = await Context.Guild.DefaultChannel.CreateInviteAsync(
-                null,
-                2, // create 2 uses for invite because if only 1 usage is available it's automatically deleted after joining
-                false,
-                true,
-                new RequestOptions()
+                maxUses: 2, // create 2 uses for invite because if only 1 usage is available it's automatically deleted after joining
+                isUnique: true,
+                options: new RequestOptions()
                 {
                     AuditLogReason = $"User with ID {Context.User.Id} and name {Context.User.Username} wants to invite someone!"
                 });
@@ -90,40 +93,59 @@ namespace Inkluzitron.Modules
                 .Include(i => i.UsedBy)
                 .Where(x => x.UsedByUserId == target.Id).FirstOrDefaultAsync();
 
+            var inviteeName = await UsersService.GetDisplayNameAsync(target);
+
             if (invite == null)
             {
                 await ReplyAsync(
-                    "Tento uživatel byl s největší pravděpodobností pozván před vznikem této fíčury.");
+                    string.Format(
+                        "Bohužel nevím kým {1:byl:byla:byl/a} {0} {1:pozván:pozvána:pozván/a}. Více se dozvíš příkazem `$user`__`jméno`__.",
+                        Format.Sanitize(inviteeName),
+                        new FormatByValue((await DbContext.GetUserEntityAsync(target))?.Gender ?? Gender.Unspecified)
+                    )
+                );
+
                 return;
             }
 
-            var inviteeName = await UsersService.GetDisplayNameAsync(target);
             var inviterName = await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId);
 
-            var message = $"Uživatel **{Format.Sanitize(inviteeName)}** byl pozván uživatelem **{Format.Sanitize(inviterName)}**";
+            var message = string.Format(
+                "**{0}** {1:byl pozván:byla pozvána:byl/a pozván/a} uživatelem **{2}**. Více se dozvíš příkazem `$user`__`jméno`__.",
+                Format.Sanitize(inviteeName),
+                new FormatByValue(invite.UsedBy.Gender),
+                Format.Sanitize(inviterName)
+            );
 
             await ReplyAsync(message);
         }
 
         [Command("")]
-        [Summary("Vypíše počet uživatelů, kteří byli daným uživatelem pozvání, a počet nevyužitých pozvánek.")]
-        public async Task GetInviteStatisticsForUser([Name("kdo")] IUser target = null)
+        [Summary("Rozcestník, jak lze invite modul používat.")]
+        public Task GetInviteStatisticsForUserAsync()
+             => ReplyAsync("Novou pozvánku vytvoříš příkazem `$invite new`.\nTaky můžeš pomocí `$user`__`jméno`__ zjistit, kdo byl kým pozván a koho dalšího pozval.");
+
+        [RequireUserPermission(GuildPermission.ManageRoles)]
+        [Command("set")]
+        [Summary("Nastaví manuální vazbu mezi uživateli, ale jen pokud pozvaný nemá záznam v db.\n*Jen pro moderátory*")]
+        public async Task CreateManualConnectionAsync([Name("pozvaný (kdo)")] IUser invitee, [Name("zvoucí (kým)")] IUser inviter)
         {
-            target ??= Context.User;
+            if (await DbContext.Invites.AsQueryable().AnyAsync(i => i.UsedByUserId == invitee.Id))
+            {
+                await ReplyAsync($"{await UsersService.GetDisplayNameAsync(invitee)} již má záznam kým byl pozván.");
+                return;
+            }
 
-            var pendingInvites = DbContext.Invites
-                .Count(x => x.UsedByUserId == null && x.GeneratedByUserId == target.Id);
+            var inviteDb = new Invite
+            {
+                GeneratedBy = await DbContext.GetOrCreateUserEntityAsync(inviter),
+                UsedBy = await DbContext.GetOrCreateUserEntityAsync(invitee)
+            };
 
-            var invitedPeople = DbContext.Invites
-                .Include(x => x.UsedBy)
-                .Where(x => x.UsedByUserId != null && x.GeneratedByUserId == target.Id)
-                .Select(x => x.UsedBy.Name).Distinct()
-                .AsQueryable();
+            await DbContext.Invites.AddAsync(inviteDb);
+            await DbContext.SaveChangesAsync();
 
-
-            var name = await UsersService.GetDisplayNameAsync(target.Id);
-            await ReplyAsync(
-                $"Informace o invitech pro uživatele **{name}**:\n_Počet nevyužitých pozvánek:_ {pendingInvites}\n_Seznam pozvaných lidí:_ {string.Join(", ", invitedPeople)}");
+            await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
     }
 }
