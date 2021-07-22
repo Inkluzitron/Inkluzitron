@@ -7,10 +7,11 @@ namespace Inkluzitron.Data.Entities
     public class Invite
     {
         [Key]
+        public long Id { get; set; }
+
         public string InviteLink { get; set; }
 
-        [Required]
-        public DateTime GeneratedAt { get; set; }
+        public DateTime? GeneratedAt { get; set; }
 
         [ForeignKey(nameof(GeneratedByUserId))]
         public User GeneratedBy { get; set; }

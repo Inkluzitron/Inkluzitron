@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Rest;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -102,15 +104,42 @@ namespace Inkluzitron.Modules
 
             var guildUser = await UsersService.GetUserFromHomeGuild(user);
             if (guildUser != null)
-                descBuilder.Append("**Na serveru od:** ").AppendLine(guildUser.JoinedAt.Value.LocalDateTime.ToShortDateString());
+                descBuilder.AppendLine($"**V Bobánkově od:** {guildUser.JoinedAt.Value.LocalDateTime:d. M. yyyy}");
             else
-                descBuilder.AppendLine("Již není na serveru");
+                descBuilder.AppendLine("Již není v Bobánkově");
+
+            var inviteUsed = await DbContext.Invites.AsQueryable()
+                .Where(i => i.UsedByUserId == user.Id)
+                .OrderByDescending(i => i.GeneratedAt)
+                .Select(i => i.GeneratedByUserId)
+                .FirstOrDefaultAsync();
+
+            var invitedBy = await UsersService.GetDisplayNameAsync(inviteUsed);
+
+            if (invitedBy != null)
+                descBuilder.AppendLine($"**Pozván od:** {invitedBy}");
 
             var embed = new EmbedBuilder()
                 .WithAuthor(user)
                 .WithCurrentTimestamp()
                 .WithDescription(descBuilder.ToString())
                 .WithFooter("informace o uživateli");
+
+            var invitedUsersIds = DbContext.Invites.AsQueryable()
+                    .Where(i => i.GeneratedByUserId == user.Id && i.UsedByUserId.HasValue)
+                    .Select(i => i.UsedByUserId)
+                    .Distinct();
+
+            var invitedUsersList = new List<string>();
+            foreach (var invitedUserId in invitedUsersIds)
+            {
+                var invitedUser = await UsersService.GetDisplayNameAsync(invitedUserId.Value);
+                if (invitedUser != null)
+                    invitedUsersList.Add(invitedUser);
+            }
+
+            if(invitedUsersList.Count > 0)
+                embed.AddField("Pozval:", string.Join(", ", invitedUsersList));
 
             EmbedAppendUserConsents(embed, userDb);
 
@@ -126,7 +155,7 @@ namespace Inkluzitron.Modules
         {
             var tests = new List<string>();
 
-            if (await DbContext.BdsmTestOrgResults.AnyAsync(t => t.UserId == userId))
+            if (await DbContext.BdsmTestOrgResults.AsQueryable().AnyAsync(t => t.UserId == userId))
                 tests.Add("BDSMTest.org");
 
             return tests.ToArray();
@@ -206,7 +235,7 @@ namespace Inkluzitron.Modules
         [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
         public async Task SetKisNicknameAsync([Remainder][Name("přezdívka")] string nickname)
         {
-            if (await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            if (await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
             {
                 await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
                 return;
@@ -234,7 +263,7 @@ namespace Inkluzitron.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
         {
-            if (nickname != null && await DbContext.Users.AnyAsync(o => o.KisNickname == nickname))
+            if (nickname != null && await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
             {
                 await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
                 return;
