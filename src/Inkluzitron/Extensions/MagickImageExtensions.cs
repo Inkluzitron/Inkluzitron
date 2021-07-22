@@ -21,6 +21,7 @@ namespace Inkluzitron.Extensions
         static public IMagickColor<byte> GetDominantColor(this IMagickImage<byte> image)
         {
             using var img = image.Clone();
+            img.HasAlpha = false;
             img.InterpolativeResize(32, 32, PixelInterpolateMethod.Average);
             img.Quantize(new QuantizeSettings() { Colors = 8 });
             var histogram = img.Histogram();
