@@ -31,5 +31,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ github.ref != 'refs/heads/master' && steps.meta.outputs.tags || 'latest' }}
+          tags: ${{ github.ref != 'refs/heads/master' && steps.meta.outputs.tags || 'misha12/inkluzitron:latest' }}
           labels: ${{ steps.meta.outputs.labels }}
