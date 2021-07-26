@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
@@ -7,10 +8,12 @@ using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
+using Inkluzitron.Models;
+using Inkluzitron.Models.Settings;
 using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace Inkluzitron.Modules
+namespace Inkluzitron.Modules.RicePurity
 {
     [Name("RicePurityTest.com")]
     [Group("purity")]
@@ -19,13 +22,16 @@ namespace Inkluzitron.Modules
     {
         private BotDatabaseContext DbContext { get; set; }
         private DatabaseFactory DatabaseFactory { get; }
+        private ReactionSettings ReactionSettings { get; }
         private UsersService UsersService { get; }
 
         public RicePurity(UsersService usersService,
-            DatabaseFactory databaseFactory)
+            DatabaseFactory databaseFactory,
+            ReactionSettings reactionSettings)
         {
             UsersService = usersService;
             DatabaseFactory = databaseFactory;
+            ReactionSettings = reactionSettings;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -46,6 +52,49 @@ namespace Inkluzitron.Modules
                 .Where(x => x.UserId == user.Id)
                 .OrderByDescending(r => r.SubmittedAt)
                 .FirstOrDefaultAsync();
+        }
+
+        private async Task<List<RicePurityLeaderboardData>> GetLeaderboardAsync(int startFrom, int limit = 10)
+        {
+            var userPoints = DbContext.RicePurityResults
+                .Include(x => x.User)
+                .AsQueryable()
+                .GroupBy(
+                    x => x.User.Id,
+                    (userId, results) => new
+                    {
+                        UserId = userId, MinScore = results.Min(r => r.Score)
+                    }
+                ).OrderByDescending(x => x.MinScore)
+                .Skip(startFrom).Take(limit)
+                .AsAsyncEnumerable();
+
+            var board = new List<RicePurityLeaderboardData>();
+
+            await foreach (var user in userPoints)
+            {
+                board.Add(new RicePurityLeaderboardData()
+                {
+                    Position = ++startFrom,
+                    Name = await UsersService.GetDisplayNameAsync(user.UserId),
+                    Score = user.MinScore
+                });
+            }
+
+            return board;
+        }
+
+        private async Task<int> GetUserCountAsync()
+        {
+            return await DbContext.RicePurityResults.AsQueryable()
+                .GroupBy(
+                    x => x.User.Id,
+                    (userId, results) => new
+                    {
+                        UserId = userId, MinScore = results.Min(r => r.Score)
+                    }
+                )
+                .CountAsync();
         }
 
         [Command("")]
@@ -97,26 +146,19 @@ namespace Inkluzitron.Modules
         [Summary("Zobrazí žebříček bodů v RicePurity testu.")]
         public async Task ShowLeaderboardAsync()
         {
-            var data = DbContext.RicePurityResults
-                .Include(x => x.User)
-                .AsQueryable()
-                .GroupBy(
-                    x => x.User.Id,
-                    (userId, results) => new
-                    {
-                        UserId = userId, MinScore = results.Min(r => r.Score)
-                    }
-                ).Join(DbContext.Users, x => x.UserId, user => user.Id, (x, y) => new
-                {
-                    Score = x.MinScore,
-                    y.Name
-                });
+            var start = 1;
+            var count = await GetUserCountAsync();
 
-            foreach (var d in data)
-            {
-                Console.WriteLine(d.Name + " " + d.Score);
-            }
+            start -= start % 10;
+
+            var leaderboard = await GetLeaderboardAsync(start, 10);
+
+            var embed = new RicePurityEmbed().WithBoard(leaderboard, Context.User, count);
+
+            var message = await ReplyAsync(embed: embed.Build());
+            await message.AddReactionsAsync(ReactionSettings.PaginationReactions);
         }
+
 
         [Command("add")]
         [Summary("Přidá do databáze výsledek testu.")]
