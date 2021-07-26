@@ -93,6 +93,31 @@ namespace Inkluzitron.Modules
             );
         }
 
+        [Command("board")]
+        [Summary("Zobrazí žebříček bodů v RicePurity testu.")]
+        public async Task ShowLeaderboardAsync()
+        {
+            var data = DbContext.RicePurityResults
+                .Include(x => x.User)
+                .AsQueryable()
+                .GroupBy(
+                    x => x.User.Id,
+                    (userId, results) => new
+                    {
+                        UserId = userId, MinScore = results.Min(r => r.Score)
+                    }
+                ).Join(DbContext.Users, x => x.UserId, user => user.Id, (x, y) => new
+                {
+                    Score = x.MinScore,
+                    y.Name
+                });
+
+            foreach (var d in data)
+            {
+                Console.WriteLine(d.Name + " " + d.Score);
+            }
+        }
+
         [Command("add")]
         [Summary("Přidá do databáze výsledek testu.")]
         public async Task AddNewPointsAsync([Name("body")] uint points)
@@ -125,7 +150,7 @@ namespace Inkluzitron.Modules
 
             await DbContext.RicePurityResults.AddAsync(testResultDb);
             await DbContext.SaveChangesAsync();
-            await Context.Channel.SendMessageAsync("Záznam úspěšně přidán!");
+            await Context.Message.AddReactionAsync(new Emoji("\U00002705"));
         }
     }
 }
