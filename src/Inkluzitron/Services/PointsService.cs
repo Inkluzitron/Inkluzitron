@@ -458,7 +458,7 @@ namespace Inkluzitron.Services
                 badgesX = 120 - badgesX * 54 / 2;
 
                 var count = 0;
-                foreach (var badge in userDb.Badges)
+                foreach (var badge in userDb.Badges.OrderByDescending(b => b.Id))
                 {
                     if (count > 2)
                         break;
