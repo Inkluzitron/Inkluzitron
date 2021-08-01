@@ -14,7 +14,8 @@ namespace Inkluzitron.Extensions
     {
         // Quick fix for user entity manipulation outside of this db context
         // TODO: Fix properly
-        static public async Task<User> GetUserEntityAsync(this BotDatabaseContext context, IUser user)
+        static public async Task<User> GetUserEntityAsync(this BotDatabaseContext context, IUser user,
+            Func<IQueryable<User>, IQueryable<User>> customQuery = null)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -22,11 +23,14 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
+            if (customQuery == null)
+                customQuery = q => q;
+
             // Update cached displayname
             var displayName = user.Username;
 
             var result = await Patiently.HandleDbConcurrency(async () => {
-                var userEntity = await context.Users.AsQueryable().FirstOrDefaultAsync(o => o.Id == user.Id);
+                var userEntity = await customQuery(context.Users.AsQueryable()).FirstOrDefaultAsync(o => o.Id == user.Id);
 
                 if (userEntity != null && userEntity.Name != displayName)
                 {
@@ -42,7 +46,8 @@ namespace Inkluzitron.Extensions
 
         // Quick fix for user entity manipulation outside of this db context
         // TODO: Fix properly
-        static public async Task<User> GetOrCreateUserEntityAsync(this BotDatabaseContext context, IUser user)
+        static public async Task<User> GetOrCreateUserEntityAsync(this BotDatabaseContext context, IUser user,
+            Func<IQueryable<User>, IQueryable<User>> customQuery = null)
         {
             if (context == null)
                 throw new ArgumentNullException(nameof(context));
@@ -50,7 +55,7 @@ namespace Inkluzitron.Extensions
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            var userEntity = await context.GetUserEntityAsync(user);
+            var userEntity = await context.GetUserEntityAsync(user, customQuery);
 
             if (userEntity != null)
                 return userEntity;

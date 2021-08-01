@@ -2,6 +2,7 @@
 using Discord.Commands;
 using Discord.Rest;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -38,12 +39,20 @@ namespace Inkluzitron.Modules
             return base.ReplyAsync(message, isTTS, embed, options, allowedMentions, ReplyReference);
         }
 
-        protected Task<RestUserMessage> ReplyFileAsync(string filePath, string text = null, AllowedMentions allowedMentions = null)
+        protected Task<RestUserMessage> ReplyFileAsync(string filePath, string text = null, Embed embed = null, AllowedMentions allowedMentions = null)
         {
             var options = RequestOptions.Default;
             allowedMentions = CheckAndFixAllowedMentions(allowedMentions);
 
-            return Context.Channel.SendFileAsync(filePath, text: text, options: options, allowedMentions: allowedMentions, messageReference: ReplyReference);
+            return Context.Channel.SendFileAsync(filePath, text: text, options: options, allowedMentions: allowedMentions, embed: embed, messageReference: ReplyReference);
+        }
+
+        protected Task<RestUserMessage> ReplyFileAsync(Stream stream, string fileName, string text = null, Embed embed = null, AllowedMentions allowedMentions = null)
+        {
+            var options = RequestOptions.Default;
+            allowedMentions = CheckAndFixAllowedMentions(allowedMentions);
+
+            return Context.Channel.SendFileAsync(stream, fileName, text: text, options: options, allowedMentions: allowedMentions, embed: embed, messageReference: ReplyReference);
         }
 
         static protected AllowedMentions CheckAndFixAllowedMentions(AllowedMentions allowedMentions)

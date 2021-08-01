@@ -1,4 +1,5 @@
-﻿using Inkluzitron.Data.Entities;
+﻿using ImageMagick;
+using Inkluzitron.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
@@ -26,6 +27,8 @@ namespace Inkluzitron.Data
         public DbSet<Invite> Invites { get; set; }
         public DbSet<ScheduledTask> ScheduledTasks { get; set; }
         public DbSet<VoteReplyRecord> VoteReplyRecords { get; set; }
+
+        public DbSet<Badge> Badges { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

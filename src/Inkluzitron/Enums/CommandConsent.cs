@@ -8,9 +8,17 @@ namespace Inkluzitron.Enums
     {
         None = 0,
 
+        [Display(Name = "Souhlas se vším")]
+        All = ~0,
+
         [Display(
-            Name = "BDSM Obrázkové příkazy",
-            Description = "s používáním obrázkových BDSM příkazů")]
-        BdsmImageCommands = 1 << 0
+            Name = "Spicy obrázkové příkazy",
+            Description = "s používáním spicy obrázkových příkazů")]
+        BdsmImageCommands = 1 << 0,
+
+        [Display(
+            Name = "Zobrazení odznaků",
+            Description = "se zobrazováním získaných odznaků")]
+        ShowBadges = 1 << 1
     }
 }

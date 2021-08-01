@@ -446,6 +446,31 @@ namespace Inkluzitron.Services
 
             await DrawGraphOnPointsImage(image, user, 250, 60);
 
+            using var dbContext = DatabaseFactory.Create();
+            var userDb = await dbContext.Users.AsQueryable().Include(u => u.Badges)
+                .Where(u => u.Id == user.Id)
+                .FirstAsync();
+
+            if(userDb != null && userDb.HasGivenConsentTo(CommandConsent.ShowBadges))
+            {
+                var badgesX = userDb.Badges.Count();
+                if (badgesX > 3) badgesX = 3;
+                badgesX = 120 - badgesX * 54 / 2;
+
+                var count = 0;
+                foreach (var badge in userDb.Badges.OrderByDescending(b => b.Id))
+                {
+                    if (count > 2)
+                        break;
+
+                    using var badgeImage = new MagickImage(badge.Image);
+                    badgeImage.Resize(44, 44);
+
+                    image.Composite(badgeImage, badgesX + 5 + 54 * count, 230, CompositeOperator.Over);
+                    count++;
+                }
+            }
+
             var finalImage = new MagickImage(MagickColors.Transparent, image.Width + 40, image.Height + 40);
 
             new Drawables()
