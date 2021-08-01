@@ -16,7 +16,8 @@ namespace Inkluzitron.Data.Entities
 
         public string Description { get; set; }
 
-        public MagickImage Image { get; set; }
+        [Required]
+        public byte[] Image { get; set; }
 
         public ICollection<User> Users { get; } = new List<User>();
     }

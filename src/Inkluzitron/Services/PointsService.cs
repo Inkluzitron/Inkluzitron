@@ -451,7 +451,7 @@ namespace Inkluzitron.Services
                 .Where(u => u.Id == user.Id)
                 .FirstAsync();
 
-            if(userDb != null)
+            if(userDb != null && userDb.HasGivenConsentTo(CommandConsent.ShowBadges))
             {
                 var badgesX = userDb.Badges.Count();
                 if (badgesX > 3) badgesX = 3;
@@ -463,8 +463,10 @@ namespace Inkluzitron.Services
                     if (count > 2)
                         break;
 
-                    badge.Image.Resize(44, 44);
-                    image.Composite(badge.Image, badgesX + 5 + 54 * count, 230, CompositeOperator.Over);
+                    using var badgeImage = new MagickImage(badge.Image);
+                    badgeImage.Resize(44, 44);
+
+                    image.Composite(badgeImage, badgesX + 5 + 54 * count, 230, CompositeOperator.Over);
                     count++;
                 }
             }

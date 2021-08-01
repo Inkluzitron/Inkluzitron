@@ -8,6 +8,9 @@ namespace Inkluzitron.Enums
     {
         None = 0,
 
+        [Display(Name = "Souhlas se vším")]
+        All = ~0,
+
         [Display(
             Name = "Spicy obrázkové příkazy",
             Description = "s používáním spicy obrázkových příkazů")]
@@ -15,7 +18,7 @@ namespace Inkluzitron.Enums
 
         [Display(
             Name = "Zobrazení odznaků",
-            Description = "se zobrazením odznaků na svém profilu")]
+            Description = "se zobrazováním získaných odznaků")]
         ShowBadges = 1 << 1
     }
 }

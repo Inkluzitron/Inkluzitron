@@ -84,13 +84,6 @@ namespace Inkluzitron.Data
             modelBuilder
                 .Entity<VoteReplyRecord>()
                 .HasAlternateKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.ReplyId));
-
-            modelBuilder.Entity<Badge>()
-                .Property(i => i.Image)
-                .HasConversion(new ValueConverter<MagickImage, byte[]>(
-                    from => from.ToByteArray(MagickFormat.Png),
-                    to => new MagickImage(to)
-                ));
         }
     }
 }

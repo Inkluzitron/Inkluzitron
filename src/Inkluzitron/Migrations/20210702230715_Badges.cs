@@ -14,7 +14,7 @@ namespace Inkluzitron.Migrations
                     Id = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Description = table.Column<string>(type: "TEXT", nullable: true),
-                    Image = table.Column<byte[]>(type: "BLOB", nullable: true)
+                    Image = table.Column<byte[]>(type: "BLOB", nullable: false)
                 },
                 constraints: table =>
                 {

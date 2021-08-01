@@ -5,7 +5,6 @@ using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
-using Inkluzitron.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -15,8 +14,8 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Badges
 {
-    [RequireUserPermission(GuildPermission.ManageRoles)]
-    [Name("Správa odznaků")]
+    [Name("Odznaky")]
+    [Summary("Zobrazení a správa odznaků za splněné výzvy. Získané odznaky jsou také zobrazeny na profilu a bodech.")]
     public class BadgesModule : ModuleBase
     {
         private ReactionSettings ReactionSettings { get; }
@@ -54,16 +53,16 @@ namespace Inkluzitron.Modules.Badges
             var badges = DbContext.Badges.AsQueryable().Include(b => b.Users);
             foreach (var badge in badges)
             {
-                msg.AppendLine($"\n**{badge.Name} ({badge.Id})**");
+                msg.AppendLine($"\n**{Format.Sanitize(badge.Name)} ({Format.Sanitize(badge.Id)})**");
 
                 if (badge.Description != null)
                 {
-                    msg.AppendLine($"*{badge.Description}*");
+                    msg.AppendLine($"*{Format.Sanitize(badge.Description)}*");
                 }
 
                 if (badge.Users.Count > 0)
                 {
-                    msg.AppendLine(string.Join(", ", badge.Users.Select(u => u.Name)));
+                    msg.AppendLine(string.Join(", ", badge.Users.Select(u => Format.Sanitize(u.Name))));
                 }
                 else
                 {
@@ -79,6 +78,7 @@ namespace Inkluzitron.Modules.Badges
             await ReplyAsync(msg.ToString());
         }
 
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         [Command("badge new")]
         [Alias("badge create")]
         [Summary("Vytvoří nový odznak. Za příkaz je třeba napsat id (bez mezery) a název odznaku. Na další řádek pak volitelně popis. Také je třeba přiložit obrázek odznaku (čtvercový, ideální velikost 64x64px).")]
@@ -92,15 +92,15 @@ namespace Inkluzitron.Modules.Badges
                 return;
             }
 
-            var imageAttachement = Context.Message.Attachments.FirstOrDefault();
-            if (imageAttachement == null || !imageAttachement.Width.HasValue || imageAttachement.Width.Value != imageAttachement.Height.Value)
+            var imageAttachment = Context.Message.Attachments.FirstOrDefault();
+            if (imageAttachment == null || !imageAttachment.Width.HasValue || imageAttachment.Width.Value != imageAttachment.Height.Value)
             {
                 await ReplyAsync("Je třeba ke zprávě připojit obrázek odznaku (v poměru stran 1:1). Více informací v `$help badge`.");
                 return;
             }
 
-            using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(imageAttachement.Url);
-            using var image = new MagickImage(memStream);
+            using var memoryStream = await HttpClientFactory.CreateClient().GetStreamAsync(imageAttachment.Url);
+            using var image = new MagickImage(memoryStream);
             image.Resize(64, 64);
 
             var badge = new Badge()
@@ -108,7 +108,7 @@ namespace Inkluzitron.Modules.Badges
                 Id = id,
                 Name = splitArgs[0],
                 Description = splitArgs.Length > 1 ? splitArgs[1] : null,
-                Image = image
+                Image = image.ToByteArray()
             };
 
             DbContext.Add(badge);
@@ -116,6 +116,8 @@ namespace Inkluzitron.Modules.Badges
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
 
+
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         [Command("badge add")]
         [Alias("badge assign")]
         [Summary("Přidá odznak zvoleným uživatelům.")]
@@ -140,6 +142,8 @@ namespace Inkluzitron.Modules.Badges
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
 
+
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         [Command("badge add")]
         [Alias("badge assign")]
         [Summary("Přidá odznak všem uživatelům zvolené role.")]
@@ -151,6 +155,8 @@ namespace Inkluzitron.Modules.Badges
             await AssignBadgeAsync(badgeId, users.ToArray());
         }
 
+
+        [RequireUserPermission(GuildPermission.ManageRoles)]
         [Command("badge delete")]
         [Alias("badge remove")]
         [Summary("Odstraní odznak.")]

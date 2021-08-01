@@ -157,9 +157,9 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var badgesImage = GetBadgesAsSingleImage(userDb.Badges);
+            using var badgesImage = GetBadgesAsSingleImage(userDb.Badges);
 
-            var badges = userDb.Badges.Select(b => b.Name).ToArray();
+            var badges = userDb.Badges.Select(b => Format.Sanitize(b.Name)).ToArray();
             if (badges.Length > 0)
                 embed.AddField("Získané odznaky:", string.Join(", ", badges));
 
@@ -182,18 +182,20 @@ namespace Inkluzitron.Modules
             using var image = new MagickImage(
                 MagickColors.Transparent,
                 (badgeSize + margin) * gridCount - margin,
-                (badgeSize + margin) * gridCount - margin);
+                (badgeSize + margin) * gridCount - margin
+            );
 
             var index = 0;
             foreach (var badge in badges)
             {
-                var badgeImage = badge.Image;
+                using var badgeImage = new MagickImage(badge.Image);
                 badgeImage.Resize(badgeSize, badgeSize);
                 image.Composite(
                     badgeImage,
                     image.Width - badgeSize - (badgeSize + margin) * (index % gridCount),
                     (badgeSize + margin) * (index / gridCount),
-                    CompositeOperator.Over);
+                    CompositeOperator.Over
+                );
 
                 index++;
                 if (index >= gridCount * gridCount)
@@ -347,7 +349,7 @@ namespace Inkluzitron.Modules
         {
             var dbConsent = consent switch
             {
-                ConsentType.All => CommandConsent.BdsmImageCommands | CommandConsent.ShowBadges,
+                ConsentType.All => CommandConsent.All,
                 ConsentType.Bdsm => CommandConsent.BdsmImageCommands,
                 ConsentType.Badge => CommandConsent.ShowBadges,
                 _ => CommandConsent.None,
