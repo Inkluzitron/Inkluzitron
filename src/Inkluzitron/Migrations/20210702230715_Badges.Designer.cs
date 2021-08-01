@@ -3,14 +3,16 @@ using System;
 using Inkluzitron.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    partial class BotDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20210702230715_Badges")]
+    partial class Badges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -128,28 +130,21 @@ namespace Inkluzitron.Migrations
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.Invite", b =>
                 {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("InviteLink")
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("GeneratedAt")
+                    b.Property<DateTime>("GeneratedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<ulong>("GeneratedByUserId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("InviteCode")
-                        .HasColumnType("TEXT");
-
                     b.Property<ulong?>("UsedByUserId")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("Id");
+                    b.HasKey("InviteLink");
 
                     b.HasIndex("GeneratedByUserId");
-
-                    b.HasIndex("InviteCode")
-                        .IsUnique();
 
                     b.HasIndex("UsedByUserId");
 
@@ -230,34 +225,6 @@ namespace Inkluzitron.Migrations
                     b.ToTable("RoleMenuMessageRoles");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.ScheduledTask", b =>
-                {
-                    b.Property<long>("ScheduledTaskId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Data")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("FailCount")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Tag")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("When")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("ScheduledTaskId");
-
-                    b.ToTable("ScheduledTasks");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>
                 {
                     b.Property<ulong>("Id")
@@ -314,31 +281,6 @@ namespace Inkluzitron.Migrations
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.VoteReplyRecord", b =>
-                {
-                    b.Property<string>("GuildId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ChannelId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MessageId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("RecordCreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ReplyId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("GuildId", "ChannelId", "MessageId");
-
-                    b.HasAlternateKey("GuildId", "ChannelId", "ReplyId");
-
-                    b.ToTable("VoteReplyRecords");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgItem", b =>

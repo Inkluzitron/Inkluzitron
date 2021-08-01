@@ -19,6 +19,8 @@ namespace Inkluzitron.Data.Entities
 
         public List<DailyUserActivity> DailyActivity { get; set; } = new();
 
+        public ICollection<Badge> Badges { get; } = new List<Badge>();
+
         public DateTime? LastMessagePointsIncrement { get; set; }
         public DateTime? LastReactionPointsIncrement { get; set; }
 

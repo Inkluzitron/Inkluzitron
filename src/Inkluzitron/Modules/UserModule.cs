@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using ImageMagick;
 using Discord.Rest;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -77,7 +79,7 @@ namespace Inkluzitron.Modules
                 return;
             }
 
-            var userDb = await DbContext.GetUserEntityAsync(user);
+            var userDb = await DbContext.GetUserEntityAsync(user, u => u.Include(u => u.Badges));
             if (userDb == null)
             {
                 await ReplyAsync(string.Format(
@@ -123,7 +125,8 @@ namespace Inkluzitron.Modules
                 .WithAuthor(user)
                 .WithCurrentTimestamp()
                 .WithDescription(descBuilder.ToString())
-                .WithFooter("informace o uživateli");
+                .WithFooter("informace o uživateli")
+                .WithThumbnailUrl("attachment://badges.png");
 
             var invitedUsersIds = DbContext.Invites.AsQueryable()
                     .Where(i => i.GeneratedByUserId == user.Id && i.UsedByUserId.HasValue)
@@ -148,7 +151,60 @@ namespace Inkluzitron.Modules
             if (tests.Length > 0)
                 embed.AddField("Vyplněné testy:", string.Join('\n', tests));
 
-            await ReplyAsync(embed: embed.Build());
+            if (!userDb.HasGivenConsentTo(CommandConsent.ShowBadges))
+            {
+                await ReplyAsync(embed: embed.Build());
+                return;
+            }
+
+            var badgesImage = GetBadgesAsSingleImage(userDb.Badges);
+
+            var badges = userDb.Badges.Select(b => b.Name).ToArray();
+            if (badges.Length > 0)
+                embed.AddField("Získané odznaky:", string.Join(", ", badges));
+
+            await ReplyFileAsync(badgesImage, "badges.png", embed: embed.Build());
+        }
+
+        private MemoryStream GetBadgesAsSingleImage(ICollection<Badge> badges)
+        {
+            var margin = 2;
+            var badgeSize = 24;
+
+            var gridCount = 2;
+            if (badges.Count > 4)
+                gridCount = 3;
+            else if (badges.Count > 9)
+                gridCount = 4;
+            else if (badges.Count > 16)
+                gridCount = 5;
+
+            using var image = new MagickImage(
+                MagickColors.Transparent,
+                (badgeSize + margin) * gridCount - margin,
+                (badgeSize + margin) * gridCount - margin);
+
+            var index = 0;
+            foreach (var badge in badges)
+            {
+                var badgeImage = badge.Image;
+                badgeImage.Resize(badgeSize, badgeSize);
+                image.Composite(
+                    badgeImage,
+                    image.Width - badgeSize - (badgeSize + margin) * (index % gridCount),
+                    (badgeSize + margin) * (index / gridCount),
+                    CompositeOperator.Over);
+
+                index++;
+                if (index >= gridCount * gridCount)
+                    break;
+            }
+
+            var stream = new MemoryStream();
+            image.Write(stream, MagickFormat.Png);
+            stream.Seek(0, SeekOrigin.Begin);
+
+            return stream;
         }
 
         private async Task<string[]> GetUserCompletedTests(ulong userId)
@@ -263,7 +319,7 @@ namespace Inkluzitron.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
         {
-            if (nickname != null && await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
+            if (await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
             {
                 await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
                 return;
@@ -291,8 +347,9 @@ namespace Inkluzitron.Modules
         {
             var dbConsent = consent switch
             {
-                ConsentType.All => CommandConsent.BdsmImageCommands,
+                ConsentType.All => CommandConsent.BdsmImageCommands | CommandConsent.ShowBadges,
                 ConsentType.Bdsm => CommandConsent.BdsmImageCommands,
+                ConsentType.Badge => CommandConsent.ShowBadges,
                 _ => CommandConsent.None,
             };
 

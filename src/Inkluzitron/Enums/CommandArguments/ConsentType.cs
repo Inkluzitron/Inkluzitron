@@ -3,6 +3,7 @@
     public enum ConsentType
     {
         All,
-        Bdsm
+        Bdsm,
+        Badge
     }
 }

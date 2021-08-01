@@ -1,4 +1,5 @@
-﻿using Inkluzitron.Data.Entities;
+﻿using ImageMagick;
+using Inkluzitron.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
@@ -26,6 +27,8 @@ namespace Inkluzitron.Data
         public DbSet<Invite> Invites { get; set; }
         public DbSet<ScheduledTask> ScheduledTasks { get; set; }
         public DbSet<VoteReplyRecord> VoteReplyRecords { get; set; }
+
+        public DbSet<Badge> Badges { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -81,6 +84,13 @@ namespace Inkluzitron.Data
             modelBuilder
                 .Entity<VoteReplyRecord>()
                 .HasAlternateKey(nameof(VoteReplyRecord.GuildId), nameof(VoteReplyRecord.ChannelId), nameof(VoteReplyRecord.ReplyId));
+
+            modelBuilder.Entity<Badge>()
+                .Property(i => i.Image)
+                .HasConversion(new ValueConverter<MagickImage, byte[]>(
+                    from => from.ToByteArray(MagickFormat.Png),
+                    to => new MagickImage(to)
+                ));
         }
     }
 }

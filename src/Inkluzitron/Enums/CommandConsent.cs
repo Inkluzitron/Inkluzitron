@@ -9,8 +9,13 @@ namespace Inkluzitron.Enums
         None = 0,
 
         [Display(
-            Name = "BDSM Obrázkové příkazy",
-            Description = "s používáním obrázkových BDSM příkazů")]
-        BdsmImageCommands = 1 << 0
+            Name = "Spicy obrázkové příkazy",
+            Description = "s používáním spicy obrázkových příkazů")]
+        BdsmImageCommands = 1 << 0,
+
+        [Display(
+            Name = "Zobrazení odznaků",
+            Description = "se zobrazením odznaků na svém profilu")]
+        ShowBadges = 1 << 1
     }
 }
