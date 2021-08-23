@@ -11,6 +11,7 @@ using Inkluzitron.Resources.Peepolove;
 using Inkluzitron.Resources.Spank;
 using Inkluzitron.Resources.Whip;
 using Inkluzitron.Utilities;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,13 +36,15 @@ namespace Inkluzitron.Services
         private MagickImage PeepoloveHandsFrame { get; }
         private MagickImage PeepoangryFrame { get; }
         public IHttpClientFactory HttpClientFactory { get; }
+        private ILogger<ImagesService> Logger { get; }
 
 
-        public ImagesService(DiscordSocketClient client, FileCache fileCache, IHttpClientFactory httpClientFactory)
+        public ImagesService(DiscordSocketClient client, FileCache fileCache, IHttpClientFactory httpClientFactory, ILogger<ImagesService> logger)
         {
             Client = client;
             Cache = fileCache;
             HttpClientFactory = httpClientFactory;
+            Logger = logger;
 
             WhipFrames = GetFramesFromResources<WhipResources>();
             BonkFrames = GetFramesFromResources<BonkResources>();
@@ -116,16 +119,29 @@ namespace Inkluzitron.Services
 
             if (!cacheObject.TryFind(out var filePath))
             {
-                var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
-                using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
-                using var rawProfileImage = new MagickImageCollection(memStream);
+                MagickImageCollection rawProfileImage;
 
-                isAnimated = rawProfileImage.Count > 1;
-                extension = isAnimated.Value ? "gif" : "png";
-                var format = isAnimated.Value ? MagickFormat.Gif : MagickFormat.Png;
+                try
+                {
+                    var avatarUrl = user.GetUserOrDefaultAvatarUrl(ImageFormat.Auto, discordSize);
+                    using var memStream = await HttpClientFactory.CreateClient().GetStreamAsync(avatarUrl);
+                    rawProfileImage = new MagickImageCollection(memStream);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogWarning(e, "Could not download avatar for user {0}", user.Id);
+                    rawProfileImage = new MagickImageCollection(MiscellaneousResources.FallbackAvatar);
+                }
 
-                filePath = cacheObject.GetPathForWriting(extension);
-                rawProfileImage.Write(filePath, format);
+                using (rawProfileImage)
+                {
+                    isAnimated = rawProfileImage.Count > 1;
+                    extension = isAnimated.Value ? "gif" : "png";
+                    var format = isAnimated.Value ? MagickFormat.Gif : MagickFormat.Png;
+
+                    filePath = cacheObject.GetPathForWriting(extension);
+                    rawProfileImage.Write(filePath, format);
+                }
             }
 
             var fileInfo = new FileInfo(filePath);
@@ -139,7 +155,7 @@ namespace Inkluzitron.Services
             else
                 return AvatarImageWrapper.FromImage(image, fileInfo.Length, extension);
         }
-        
+
         // Taken from https://github.com/sinus-x/rubbergoddess
         public async Task<string> WhipAsync(IUser target, bool self)
         {
