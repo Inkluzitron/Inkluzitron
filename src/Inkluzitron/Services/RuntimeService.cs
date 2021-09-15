@@ -75,23 +75,23 @@ namespace Inkluzitron.Services
             }
         }
 
-        private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> deletedMessage, ISocketMessageChannel channel)
+        private async Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> deletedMessage, Cacheable<IMessageChannel, ulong> channel)
         {
             foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
             {
-                var handled = await messageEventHandler.HandleMessageDeletedAsync(channel, deletedMessage.Id);
+                var handled = await messageEventHandler.HandleMessageDeletedAsync(await channel.GetOrDownloadAsync(), deletedMessage.Id);
                 if (handled)
                     break;
             }
         }
 
-        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> deletedMessages, ISocketMessageChannel channel)
+        private async Task OnMessagesBulkDeletedAsync(IReadOnlyCollection<Cacheable<IMessage, ulong>> deletedMessages, Cacheable<IMessageChannel, ulong> channel)
         {
             var messageIds = deletedMessages.Select(msg => msg.Id).ToList();
 
             foreach (var messageEventHandler in ServiceProvider.GetServices<IMessageEventHandler>())
             {
-                var handled = await messageEventHandler.HandleMessagesBulkDeletedAsync(channel, messageIds);
+                var handled = await messageEventHandler.HandleMessagesBulkDeletedAsync(await channel.GetOrDownloadAsync(), messageIds);
                 if (handled)
                     break;
             }

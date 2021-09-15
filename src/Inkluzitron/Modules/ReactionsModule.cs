@@ -34,7 +34,7 @@ namespace Inkluzitron.Modules
                 DiscordClient_ReactionChanged(userMessage, channel, reaction, ReactionEvent.Removed);
         }
 
-        private async Task DiscordClient_ReactionChanged(Cacheable<IUserMessage, ulong> userMessage, ISocketMessageChannel channel, SocketReaction reaction, ReactionEvent eventType)
+        private async Task DiscordClient_ReactionChanged(Cacheable<IUserMessage, ulong> userMessage, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction, ReactionEvent eventType)
         {
             var message = await userMessage.GetOrDownloadAsync();
             if (message == null) return;

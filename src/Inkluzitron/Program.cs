@@ -47,8 +47,7 @@ namespace Inkluzitron
             var discordConfig = new DiscordSocketConfig()
             {
                 LogLevel = LogSeverity.Verbose,
-                MessageCacheSize = 100000,
-                RateLimitPrecision = RateLimitPrecision.Millisecond
+                MessageCacheSize = 100000
             };
 
             var commandsConfig = new CommandServiceConfig()
