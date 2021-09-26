@@ -89,6 +89,7 @@ namespace Inkluzitron
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
                 .AddSingleton<KisSettings>()
+                .AddSingleton<FamilyTreeService>()
                 .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
                 .AddVoteModule()
                 .AddHttpClient()
