@@ -29,8 +29,8 @@ namespace Inkluzitron.Services
         private const string NicknameFontFamily = "Open Sans";
         private const int NicknameFontSize = 10;
         private readonly DrawableFont NicknameFont = new (NicknameFontFamily) { Weight = FontWeight.Bold };
-        private const float NodeHeight = 128f;
-        private const float NodeWidth = 128f;
+        private const double NodeSize = 128.0;
+        private const double AvatarSize = 100.0;
 
         public FamilyTreeService(DatabaseFactory dbFactory, ImagesService imagesService, UsersService usersService)
         {
@@ -46,7 +46,7 @@ namespace Inkluzitron.Services
 
             await guild.DownloadUsersAsync();
             var guildUserIds = guild.Users.Select(u => u.Id).ToHashSet();
-            var avatarSize = new MagickGeometry(100, 100);
+            var avatarSize = new MagickGeometry((int) Math.Round(AvatarSize), (int) Math.Round(AvatarSize));
 
             using var dbContext = DbFactory.Create();
             var graph = new GeometryGraph() { Margins = 64 };
@@ -76,8 +76,8 @@ namespace Inkluzitron.Services
             );
 
             // The computed graph layout generally does not start at (0,0).
-            var compensationX = 0 - graph.Nodes.Min(n => n.BoundingBox.Center.X - NodeWidth);
-            var compensationY = 0 - graph.Nodes.Min(n => n.BoundingBox.Center.Y - NodeHeight);
+            var compensationX = 0 - graph.Nodes.Min(n => n.BoundingBox.Center.X - NodeSize);
+            var compensationY = 0 - graph.Nodes.Min(n => n.BoundingBox.Center.Y - NodeSize);
 
             using var image = new MagickImage(
                 MagickColors.Black,
@@ -89,17 +89,33 @@ namespace Inkluzitron.Services
                 .StrokeWidth(1.5)
                 .StrokeColor(EdgeColor);
 
-            // Draw lines underneath everything else
+            // Draw edges underneath everything else
             foreach (var edge in graph.Edges)
             {
                 var from = edge.Source.Center;
                 var to = edge.Target.Center;
-                drawables = drawables.Line(
-                    compensationX + from.X,
-                    compensationY + from.Y,
-                    compensationX + to.X,
-                    compensationY + to.Y
-                );
+
+                var fx = compensationX + from.X;
+                var fy = compensationY + from.Y;
+                var tx = compensationX + to.X;
+                var ty = compensationY + to.Y;
+
+                var dx = tx - fx;
+                var dy = ty - fy;
+                var dist = Math.Sqrt((dx*dx) + (dy*dy));
+                dx /= dist;
+                dy /= dist;
+
+                var handleX = fx + (dx * (dist - AvatarSize/2));
+                var handleY = fy + (dy * (dist - AvatarSize/2));
+
+                var ax = 10 * (-dy - dx);
+                var ay = 10 * (dx - dy);
+
+                drawables = drawables
+                    .Line(fx, fy, handleX, handleY)
+                    .Line(handleX, handleY, handleX + ax, handleY + ay)
+                    .Line(handleX, handleY, handleX - ay, handleY + ax);
             }
 
             drawables.Draw(image);
@@ -125,13 +141,13 @@ namespace Inkluzitron.Services
             }
 
             // Finish with user display names
-            var nicknameBoxWidth = (int)Math.Round(0.9 * NodeWidth);
+            var nicknameBoxWidth = (int)Math.Round(0.9 * NodeSize);
             foreach (var node in graph.Nodes)
             {
                 var user = (User)node.UserData;
                 var bbox = node.BoundingBox;
 
-                int tx = (int)Math.Round(compensationX + bbox.Center.X - 0.45 * NodeWidth);
+                int tx = (int)Math.Round(compensationX + bbox.Center.X - 0.45 * NodeSize);
                 int ty = (int)Math.Round(compensationY + bbox.Center.Y + 0.50 * avatarSize.Height + 10);
 
                 image.DrawEnhancedText(
@@ -165,7 +181,7 @@ namespace Inkluzitron.Services
             if (node is null)
             {
                 var userDisplayName = user.Name ?? await UsersService.GetDisplayNameAsync(user.Id);
-                var nodeGeometry = CurveFactory.CreateRectangle(NodeWidth, NodeHeight, new Microsoft.Msagl.Core.Geometry.Point(0.5, 0.5));
+                var nodeGeometry = CurveFactory.CreateRectangle(NodeSize, NodeSize, new Microsoft.Msagl.Core.Geometry.Point(0.5, 0.5));
 
                 node = new Node(nodeGeometry, user);
                 userDisplayNames.Add(user.Id, userDisplayName);
