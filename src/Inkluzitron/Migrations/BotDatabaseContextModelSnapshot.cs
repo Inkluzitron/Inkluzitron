@@ -40,6 +40,7 @@ namespace Inkluzitron.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<byte[]>("Image")
+                        .IsRequired()
                         .HasColumnType("BLOB");
 
                     b.Property<string>("Name")
@@ -263,6 +264,9 @@ namespace Inkluzitron.Migrations
                     b.Property<ulong>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BirthdayDateImpl")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("CommandConsents")
                         .HasColumnType("INTEGER");
 
@@ -301,21 +305,6 @@ namespace Inkluzitron.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("BadgeUser", b =>
-                {
-                    b.HasOne("Inkluzitron.Data.Entities.Badge", null)
-                        .WithMany()
-                        .HasForeignKey("BadgesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Inkluzitron.Data.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("UsersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.VoteReplyRecord", b =>
                 {
                     b.Property<string>("GuildId")
@@ -339,6 +328,21 @@ namespace Inkluzitron.Migrations
                     b.HasAlternateKey("GuildId", "ChannelId", "ReplyId");
 
                     b.ToTable("VoteReplyRecords");
+                });
+
+            modelBuilder.Entity("BadgeUser", b =>
+                {
+                    b.HasOne("Inkluzitron.Data.Entities.Badge", null)
+                        .WithMany()
+                        .HasForeignKey("BadgesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Inkluzitron.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgItem", b =>

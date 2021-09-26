@@ -91,6 +91,8 @@ namespace Inkluzitron
                 .AddSingleton<KisSettings>()
                 .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
                 .AddVoteModule()
+                .AddSingleton<BirthdaySettings>()
+                .AddSingletonWithInterface<BirthdayNotificationService, IScheduledTaskHandler>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>

@@ -32,8 +32,11 @@ namespace Inkluzitron.Services
             Logger = logger;
         }
 
-        Task IRuntimeEventHandler.OnHomeGuildReadyAsync()
+        async Task IRuntimeEventHandler.OnHomeGuildReadyAsync()
         {
+            foreach (var handler in Handlers.Value)
+                await handler.InitializeAsync();
+
             CancellationTokenSource = new CancellationTokenSource();
             Worker = Task.Factory.StartNew(
                 () => ProcessScheduledTasksAsync(CancellationTokenSource.Token),
@@ -41,7 +44,6 @@ namespace Inkluzitron.Services
                 TaskCreationOptions.LongRunning,
                 TaskScheduler.Default
             );
-            return Task.CompletedTask;
         }
 
         async Task IRuntimeEventHandler.OnBotStoppingAsync()

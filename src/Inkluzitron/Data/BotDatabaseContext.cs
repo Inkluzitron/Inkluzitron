@@ -36,6 +36,7 @@ namespace Inkluzitron.Data
             {
                 builder.Property(o => o.Gender).HasConversion<string>();
                 builder.HasIndex(o => o.KisNickname).IsUnique();
+                builder.Ignore(o => o.BirthdayDate);
             });
 
             modelBuilder.Entity<Invite>().HasIndex(o => o.InviteCode).IsUnique();
