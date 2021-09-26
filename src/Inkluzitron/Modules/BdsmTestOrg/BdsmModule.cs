@@ -20,6 +20,9 @@ using Inkluzitron.Enums;
 using Inkluzitron.Services;
 using Inkluzitron.Utilities;
 using Inkluzitron.Models;
+using System.Diagnostics;
+using System.IO;
+using ImageMagick;
 
 namespace Inkluzitron.Modules.BdsmTestOrg
 {
@@ -44,12 +47,13 @@ namespace Inkluzitron.Modules.BdsmTestOrg
         private GraphPaintingService GraphPaintingService { get; }
         private BdsmGraphPaintingStrategy GraphPaintingStrategy { get; }
         private UsersService UsersService { get; }
+        private ImagesService ImagesService { get; }
 
         public BdsmModule(DatabaseFactory databaseFactory,
             ReactionSettings reactionSettings, BdsmTestOrgSettings bdsmTestOrgSettings,
             GraphPaintingService graphPainter, IHttpClientFactory factory,
             UserBdsmTraitsService bdsmTraitsService,
-            BdsmGraphPaintingStrategy graphPaintingStrategy, UsersService usersService)
+            BdsmGraphPaintingStrategy graphPaintingStrategy, UsersService usersService, ImagesService imagesService)
         {
             DatabaseFactory = databaseFactory;
             ReactionSettings = reactionSettings;
@@ -59,6 +63,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             GraphPaintingService = graphPainter;
             GraphPaintingStrategy = graphPaintingStrategy;
             UsersService = usersService;
+            ImagesService = imagesService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -368,6 +373,116 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             }
 
             await ReplyAsync(lastCheck.ToString());
+        }
+
+        [Command("roll influence")]
+        [Summary("Vykreslí tabulku kdo (řádky) proti komu (sloupce) může používat spicy obrázkové příkazy, případně s jakou hodnotou kostek.")]
+        public async Task ComputeAndDrawRollInfluenceAsync()
+        {
+            await using var _ = await DisposableReaction.CreateAsync(Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser);
+            var allTests = await DbContext.BdsmTestOrgResults.Include(r => r.User).Include(r => r.Items).ToListAsync();
+            allTests.RemoveAll(t => !t.User.HasGivenConsentTo(CommandConsent.BdsmImageCommands));
+
+            var scoreOfUserAgainstAll = new Dictionary<ulong, Dictionary<ulong, BdsmTraitOperationCheck>>();
+
+            foreach (var userTest in allTests)
+            {
+                var row = new Dictionary<ulong, BdsmTraitOperationCheck>();
+
+                foreach (var targetTest in allTests)
+                {
+                    var check = new BdsmTraitOperationCheck(Settings, BdsmTraitsService.CheckTranslations, Gender.Unspecified, Gender.Unspecified)
+                    {
+                        UserDisplayName = userTest.User.Name,
+                        TargetDisplayName = targetTest.User.Name
+                    };
+
+                    UserBdsmTraitsService.CalculateTraitOperation(check, userTest, targetTest, 1);
+                    row[targetTest.UserId] = check;
+                }
+
+                scoreOfUserAgainstAll[userTest.UserId] = row;
+            }
+
+            using var avatars = new ValuesDisposingDictionary<ulong, IMagickImage<byte>>();
+            foreach (var userId in allTests.Select(x => x.UserId).Distinct())
+            {
+                using var rawAvatar = await ImagesService.GetAvatarAsync(Context.Guild, userId);
+                var avatar = rawAvatar.Frames[0].Clone();
+                avatar.Resize(64, 64);
+                avatar.RoundImage();
+                avatars[userId] = avatar;
+            }
+
+            using var image = new MagickImage(MagickColors.Black, (avatars.Count + 1) * 100, (avatars.Count + 1) * 100);
+
+            var i = 0;
+            var powers = scoreOfUserAgainstAll.Select(
+                kvp => (kvp.Key, kvp.Value
+                    .Select(kvp => (kvp.Value.Result, kvp.Value.RequiredValue))
+                    .Select(x => x.Result switch {
+                        BdsmTraitOperationCheckResult.InCompliance => 0,
+                        BdsmTraitOperationCheckResult.Self => 0,
+                        _ => x.RequiredValue
+                    })
+                    .Sum())
+            ).OrderBy(x => x.Item2).ToList();
+
+            var users = powers.Select(p => p.Key);
+            foreach (var source in users)
+            {
+                var avatar = avatars[source];
+                var imgCoord = i + 1;
+                image.Composite(avatar, 18 + imgCoord * 100, 18, CompositeOperator.Over);
+                image.Composite(avatar, 18, 18 + imgCoord * 100, CompositeOperator.Over);
+
+                var drawables = new Drawables().Density(100).StrokeColor(MagickColors.White).StrokeWidth(1).TextAlignment(TextAlignment.Center).Gravity(Gravity.Center).FontPointSize(30);
+
+                drawables = drawables
+                    .Line(imgCoord * 100, 0, imgCoord * 100, image.Height)
+                    .Line(0, imgCoord * 100, image.Width, imgCoord * 100);
+
+                var targetCoord = 1;
+                foreach (var targetCheck in users.Select(userId => scoreOfUserAgainstAll[userId][source]))
+                {
+                    var txt = "???";
+                    var bg = MagickColors.White;
+
+                    switch (targetCheck.Result)
+                    {
+                        case BdsmTraitOperationCheckResult.InCompliance:
+                            txt = "OK";
+                            break;
+
+                        case BdsmTraitOperationCheckResult.Self:
+                            txt = "-";
+                            break;
+
+                        case BdsmTraitOperationCheckResult.RollSucceeded:
+                        case BdsmTraitOperationCheckResult.RollFailed:
+                            txt = targetCheck.RequiredValue.ToString();
+                            var pctg = 1.0 * targetCheck.RequiredValue / targetCheck.RollMaximum;
+                            bg = MagickColor.FromRgba((byte)Math.Ceiling(pctg * 255), (byte)Math.Ceiling((1 - pctg) * 255), 0, 100);
+                            break;
+                    }
+
+                    drawables = drawables
+                        .FillColor(bg)
+                        .StrokeColor(bg)
+                        .Text(imgCoord * 100 + 50, targetCoord * 100 + 50 + 15, txt);
+
+                    targetCoord++;
+                }
+
+                drawables.Draw(image);
+                i++;
+            }
+
+            using var tmpFile = new TemporaryFile("png");
+            using (var stream = File.OpenWrite(tmpFile.Path))
+                await image.WriteAsync(stream, MagickFormat.Png);
+
+            await ReplyFileAsync(tmpFile.Path);
         }
     }
 }

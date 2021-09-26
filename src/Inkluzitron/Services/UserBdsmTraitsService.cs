@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Inkluzitron.Data;
+using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models;
@@ -34,45 +35,33 @@ namespace Inkluzitron.Services
             UsersService = usersService;
         }
 
-        public async Task<bool> TestExists(IUser user)
+        public Task<BdsmTestOrgResult> FindTestResultAsync(IUser user)
         {
             using var dbContext = DatabaseFactory.Create();
 
-            return await dbContext.BdsmTestOrgResults
-                .AsQueryable()
-                .AnyAsync(r => r.UserId == user.Id);
-        }
-
-        public async Task<double> GetTraitScore(IUser user, BdsmTrait trait)
-        {
-            using var dbContext = DatabaseFactory.Create();
-
-            var userTrait = (await dbContext.BdsmTestOrgResults
+            return dbContext.BdsmTestOrgResults.AsQueryable()
                 .Include(r => r.Items)
-                .OrderByDescending(r => r.SubmittedAt)
-                .FirstOrDefaultAsync(r => r.UserId == user.Id))?
-                .Items
-                .Find(i => i.Trait == trait);
-
-            return userTrait?.Score ?? 0;
+                .Include(r => r.User)
+                .Where(r => r.UserId == user.Id)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> HasStrongTrait(IUser user, BdsmTrait trait)
-            => (await GetTraitScore(user, trait)) >= StrongTraitThreshold;
+        public bool HasStrongTrait(BdsmTestOrgResult testResult, BdsmTrait trait)
+            => testResult[trait] >= StrongTraitThreshold;
 
-        public async Task<bool> IsDominant(IUser user)
-            => (await HasStrongTrait(user, BdsmTrait.Dominant)) ||
-                (await HasStrongTrait(user, BdsmTrait.MasterOrMistress));
+        public bool IsDominant(BdsmTestOrgResult userTestResult)
+            => HasStrongTrait(userTestResult, BdsmTrait.Dominant) ||
+               HasStrongTrait(userTestResult, BdsmTrait.MasterOrMistress);
 
-        public async Task<bool> IsSubmissive(IUser user)
-            => (await HasStrongTrait (user, BdsmTrait.Submissive)) ||
-                (await HasStrongTrait (user, BdsmTrait.Slave));
+        public bool IsSubmissive(BdsmTestOrgResult userTestResult)
+            => HasStrongTrait(userTestResult, BdsmTrait.Submissive) ||
+               HasStrongTrait(userTestResult, BdsmTrait.Slave);
 
-        public async Task<bool> IsDominantOnly(IUser user)
-            => (await IsDominant(user)) && !(await IsSubmissive(user));
+        public bool IsDominantOnly(BdsmTestOrgResult userTestResult)
+            => IsDominant(userTestResult) && !IsSubmissive(userTestResult);
 
-        public async Task<bool> IsSubmissiveOnly(IUser user)
-            => (await IsSubmissive(user)) && !(await IsDominant(user));
+        public bool IsSubmissiveOnly(BdsmTestOrgResult userTestResult)
+            => IsSubmissive(userTestResult) && !IsDominant(userTestResult);
 
         static private string ToLastOperationCheckKey(IUser user)
             => $"{nameof(BdsmTraitOperationCheck)}_{user.Id}";
@@ -83,9 +72,6 @@ namespace Inkluzitron.Services
         private void SetLastOperationCheck(IUser user, BdsmTraitOperationCheck lastCheck)
             => Cache.Set(ToLastOperationCheckKey(user), lastCheck);
 
-        static private double Janchsinus(double score)
-            => Math.Sin(Math.Abs(score) * Math.PI * 0.5);
-
         /// <summary>
         /// Check based on BDSM results.
         /// This check probabilistically prevents sub users from whipping dom users.
@@ -93,7 +79,7 @@ namespace Inkluzitron.Services
         /// <param name="user">Initiator (whipping user)</param>
         /// <param name="target">Target (user to be whipped)</param>
         /// <returns>Detailed results of the check.</returns>
-        public async Task<BdsmTraitOperationCheck> CheckDomSubOperationAsync(IUser user, IUser target)
+        public async Task<BdsmTraitOperationCheck> CheckTraitOperationAsync(IUser user, IUser target)
         {
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
@@ -105,86 +91,98 @@ namespace Inkluzitron.Services
             var userDb = await dbContext.GetOrCreateUserEntityAsync(user);
             var targetDb = await dbContext.GetOrCreateUserEntityAsync(target);
 
-            var check = new BdsmTraitOperationCheck(CheckTranslations, userDb.Gender, targetDb.Gender)
+            var userTest = await FindTestResultAsync(user);
+            var targetTest = await FindTestResultAsync(target);
+            var userPoints = await dbContext.DailyUsersActivities.AsQueryable()
+                .Where(a => a.UserId == user.Id)
+                .SumAsync(a => a.Points);
+
+            var check = new BdsmTraitOperationCheck(Settings, CheckTranslations, userDb.Gender, targetDb.Gender)
             {
                 UserDisplayName = Format.Sanitize(await UsersService.GetDisplayNameAsync(user)),
                 TargetDisplayName = Format.Sanitize(await UsersService.GetDisplayNameAsync(target))
             };
 
+            CalculateTraitOperation(check, userTest, targetTest, userPoints);
             SetLastOperationCheck(user, check);
+            return check;
+        }
 
-            if (user.Equals(target))
+        static internal BdsmTraitOperationFactor AssessPairwiseTraitFactor(BdsmTestOrgResult user, BdsmTestOrgResult target, BdsmTrait protagonistTrait, BdsmTrait antagonistTrait)
+        {
+            var userProtagony = user[protagonistTrait];
+            var userAntagony = user[antagonistTrait];
+            var targetProtagony = target[protagonistTrait];
+            var targetAntagony = target[antagonistTrait];
+
+            var score = 0.0;
+            score += userProtagony * targetAntagony;
+            score -= targetProtagony * userAntagony;
+
+            var ptdn = protagonistTrait.GetDisplayName();
+            var atdn = antagonistTrait.GetDisplayName();
+
+            var sum = Math.Max(userProtagony + targetAntagony, userAntagony + targetProtagony);
+            var weight = Math.Min(1, sum);
+
+            return new BdsmTraitOperationFactor
             {
-                check.Result = BdsmTraitOperationCheckResult.Self;
-                return check;
-            }
+                Score = score,
+                Weight = double.Epsilon + weight,
+                Values =
+                {
+                    { ptdn, (userProtagony.ToIntPercentage().ToString(),  targetProtagony.ToIntPercentage().ToString())},
+                    { atdn, (userAntagony.ToIntPercentage().ToString(),  targetAntagony.ToIntPercentage().ToString())}
+                }
+            };
+        }
 
-            if (!userDb.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
-            {
-                check.Result = BdsmTraitOperationCheckResult.UserDidNotConsent;
-                return check;
-            }
-
-            if (!targetDb.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
-            {
-                check.Result = BdsmTraitOperationCheckResult.TargetDidNotConsent;
-                return check;
-            }
-
-            if (!await TestExists(user))
+        static internal void CalculateTraitOperation(BdsmTraitOperationCheck check, BdsmTestOrgResult testOfUser, BdsmTestOrgResult testOfTarget, long userPoints)
+        {
+            if (testOfUser == null)
             {
                 check.Result = BdsmTraitOperationCheckResult.UserHasNoTest;
-                return check;
+                return;
             }
 
-            if (!await TestExists(target))
+            if (testOfTarget == null)
             {
                 check.Result = BdsmTraitOperationCheckResult.TargetHasNoTest;
-                return check;
+                return;
             }
 
-            var userPoints = await dbContext.DailyUsersActivities.AsQueryable()
-                .Where(a => a.UserId == user.Id)
-                .SumAsync(a => a.Points);
+            if (testOfUser.Id == testOfTarget.Id)
+            {
+                check.Result = BdsmTraitOperationCheckResult.Self;
+                return;
+            }
+
+            if (!testOfUser.User.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
+            {
+                check.Result = BdsmTraitOperationCheckResult.UserDidNotConsent;
+                return;
+            }
+
+            if (!testOfTarget.User.HasGivenConsentTo(CommandConsent.BdsmImageCommands))
+            {
+                check.Result = BdsmTraitOperationCheckResult.TargetDidNotConsent;
+                return;
+            }
 
             if (userPoints < 0)
             {
                 check.Result = BdsmTraitOperationCheckResult.UserNegativePoints;
-                return check;
+                return;
             }
 
-            var userDominance = await GetTraitScore(user, BdsmTrait.Dominant);
-            var userSubmissiveness = await GetTraitScore(user, BdsmTrait.Submissive);
-            var targetDominance = await GetTraitScore(target, BdsmTrait.Dominant);
-            var targetSubmissiveness = await GetTraitScore(target, BdsmTrait.Submissive);
-
-            check.UserDominance = userDominance.ToIntPercentage();
-            check.UserSubmissiveness = userSubmissiveness.ToIntPercentage();
-            check.TargetDominance = targetDominance.ToIntPercentage();
-            check.TargetSubmissiveness = targetSubmissiveness.ToIntPercentage();
-
-            var score = 0.0;
-            score += userDominance * targetSubmissiveness;
-            score -= targetDominance * userSubmissiveness;
-
-            if (score >= 0)
-            {
-                check.Result = BdsmTraitOperationCheckResult.InCompliance;
-            }
-            else
-            {
-                const int rollMaximum = 100;
-                check.RequiredValue = (int)Math.Round(rollMaximum * Janchsinus(score));
-                check.RolledValue = ThreadSafeRandom.Next(1, rollMaximum + 1);
-                check.RollMaximum = rollMaximum;
-
-                if (check.RolledValue >= check.RequiredValue)
-                    check.Result = BdsmTraitOperationCheckResult.RollSucceeded;
-                else
-                    check.Result = BdsmTraitOperationCheckResult.RollFailed;
-            }
-
-            return check;
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.Dominant, BdsmTrait.Submissive));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.BratTamer, BdsmTrait.Brat));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.DaddyOrMommy, BdsmTrait.BoyOrGirl));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.Degrader, BdsmTrait.Degradee));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.Sadist, BdsmTrait.Masochist));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.MasterOrMistress, BdsmTrait.Slave));
+            check.Factors.Add(AssessPairwiseTraitFactor(testOfUser, testOfTarget, BdsmTrait.PrimalHunter, BdsmTrait.PrimalPrey));
+            check.Compute();
         }
     }
 }

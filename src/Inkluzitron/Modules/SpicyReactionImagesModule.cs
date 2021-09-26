@@ -62,7 +62,7 @@ namespace Inkluzitron.Modules
             if (target == null)
                 target = Context.Message.ReferencedMessage?.Author ?? Context.User;
 
-            if (!await UserBdsmTraits.TestExists(Context.User))
+            if (await UserBdsmTraits.FindTestResultAsync(Context.User) == null)
             {
                 // Whip-like commands can only by used by users who completed the BDSM test.
                 return new CommandRedirectResult("bdsm");
@@ -77,7 +77,7 @@ namespace Inkluzitron.Modules
             }
             else
             {
-                var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
+                var check = await UserBdsmTraits.CheckTraitOperationAsync(Context.User, target);
 
                 if (check.Backfired)
                 {
