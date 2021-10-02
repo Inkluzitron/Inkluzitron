@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,17 +59,31 @@ namespace Inkluzitron.Services
             ScheduledTaskExists.Dispose();
         }
 
-        public async Task<ScheduledTask> LookupAsync(int taskId)
+        public async Task<ScheduledTask> LookupAsync(long taskId)
         {
             using var dbContext = DbFactory.Create();
             return await dbContext.ScheduledTasks.FindAsync(taskId);
         }
 
+        public async Task<IReadOnlyCollection<ScheduledTask>> LookupAsync(string discriminator, Expression<Func<ScheduledTask, bool>> dataFilterExpression)
+        {
+            using var dbContext = DbFactory.Create();
+
+            return await dbContext.ScheduledTasks
+                .AsQueryable()
+                .Where(t => t.Discriminator == discriminator)
+                .Where(dataFilterExpression)
+                .ToListAsync();
+        }
+
         public async Task<IReadOnlyCollection<ScheduledTask>> LookupAsync(string discriminator, string tag)
         {
             using var dbContext = DbFactory.Create();
-            return await dbContext.ScheduledTasks.AsQueryable()
-                .Where(t => t.Discriminator == discriminator && t.Tag == tag)
+
+            return await dbContext.ScheduledTasks
+                .AsQueryable()
+                .Where(t => t.Discriminator == discriminator)
+                .Where(t => t.Tag == tag)
                 .ToListAsync();
         }
 

@@ -16,6 +16,7 @@ namespace Inkluzitron.Models.Settings
         public IEmote Shrunk { get; }
         public IEmote Loading { get; }
         public IEmote Checkmark { get; }
+        public IEmote RemindMeToo { get; }
 
         public IEmote[] PaginationReactions { get; }
         public IEmote[] PaginationReactionsWithRemoval { get; }
@@ -35,6 +36,7 @@ namespace Inkluzitron.Models.Settings
             Shrunk = config["ReactionSettings:Shrunk"].ToDiscordEmote();
             Loading = config["ReactionSettings:Loading"].ToDiscordEmote();
             Checkmark = config["ReactionSettings:Checkmark"].ToDiscordEmote();
+            RemindMeToo = config["ReactionSettings:RemindMeToo"].ToDiscordEmote();
 
             PaginationReactions = new[] { MoveToFirst, MoveToPrevious, MoveToNext, MoveToLast };
             PaginationReactionsWithRemoval = new[] { MoveToFirst, MoveToPrevious, Remove, MoveToNext, MoveToLast };
