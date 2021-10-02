@@ -36,10 +36,12 @@ namespace Inkluzitron.Modules
         private KisSettings KisSettings { get; }
         private BirthdayNotificationService BirthdayService { get; }
         private BirthdaySettings BirthdaySettings { get; }
+        private FamilyTreeService FamilyTreeService { get; }
 
         public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
             DatabaseFactory databaseFactory, UsersService usersService, KisSettings kisSettings,
-            BirthdayNotificationService birthdayService, BirthdaySettings birthdaySettings)
+            BirthdayNotificationService birthdayService, BirthdaySettings birthdaySettings,
+            FamilyTreeService familyTreeService)
         {
             Configuration = configuration;
             ReactionSettings = reactionSettings;
@@ -48,6 +50,7 @@ namespace Inkluzitron.Modules
             KisSettings = kisSettings;
             BirthdayService = birthdayService;
             BirthdaySettings = birthdaySettings;
+            FamilyTreeService = familyTreeService;
         }
 
         protected override void BeforeExecute(CommandInfo command)
@@ -436,6 +439,19 @@ namespace Inkluzitron.Modules
                 await DbContext.SaveChangesAsync();
                 await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
             });
+        }
+
+        [Command("familytree")]
+        [Alias("rodokmen")]
+        [Summary("Vykreslí rodokmen uživatelů na serveru podle informací dostupných z databáze pozvánek.")]
+        public async Task DrawFamilyTreeAsync()
+        {
+            await using var _ = await DisposableReaction.CreateAsync(
+                Context.Message, ReactionSettings.Loading, Context.Client.CurrentUser
+            );
+
+            using var familyTreeImageFile = await FamilyTreeService.RenderFamilyTreeAsync(Context.Guild);
+            await ReplyFileAsync(familyTreeImageFile.Path);
         }
     }
 }
