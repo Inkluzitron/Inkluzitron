@@ -383,28 +383,31 @@ namespace Inkluzitron.Modules
             await ReplyAsync(embed: embed);
         }
 
-        [Command("birthday unset")]
-        [Alias("narozeniny")]
-        [Summary("Vymaže nastavené datum narozenin.")]
-        public Task UnsetOwnBirthdayAsync() => SetOwnBirthdayImplAsync(null);
+        [Command("birthday please remove my date from your database")]
+        [Alias("narozeniny prosím o vymazání mého data z vaší databáze")]
+        [Summary("Dealokuje nastavené datum narozenin.")]
+        public Task UnsetOwnBirthdayAsync()
+            => SetOwnBirthdayImplAsync(null);
 
-        [Command("birthday")]
-        [Alias("narozeniny")]
+        [Command("birthday set")]
+        [Alias("narozeniny nastav")]
         [Summary("Nastaví vlastní datum narozenin.")]
-        public Task SetOwnBirthdayAsync([Name("DD.MM. nebo DD.MM.YYYY"), Remainder] string birthday)
+        public Task SetOwnBirthdayAsync([Name("`unset` nebo `odebrat` nebo `DD.MM.` nebo `DD.MM.YYYY`"), Remainder] string birthday)
         {
+            const DateTimeStyles styles = DateTimeStyles.AssumeLocal;
             var culture = CultureInfo.InvariantCulture;
-            var styles = DateTimeStyles.AssumeLocal;
-
             birthday = Regex.Replace(birthday, "\\s+", string.Empty);
-            DateTime birthdayDate;
 
-            if (DateTime.TryParseExact(birthday, "d'.'M'.'", culture, styles, out birthdayDate)) {
-                birthdayDate = new DateTime(DateTime.UnixEpoch.Year, birthdayDate.Month, birthdayDate.Day, 0, 0, 0, DateTimeKind.Utc);
+            if (DateTime.TryParseExact(birthday, "d/M", culture, styles, out var birthdayDate))
+            {
+                birthdayDate = new DateTime(User.UnsetBirthdayYear, birthdayDate.Month, birthdayDate.Day, 0, 0, 0, DateTimeKind.Local);
                 return SetOwnBirthdayImplAsync(birthdayDate);
             }
 
             if (DateTime.TryParseExact(birthday, "d'.'M'.'yyyy", culture, styles, out birthdayDate))
+                return SetOwnBirthdayImplAsync(birthdayDate);
+
+            if (DateTime.TryParseExact(birthday, "d'/'M'/'yyyy", culture, styles, out birthdayDate))
                 return SetOwnBirthdayImplAsync(birthdayDate);
 
             return ReplyAsync(BirthdaySettings.UnrecognizedBirthdayDateFormatMessage);
@@ -412,6 +415,16 @@ namespace Inkluzitron.Modules
 
         private async Task SetOwnBirthdayImplAsync(DateTime? birthdayDate)
         {
+            var birthdayInTheFuture =
+                birthdayDate is DateTime actualBirthdayDate
+                && actualBirthdayDate > DateTime.Now;
+
+            if (birthdayInTheFuture)
+            {
+                await Context.Message.AddReactionAsync(ReactionSettings.Angry);
+                return;
+            }
+
             using var context = DatabaseFactory.Create();
             var user = Context.User;
 

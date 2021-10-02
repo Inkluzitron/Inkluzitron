@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Globalization;
 
 namespace Inkluzitron.Data.Entities
 {
@@ -31,28 +30,8 @@ namespace Inkluzitron.Data.Entities
         public string KisNickname { get; set; }
         public DateTime? KisLastCheck { get; set; }
 
-        public string BirthdayDateImpl { get; set; } // 0000-00-00
-
-        private const string BirthdayStorageFormat = "yyyy'-'MM'-'dd";
-
-        public DateTime? BirthdayDate
-        {
-            get
-            {
-                if (BirthdayDateImpl?.Length != 10)
-                    return null;
-
-                if (!DateTime.TryParseExact(BirthdayDateImpl, BirthdayStorageFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var birthdayDate))
-                    return null;
-
-                return birthdayDate;
-            }
-
-            set
-            {
-                BirthdayDateImpl = value?.ToString(BirthdayStorageFormat, CultureInfo.InvariantCulture);
-            }
-        }
+        public const int UnsetBirthdayYear = 1800;
+        public DateTime? BirthdayDate { get; set; }
 
         public CommandConsent CommandConsents { get; set; } = CommandConsent.None;
         public bool HasGivenConsentTo(CommandConsent consentKind)

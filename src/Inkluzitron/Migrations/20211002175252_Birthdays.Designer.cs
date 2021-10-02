@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inkluzitron.Migrations
 {
     [DbContext(typeof(BotDatabaseContext))]
-    [Migration("20210926155454_Birthday")]
-    partial class Birthday
+    [Migration("20211002175252_Birthdays")]
+    partial class Birthdays
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -42,7 +42,6 @@ namespace Inkluzitron.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<byte[]>("Image")
-                        .IsRequired()
                         .HasColumnType("BLOB");
 
                     b.Property<string>("Name")
@@ -266,7 +265,7 @@ namespace Inkluzitron.Migrations
                     b.Property<ulong>("Id")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("BirthdayDateImpl")
+                    b.Property<DateTime?>("BirthdayDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("CommandConsents")

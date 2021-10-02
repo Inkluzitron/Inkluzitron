@@ -43,10 +43,12 @@ namespace Inkluzitron.Services
         {
             using var dbContext = DbFactory.Create();
             var today = DateTime.Now;
-            var todayEndsWithPattern = $"-{today.Month:D2}-{today.Day:D2}";
 
             var birthdayUsers = dbContext.Users.AsQueryable()
-                .Where(u => u.BirthdayDateImpl != null && u.BirthdayDateImpl.EndsWith(todayEndsWithPattern))
+                .Where(u => u.BirthdayDate != null
+                            && u.BirthdayDate.Value.Month == today.Month
+                            && u.BirthdayDate.Value.Day == today.Day
+                )
                 .ToAsyncEnumerable();
 
             var embed = new EmbedBuilder()
@@ -61,7 +63,7 @@ namespace Inkluzitron.Services
                 if (guildUser == null)
                     continue;
 
-                var isAgeAvailable = birthdayUser.BirthdayDate.Value.Year != DateTime.UnixEpoch.Year;
+                var isAgeAvailable = birthdayUser.BirthdayDate.Value.Year != User.UnsetBirthdayYear;
                 var displayName = await UsersService.GetDisplayNameAsync(guildUser.Id);
                 var username = guildUser.Username;
                 var discriminator = guildUser.Discriminator;

@@ -40,7 +40,6 @@ namespace Inkluzitron.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<byte[]>("Image")
-                        .IsRequired()
                         .HasColumnType("BLOB");
 
                     b.Property<string>("Name")
@@ -264,7 +263,7 @@ namespace Inkluzitron.Migrations
                     b.Property<ulong>("Id")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("BirthdayDateImpl")
+                    b.Property<DateTime?>("BirthdayDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("CommandConsents")
