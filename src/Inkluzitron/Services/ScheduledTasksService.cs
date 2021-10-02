@@ -60,7 +60,7 @@ namespace Inkluzitron.Services
             ScheduledTaskExists.Dispose();
         }
 
-        public async Task<ScheduledTask> LookupAsync(int taskId)
+        public async Task<ScheduledTask> LookupAsync(long taskId)
         {
             using var dbContext = DbFactory.Create();
             return await dbContext.ScheduledTasks.FindAsync(taskId);

@@ -23,6 +23,7 @@ namespace Inkluzitron.Data.Entities
 
         public T ParseData<T>()
             => Data == null ? default : JsonConvert.DeserializeObject<T>(Data);
+
         public string Serialize()
             => JsonConvert.SerializeObject(this);
     }

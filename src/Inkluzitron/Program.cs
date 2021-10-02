@@ -9,6 +9,7 @@ using Inkluzitron.Models.Settings;
 using Inkluzitron.Modules;
 using Inkluzitron.Modules.BdsmTestOrg;
 using Inkluzitron.Modules.Points;
+using Inkluzitron.Modules.Reminders;
 using Inkluzitron.Modules.Vote;
 using Inkluzitron.Services;
 using Inkluzitron.Services.ChannelLogger;
@@ -94,6 +95,7 @@ namespace Inkluzitron
                 .AddVoteModule()
                 .AddSingleton<BirthdaySettings>()
                 .AddSingletonWithInterface<BirthdayNotificationService, IScheduledTaskHandler>()
+                .AddRemindersModule()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>

@@ -30,6 +30,9 @@ namespace Inkluzitron.Data
 
         public DbSet<Badge> Badges { get; set; }
 
+        public DbSet<Reminder> Reminders { get; set; }
+        public DbSet<Reminder> ReminderSubscriptions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>(builder =>
