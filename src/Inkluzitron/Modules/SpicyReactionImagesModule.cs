@@ -24,11 +24,13 @@ namespace Inkluzitron.Modules
         }
 
         [Command("whip")]
+        [Alias("šlehat")]
         [Summary("Použije bič na autora nebo zadaného uživatele.")]
         public Task WhipAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, false, ImagesService.WhipAsync);
 
         [Command("whip roll")]
+        [Alias("šlehat roll")]
         [Summary("Použije bič na autora nebo zadaného uživatele a vypíše vliv výsledků BDSM testu.")]
         public Task WhipWithRollInfoAsync([Name("uživatel")] IUser user = null, [Remainder][Name("")] string _ = null)
             => DomSubRolledImageAsync(user, true, ImagesService.WhipAsync);
