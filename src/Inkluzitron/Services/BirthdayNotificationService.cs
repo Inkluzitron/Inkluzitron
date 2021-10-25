@@ -111,7 +111,7 @@ namespace Inkluzitron.Services
             {
                 Discriminator = ScheduledTaskDiscriminator,
                 Tag = ScheduledTaskTag,
-                When = new DateTimeOffset(now.Year, now.Month, now.Day, expectedMinutes, expectedHours, 0, now.Offset)
+                When = new DateTimeOffset(now.Year, now.Month, now.Day, expectedHours, expectedMinutes, 0, now.Offset)
             });
         }
 
