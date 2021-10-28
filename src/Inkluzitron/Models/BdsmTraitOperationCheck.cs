@@ -87,6 +87,12 @@ namespace Inkluzitron.Models
         }
 
         public override string ToString()
+            => ToString(false);
+
+        public string ToStringWithTraitInfluenceTable()
+            => ToString(true);
+
+        private string ToString(bool printTraitInfluenceTable)
         {
             string format;
 
@@ -135,7 +141,9 @@ namespace Inkluzitron.Models
                 format,
                 UserDisplayName, TargetDisplayName,
                 RolledValue, RollMaximum, RequiredValue, PointsToSubtract,
-                ComposeComputationDetails(),
+                printTraitInfluenceTable
+                    ? "\n\n" + ComposeComputationDetails()
+                    : string.Empty,
                 new FormatByValue(_userGender),
                 new FormatByValue(_targetGender)
             );

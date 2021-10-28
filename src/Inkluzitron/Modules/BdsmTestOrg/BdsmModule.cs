@@ -97,7 +97,7 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 ? embedBuilder.WithBdsmTestOrgQuizInvitation(Settings, target)
                 : embedBuilder.WithBdsmTestOrgQuizResult(Settings, quizResult);
 
-            var message = await ReplyAsync(embed: embedBuilder.Build());
+            await ReplyAsync(embed: embedBuilder.Build());
         }
 
         [Command("remove")]
@@ -372,10 +372,10 @@ namespace Inkluzitron.Modules.BdsmTestOrg
                 return;
             }
 
-            await ReplyAsync(lastCheck.ToString());
+            await ReplyAsync(lastCheck.ToStringWithTraitInfluenceTable());
         }
 
-        [Command("roll influence")]
+        [Command("roll influence"), Alias("tabulka")]
         [Summary("Vykreslí tabulku kdo (řádky) proti komu (sloupce) může používat spicy obrázkové příkazy, případně s jakou hodnotou kostek.")]
         public async Task ComputeAndDrawRollInfluenceAsync()
         {
