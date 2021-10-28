@@ -375,7 +375,8 @@ namespace Inkluzitron.Modules.BdsmTestOrg
             await ReplyAsync(lastCheck.ToStringWithTraitInfluenceTable());
         }
 
-        [Command("roll influence"), Alias("tabulka")]
+        [Command("roll influence")]
+        [Alias("tabulka")]
         [Summary("Vykreslí tabulku kdo (řádky) proti komu (sloupce) může používat spicy obrázkové příkazy, případně s jakou hodnotou kostek.")]
         public async Task ComputeAndDrawRollInfluenceAsync()
         {
