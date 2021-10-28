@@ -124,6 +124,8 @@ namespace Inkluzitron.Services
 
             var sum = Math.Max(userProtagony + targetAntagony, userAntagony + targetProtagony);
             var weight = Math.Min(1, sum);
+            if (Math.Abs(score) < double.Epsilon)
+                weight = 0;
 
             return new BdsmTraitOperationFactor
             {

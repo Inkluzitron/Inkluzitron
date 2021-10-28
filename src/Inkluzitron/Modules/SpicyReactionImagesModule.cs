@@ -80,21 +80,25 @@ namespace Inkluzitron.Modules
             else
             {
                 var check = await UserBdsmTraits.CheckTraitOperationAsync(Context.User, target);
+                messageText = null;
+
+                if (showRollInfo)
+                    messageText = check.ToStringWithTraitInfluenceTable();
+                else if (check.Result == Enums.BdsmTraitOperationCheckResult.RollSucceeded)
+                    messageText = check.ToString();
+                else if (check.Result == Enums.BdsmTraitOperationCheckResult.RollFailed)
+                    messageText = check.ToString();
 
                 if (check.Backfired)
                 {
                     await PointsService.AddPointsAsync(Context.User, -check.PointsToSubtract);
                     await PointsService.AddPointsAsync(target, check.PointsToSubtract);
                     target = Context.User;
-                    messageText = check.ToString();
                 }
                 else if (!check.CanProceedNormally) {
                     await ReplyAsync(check.ToString());
                     return null;
                 }
-
-                if (showRollInfo)
-                    messageText = check.ToStringWithTraitInfluenceTable();
 
                 imagePath = await asyncImageGenerator(target, Context.User.Equals(target));
             }
