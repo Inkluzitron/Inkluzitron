@@ -388,7 +388,7 @@ namespace Inkluzitron.Modules
 
         [Command("birthday please remove my date from your database")]
         [Alias("narozeniny prosím o vymazání mého data z vaší databáze")]
-        [Summary("Dealokuje nastavené datum narozenin.")]
+        [Summary("Zapomene nastavené datum narozenin.")]
         public Task UnsetOwnBirthdayAsync()
             => SetOwnBirthdayImplAsync(null);
 
