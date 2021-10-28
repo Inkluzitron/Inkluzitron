@@ -92,6 +92,8 @@ namespace Inkluzitron
                 .AddSingleton<FamilyTreeService>()
                 .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
                 .AddVoteModule()
+                .AddSingleton<BirthdaySettings>()
+                .AddSingletonWithInterface<BirthdayNotificationService, IScheduledTaskHandler>()
                 .AddHttpClient()
                 .AddMemoryCache()
                 .AddLogging(config =>

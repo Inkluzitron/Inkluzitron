@@ -30,6 +30,9 @@ namespace Inkluzitron.Data.Entities
         public string KisNickname { get; set; }
         public DateTime? KisLastCheck { get; set; }
 
+        public const int UnsetBirthdayYear = 1800;
+        public DateTime? BirthdayDate { get; set; }
+
         public CommandConsent CommandConsents { get; set; } = CommandConsent.None;
         public bool HasGivenConsentTo(CommandConsent consentKind)
             => (CommandConsents & consentKind) == consentKind;

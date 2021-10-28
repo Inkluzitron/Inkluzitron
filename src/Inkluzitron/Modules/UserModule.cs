@@ -19,6 +19,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+using System.Globalization;
+using Inkluzitron.Services.TypeReaders;
 
 namespace Inkluzitron.Modules
 {
@@ -32,10 +35,13 @@ namespace Inkluzitron.Modules
         private BotDatabaseContext DbContext { get; set; }
         private UsersService UsersService { get; }
         private KisSettings KisSettings { get; }
+        private BirthdayNotificationService BirthdayService { get; }
+        private BirthdaySettings BirthdaySettings { get; }
         private FamilyTreeService FamilyTreeService { get; }
 
         public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
             DatabaseFactory databaseFactory, UsersService usersService, KisSettings kisSettings,
+            BirthdayNotificationService birthdayService, BirthdaySettings birthdaySettings,
             FamilyTreeService familyTreeService)
         {
             Configuration = configuration;
@@ -43,6 +49,8 @@ namespace Inkluzitron.Modules
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
             KisSettings = kisSettings;
+            BirthdayService = birthdayService;
+            BirthdaySettings = birthdaySettings;
             FamilyTreeService = familyTreeService;
         }
 
@@ -63,8 +71,6 @@ namespace Inkluzitron.Modules
         [Summary("Zobrazí údaje o uživateli, jako je preferované oslovení, s čím souhlasí a další věci.")]
         public async Task ShowUserInfoAsync([Name("uživatel")] IUser user = null)
         {
-            // TODO Show user birthday
-
             var templateAboutBotSelf = Configuration["UserModule:AboutBotSelf"];
             var templateAboutBotOther = Configuration["UserModule:AboutBotOther"];
             var templateUserNotFound = Configuration["UserModule:UserNotFoundMessage"];
@@ -131,6 +137,12 @@ namespace Inkluzitron.Modules
                 .WithFooter("informace o uživateli")
                 .WithThumbnailUrl("attachment://badges.png");
 
+            if (userDb.BirthdayDate is DateTime birthday)
+                embed.AddField(
+                    "Narozeniny:",
+                    birthday.ToString("M")
+                );
+
             var invitedUsersIds = DbContext.Invites.AsQueryable()
                     .Where(i => i.GeneratedByUserId == user.Id && i.UsedByUserId.HasValue)
                     .Select(i => i.UsedByUserId)
@@ -161,7 +173,6 @@ namespace Inkluzitron.Modules
             }
 
             using var badgesImage = GetBadgesAsSingleImage(userDb.Badges);
-
             var badges = userDb.Badges.Select(b => Format.Sanitize(b.Name)).ToArray();
             if (badges.Length > 0)
                 embed.AddField("Získané odznaky:", string.Join(", ", badges));
@@ -365,6 +376,68 @@ namespace Inkluzitron.Modules
         {
             await DbContext.UpdateCommandConsentAsync(Context.User, consentUpdaterFunc);
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+        }
+
+        [Command("birthday")]
+        [Alias("narozeniny")]
+        [Summary("Vypíše seznam členů serveru, kteří dnes mají narozeniny.")]
+        public async Task ShowBirthdaysAsync()
+        {
+            var embed = await BirthdayService.ComposeBirthdaysEmbedAsync(Context.Guild, false);
+            await ReplyAsync(embed: embed);
+        }
+
+        [Command("birthday please remove my date from your database")]
+        [Alias("narozeniny prosím o vymazání mého data z vaší databáze")]
+        [Summary("Zapomene nastavené datum narozenin.")]
+        public Task UnsetOwnBirthdayAsync()
+            => SetOwnBirthdayImplAsync(null);
+
+        [Command("birthday set")]
+        [Alias("narozeniny nastav")]
+        [Summary("Nastaví vlastní datum narozenin.")]
+        public Task SetOwnBirthdayAsync(
+            [Name("DD.MM. nebo DD.MM.YYYY")]
+            [Remainder]
+            [OverrideTypeReader(typeof(DateWithOptionalYearTypeReader))]
+            DateTime birthday
+        )
+        {
+            if (birthday.Year == DateWithOptionalYearTypeReader.FallbackYear)
+            {
+                birthday = new DateTime(
+                    User.UnsetBirthdayYear, birthday.Month, birthday.Day,
+                    birthday.Hour, birthday.Minute, birthday.Second, birthday.Millisecond,
+                    birthday.Kind
+                );
+            }
+
+            return SetOwnBirthdayImplAsync(birthday);
+        }
+
+        private async Task SetOwnBirthdayImplAsync(DateTime? birthdayDate)
+        {
+            var birthdayInTheFuture =
+                birthdayDate is DateTime actualBirthdayDate
+                && actualBirthdayDate > DateTime.Now;
+
+            if (birthdayInTheFuture)
+            {
+                await Context.Message.AddReactionAsync(ReactionSettings.Angry);
+                return;
+            }
+
+            using var context = DatabaseFactory.Create();
+            var user = Context.User;
+
+            await Patiently.HandleDbConcurrency(async () =>
+            {
+                var userEntity = await DbContext.GetOrCreateUserEntityAsync(user);
+
+                userEntity.BirthdayDate = birthdayDate;
+                await DbContext.SaveChangesAsync();
+                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
+            });
         }
 
         [Command("familytree")]
