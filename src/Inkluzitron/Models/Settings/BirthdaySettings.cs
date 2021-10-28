@@ -12,7 +12,6 @@ namespace Inkluzitron.Models.Settings
         public string BirthdayListHeader { get; }
         public string BirthdayListFooter { get; }
         public string YearsOld { get; }
-        public string UnrecognizedBirthdayDateFormatMessage { get; }
 
         public BirthdaySettings(IConfiguration configuration)
         {
@@ -25,8 +24,6 @@ namespace Inkluzitron.Models.Settings
             BirthdayListHeader = cfg.GetRequired<string>(nameof(BirthdayListHeader));
             BirthdayListFooter = cfg.GetRequired<string>(nameof(BirthdayListFooter));
             YearsOld = cfg.GetRequired<string>(nameof(YearsOld));
-            UnrecognizedBirthdayDateFormatMessage = cfg.GetRequired<string>(nameof(UnrecognizedBirthdayDateFormatMessage));
-
         }
     }
 }

@@ -21,6 +21,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Inkluzitron.Services.TypeReaders;
 
 namespace Inkluzitron.Modules
 {
@@ -395,25 +396,23 @@ namespace Inkluzitron.Modules
         [Command("birthday set")]
         [Alias("narozeniny nastav")]
         [Summary("Nastaví vlastní datum narozenin.")]
-        public Task SetOwnBirthdayAsync([Name("`unset` nebo `odebrat` nebo `DD.MM.` nebo `DD.MM.YYYY`"), Remainder] string birthday)
+        public Task SetOwnBirthdayAsync(
+            [Name("DD.MM. nebo DD.MM.YYYY")]
+            [Remainder]
+            [OverrideTypeReader(typeof(DateWithOptionalYearTypeReader))]
+            DateTime birthday
+        )
         {
-            const DateTimeStyles styles = DateTimeStyles.AssumeLocal;
-            var culture = CultureInfo.InvariantCulture;
-            birthday = Regex.Replace(birthday, "\\s+", string.Empty);
-
-            if (DateTime.TryParseExact(birthday, "d/M", culture, styles, out var birthdayDate))
+            if (birthday.Year == DateWithOptionalYearTypeReader.FallbackYear)
             {
-                birthdayDate = new DateTime(User.UnsetBirthdayYear, birthdayDate.Month, birthdayDate.Day, 0, 0, 0, DateTimeKind.Local);
-                return SetOwnBirthdayImplAsync(birthdayDate);
+                birthday = new DateTime(
+                    User.UnsetBirthdayYear, birthday.Month, birthday.Day,
+                    birthday.Hour, birthday.Minute, birthday.Second, birthday.Millisecond,
+                    birthday.Kind
+                );
             }
 
-            if (DateTime.TryParseExact(birthday, "d'.'M'.'yyyy", culture, styles, out birthdayDate))
-                return SetOwnBirthdayImplAsync(birthdayDate);
-
-            if (DateTime.TryParseExact(birthday, "d'/'M'/'yyyy", culture, styles, out birthdayDate))
-                return SetOwnBirthdayImplAsync(birthdayDate);
-
-            return ReplyAsync(BirthdaySettings.UnrecognizedBirthdayDateFormatMessage);
+            return SetOwnBirthdayImplAsync(birthday);
         }
 
         private async Task SetOwnBirthdayImplAsync(DateTime? birthdayDate)

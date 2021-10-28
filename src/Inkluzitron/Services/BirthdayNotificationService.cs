@@ -57,18 +57,26 @@ namespace Inkluzitron.Services
 
             await guild.DownloadUsersAsync();
 
-            await foreach (var birthdayUser in birthdayUsers)
-            {
-                var guildUser = guild.GetUser(birthdayUser.Id);
-                if (guildUser == null)
-                    continue;
+            var sortedBirthdayEntries = birthdayUsers
+                .SelectAwait(async dbUser => (
+                    Age: dbUser.BirthdayDate.Value.Year is int yearOfBirth && yearOfBirth != User.UnsetBirthdayYear
+                         ? today.Year - yearOfBirth
+                         : int.MaxValue,
+                    GuildUser: guild.GetUser(dbUser.Id),
+                    DisplayName: await UsersService.GetDisplayNameAsync(dbUser.Id)
+                ))
+                .Where(u => u.GuildUser != null)
+                .OrderBy(u => u.Age)
+                .ThenBy(u => u.DisplayName, StringComparer.CurrentCultureIgnoreCase);
 
-                var isAgeAvailable = birthdayUser.BirthdayDate.Value.Year != User.UnsetBirthdayYear;
-                var displayName = await UsersService.GetDisplayNameAsync(guildUser.Id);
-                var username = guildUser.Username;
-                var discriminator = guildUser.Discriminator;
+            await foreach (var birthdayEntry in sortedBirthdayEntries)
+            {
+                var isAgeAvailable = birthdayEntry.Age != int.MaxValue;
+                var displayName = birthdayEntry.DisplayName;
+                var username = birthdayEntry.GuildUser.Username;
+                var discriminator = birthdayEntry.GuildUser.Discriminator;
                 var displayNameWithAge = isAgeAvailable
-                    ? $"{displayName} ({today.Year - birthdayUser.BirthdayDate.Value.Year} {Settings.YearsOld})"
+                    ? $"{displayName} ({birthdayEntry.Age} {Settings.YearsOld})"
                     : displayName;
 
                 embed.AddField(
