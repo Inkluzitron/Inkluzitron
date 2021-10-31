@@ -6,7 +6,6 @@ namespace Inkluzitron.Models.Settings
     public class BdsmTestOrgSettings
     {
         public BdsmTestOrgApiKey ApiKey { get; }
-        public double JanchsinusCoefficient { get; }
         public string NoResultsOnRecordMessage { get; }
         public string InvalidFormatMessage { get; }
         public string LinkAlreadyPresentMessage { get; }
@@ -26,7 +25,6 @@ namespace Inkluzitron.Models.Settings
             cfg.AssertExists();
 
             ApiKey = cfg.GetRequired<BdsmTestOrgApiKey>(nameof(ApiKey));
-            JanchsinusCoefficient = cfg.GetRequired<double>(nameof(JanchsinusCoefficient));
             NoResultsOnRecordMessage = cfg.GetRequired<string>(nameof(NoResultsOnRecordMessage));
             InvalidFormatMessage = cfg.GetRequired<string>(nameof(InvalidFormatMessage));
             LinkAlreadyPresentMessage = cfg.GetRequired<string>(nameof(LinkAlreadyPresentMessage));

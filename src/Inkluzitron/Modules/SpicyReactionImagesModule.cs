@@ -64,7 +64,7 @@ namespace Inkluzitron.Modules
             if (target == null)
                 target = Context.Message.ReferencedMessage?.Author ?? Context.User;
 
-            if (await UserBdsmTraits.FindTestResultAsync(Context.User) == null)
+            if (!await UserBdsmTraits.TestExists(Context.User))
             {
                 // Whip-like commands can only by used by users who completed the BDSM test.
                 return new CommandRedirectResult("bdsm");
@@ -79,14 +79,13 @@ namespace Inkluzitron.Modules
             }
             else
             {
-                var check = await UserBdsmTraits.CheckTraitOperationAsync(Context.User, target);
+                var check = await UserBdsmTraits.CheckDomSubOperationAsync(Context.User, target);
 
                 if (check.Backfired)
                 {
                     await PointsService.AddPointsAsync(Context.User, -check.PointsToSubtract);
                     await PointsService.AddPointsAsync(target, check.PointsToSubtract);
                     target = Context.User;
-                    messageText = check.ToString();
                 }
                 else if (!check.CanProceedNormally) {
                     await ReplyAsync(check.ToString());
@@ -94,7 +93,7 @@ namespace Inkluzitron.Modules
                 }
 
                 if (showRollInfo)
-                    messageText = check.ToStringWithTraitInfluenceTable();
+                    messageText = check.ToString();
 
                 imagePath = await asyncImageGenerator(target, Context.User.Equals(target));
             }
