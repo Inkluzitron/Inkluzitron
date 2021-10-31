@@ -145,11 +145,11 @@ namespace Inkluzitron.Services
                     await birthdayNotificationChannel.SendMessageAsync(embed: birthdaysEmbed);
 
                 // Repeat again tomorrow
-                var now = DateTimeOffset.Now;
+                var tomorrow = DateTimeOffset.Now.AddDays(1);
                 scheduledTask.When = new DateTimeOffset(
-                    now.Year, now.Month, now.Day + 1,
+                    tomorrow.Year, tomorrow.Month, tomorrow.Day,
                     Settings.BirthdayNotificationTime.Hours, Settings.BirthdayNotificationTime.Minutes, 0,
-                    now.Offset
+                    tomorrow.Offset
                 );
             }
             catch (Exception e)
