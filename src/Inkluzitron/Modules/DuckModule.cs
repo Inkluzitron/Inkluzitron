@@ -48,7 +48,7 @@ namespace Inkluzitron.Modules
                 BaseAddress = new Uri(Configuration["IsKachnaOpen:Api"])
             };
 
-            using var response = await client.GetAsync("api/duck/currentState");
+            using var response = await client.GetAsync("");
 
             if (!response.IsSuccessStatusCode)
                 throw new WebException($"Nepodařilo se zjistit stav kachny. Zkus <{Configuration["IsKachnaOpen:Api"]}>");
