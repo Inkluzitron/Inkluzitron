@@ -10,8 +10,18 @@ namespace Inkluzitron.Services.TypeReaders
     public class DateWithOptionalYearTypeReader : TypeReader
     {
         static public readonly int FallbackYear = User.UnsetBirthdayYear;
-        static private readonly Regex DateMonthPattern = new(@"^([1-9]|(?:1[0-9])|(?:2[0-9])|(?:3[01]))(?:\.|/)([1-9]|(?:1[0-2]))(?:\.|/)$");
-        static private readonly Regex DateMonthYearPattern = new(@"^([1-9]|(?:1[0-9])|(?:2[0-9])|(?:3[01]))(?:\.|/)([1-9]|(?:1[0-2]))(?:\.|/)(\d{4})$");
+
+        static private readonly Regex DateMonthPattern = new(
+            // Matches "DD.MM." or "DD/MM"
+            @"^(?<dd> [1-9]|(?:1[0-9])|(?:2[0-9])|(?:3[01]))  (?:\.|/)  (?<mm> [1-9]|(?:1[0-2]))  \.?$",
+            RegexOptions.IgnorePatternWhitespace
+        );
+
+        static private readonly Regex DateMonthYearPattern = new(
+            // Matches "DD.MM.YYYY" or "DD/MM/YYYY"
+            @"^(?<dd> [1-9]|(?:1[0-9])|(?:2[0-9])|(?:3[01]))  (?:\.|/)  (?<mm> [1-9]|(?:1[0-2]))  (?:\.|/)  (?<yyyy> \d{4})$",
+            RegexOptions.IgnorePatternWhitespace
+        );
 
         public override Task<TypeReaderResult> ReadAsync(ICommandContext context, string input, IServiceProvider services)
         {
