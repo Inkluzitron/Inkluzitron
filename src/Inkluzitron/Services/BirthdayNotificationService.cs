@@ -39,17 +39,32 @@ namespace Inkluzitron.Services
             Logger = logger;
         }
 
+        static private bool HasBirthdayOnTwentyNinthOfFebruary(User user)
+            => user.BirthdayDate != null
+            && user.BirthdayDate.Value.Month == 2
+            && user.BirthdayDate.Value.Day == 29;
+
         public async Task<Embed> ComposeBirthdaysEmbedAsync(SocketGuild guild, bool returnNullWhenNoBirthdays)
         {
             using var dbContext = DbFactory.Create();
             var today = DateTime.Now;
 
+            bool HasBirthdayToday(User user)
+                => user.BirthdayDate != null
+                && user.BirthdayDate.Value.Month == today.Month
+                && user.BirthdayDate.Value.Day == today.Day;
+
             var birthdayUsers = dbContext.Users.AsQueryable()
-                .Where(u => u.BirthdayDate != null
-                            && u.BirthdayDate.Value.Month == today.Month
-                            && u.BirthdayDate.Value.Day == today.Day
-                )
-                .ToAsyncEnumerable();
+                .Where(HasBirthdayToday);
+
+            if (!DateTime.IsLeapYear(today.Year) && today.Month == 3 && today.Day == 1)
+            {
+                birthdayUsers = birthdayUsers.Union(
+                    dbContext.Users
+                    .AsQueryable()
+                    .Where(HasBirthdayOnTwentyNinthOfFebruary)
+                );
+            }
 
             var embed = new EmbedBuilder()
                 .WithColor(Color.Green)
@@ -57,7 +72,7 @@ namespace Inkluzitron.Services
 
             await guild.DownloadUsersAsync();
 
-            var sortedBirthdayEntries = birthdayUsers
+            var sortedBirthdayEntries = birthdayUsers.ToAsyncEnumerable()
                 .SelectAwait(async dbUser => (
                     Age: dbUser.BirthdayDate.Value.Year is int yearOfBirth && yearOfBirth != User.UnsetBirthdayYear
                          ? today.Year - yearOfBirth
