@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -59,7 +61,12 @@ namespace Inkluzitron.Modules
                 await Context.Message.DeleteAsync();
 
             if (messageText != null)
-                await channel.SendMessageAsync(messageText);
+            {
+                await channel.SendMessageAsync(
+                    messageText,
+                    allowedMentions: new AllowedMentions { AllowedTypes = AllowedMentionTypes.None }
+                );
+            }
 
             if (attachments.Count > 0)
             {
@@ -72,8 +79,11 @@ namespace Inkluzitron.Modules
                     if (!response.IsSuccessStatusCode)
                         continue;
 
+                    var oldExtension = Path.GetExtension(a.Filename);
+                    var filename = Guid.NewGuid().ToString("N") + oldExtension;
+
                     using var stream = await response.Content.ReadAsStreamAsync();
-                    await channel.SendFileAsync(stream, a.Filename, messageText ?? string.Empty, isSpoiler: a.IsSpoiler());
+                    await channel.SendFileAsync(stream, filename, string.Empty, isSpoiler: a.IsSpoiler());
                 }
             }
         }
