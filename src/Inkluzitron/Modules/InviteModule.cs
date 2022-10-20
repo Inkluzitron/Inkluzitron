@@ -26,15 +26,19 @@ namespace Inkluzitron.Modules
         private DatabaseFactory DatabaseFactory { get; }
         private UsersService UsersService { get; }
         private ReactionSettings ReactionSettings { get; }
+        private BotSettings BotSettings { get; }
 
         public InviteModule(IConfiguration config,
             DatabaseFactory databaseFactory,
-            UsersService usersService, ReactionSettings reactionSettings)
+            UsersService usersService,
+            ReactionSettings reactionSettings,
+            BotSettings botSettings)
         {
             Config = config;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
             ReactionSettings = reactionSettings;
+            BotSettings = botSettings;
         }
 
         override protected void BeforeExecute(CommandInfo command)
@@ -55,6 +59,12 @@ namespace Inkluzitron.Modules
         [RequireBotPermission(GuildPermission.CreateInstantInvite)]
         public async Task CreateInviteAsync()
         {
+            if (Context.Message.Author is IGuildUser guildUser && guildUser.RoleIds.Contains(BotSettings.NewbieRoleId))
+            {
+                await ReplyAsync(BotSettings.NewbieInviteMessage);
+                return;
+            }
+
             var invite = await Context.Guild.DefaultChannel.CreateInviteAsync(
                 maxUses: 2, // create 2 uses for invite because if only 1 usage is available it's automatically deleted after joining
                 isUnique: true,

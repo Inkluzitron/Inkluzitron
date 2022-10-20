@@ -14,6 +14,8 @@ namespace Inkluzitron.Data.Entities
 
         public string Name { get; set; }
 
+        public bool IsNewbie { get; set; } = true;
+
         public string Pronouns { get; set; }
         public Gender Gender { get; set; } = Gender.Unspecified;
 
