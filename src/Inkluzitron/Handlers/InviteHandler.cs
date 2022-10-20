@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Net;
 using Discord.WebSocket;
 using Inkluzitron.Data;
 using Inkluzitron.Extensions;
@@ -45,15 +44,6 @@ namespace Inkluzitron.Handlers
             await using var dbContext = DatabaseFactory.Create();
             var inviteLinks = await user.Guild.GetInvitesAsync();
             var inviteeDb = await dbContext.GetOrCreateUserEntityAsync(user);
-
-            try
-            {
-                await user.SendMessageAsync(Config.GetValue<string>("Welcoming:DirectMessage"));
-            }
-            catch (HttpException ex) when (ex.DiscordCode == 50007)
-            {
-                // User has disabled DMs
-            }
 
             foreach (var link in inviteLinks)
             {

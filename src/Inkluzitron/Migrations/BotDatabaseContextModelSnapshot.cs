@@ -273,6 +273,9 @@ namespace Inkluzitron.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsNewbie")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("KisLastCheck")
                         .HasColumnType("TEXT");
 
