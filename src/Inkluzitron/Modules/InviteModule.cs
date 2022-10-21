@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.Net;
 using Inkluzitron.Data;
 using Inkluzitron.Data.Entities;
 using Inkluzitron.Enums;
@@ -66,6 +67,7 @@ namespace Inkluzitron.Modules
             }
 
             var invite = await Context.Guild.DefaultChannel.CreateInviteAsync(
+                maxAge: 0,
                 maxUses: 2, // create 2 uses for invite because if only 1 usage is available it's automatically deleted after joining
                 isUnique: true,
                 options: new RequestOptions()
@@ -75,6 +77,22 @@ namespace Inkluzitron.Modules
 
             var user = await DbContext.GetOrCreateUserEntityAsync(
                 Context.Message.Author);
+
+            try
+            {
+                await Context.User.SendMessageAsync(
+                    $"Byl ti vygenerován následující invite link na server **{Context.Guild.Name}**:\n{invite.Url}\n\nTento invite link můžeš poslat osobě, kterou chceš na server pozvat.\n\n**Informace:**\n • Pozvánka platí pouze na jedno použití\n • Pro pozvání více osob tedy musíš vygenerovat pozvánku pro každou osobu\n • Po připojení nové osoby se uloží informace o tom, kdo ji pozval");
+
+            }
+            catch (HttpException ex) when (ex.DiscordCode == 50007)
+            {
+                // User has disabled DMs
+
+                await invite.DeleteAsync();
+                await ReplyAsync($"Nemůžu ti poslat invite link do DMs, protože mě máš zablokovaného {Config["Sadge"]}");
+
+                return;
+            }
 
             var inviteDb = new Invite
             {
@@ -86,10 +104,7 @@ namespace Inkluzitron.Modules
             await DbContext.Invites.AddAsync(inviteDb);
             await DbContext.SaveChangesAsync();
 
-            await Context.User.SendMessageAsync(
-                $"Byl ti vygenerován následující invite link na server **{Context.Guild.Name}**:\n{invite.Url}\n\nTento invite link můžeš poslat osobě, kterou chceš na server pozvat.\n\n**Informace:**\n • Pozvánka platí pouze na jedno použití\n • Pro pozvání více osob tedy musíš vygenerovat pozvánku pro každou osobu\n • Po připojení nové osoby se uloží informace o tom, kdo ji pozval");
-            await ReplyAsync(
-                $"Do DM jsem ti poslal vygenerovaný invite link. {Config["CrackTippingEmote"]}");
+            await ReplyAsync($"Do DM jsem ti poslal vygenerovaný invite link. {Config["CrackTippingEmote"]}");
         }
 
         [Command("blame")]
