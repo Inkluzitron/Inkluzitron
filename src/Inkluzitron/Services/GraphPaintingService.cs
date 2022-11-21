@@ -29,6 +29,9 @@ namespace Inkluzitron.Services
             // Do not draw empty category boxes, skip categories that have no results.
             foreach (var k in toplistResults.Keys.ToList())
             {
+                // Skip ghost users
+                toplistResults[k] = toplistResults[k].Where(item => item.UserDisplayName != null).ToList().AsReadOnly();
+
                 if (toplistResults[k].Count == 0)
                     toplistResults.Remove(k);
             }

@@ -101,7 +101,7 @@ namespace Inkluzitron.Services
                 result.Add(new GraphItem
                 {
                     UserId = user.Id,
-                    UserDisplayName = await UsersService.GetDisplayNameAsync(user),
+                    UserDisplayName = await UsersService.GetDisplayNameAsync(user.Id),
                     Value = userEntry.TotalPoints
                 });
             }
@@ -239,7 +239,7 @@ namespace Inkluzitron.Services
                 .SumAsync(a => a.Points);
         }
 
-        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10, DateTime? from = null)
+        public async Task<List<PointsLeaderboardData>> GetLeaderboardWithGhostsAsync(int startFrom = 0, int count = 10, DateTime? from = null)
         {
             using var context = DatabaseFactory.Create();
             var userPoints = context.Users.Include(u => u.DailyActivity).AsQueryable()
@@ -259,6 +259,34 @@ namespace Inkluzitron.Services
                     UserDisplayName = await UsersService.GetDisplayNameAsync(user.Id),
                     Points = user.Points
                 });
+            }
+
+            return board;
+        }
+
+        public async Task<List<PointsLeaderboardData>> GetLeaderboardAsync(int startFrom = 0, int count = 10, DateTime? from = null)
+        {
+            var board = new List<PointsLeaderboardData>();
+
+            // Fill the board with users but filter out all ghosts (people who are no longer on a server)
+            while (board.Count < count)
+            {
+                var boardWithGhosts = await GetLeaderboardWithGhostsAsync(startFrom, count, from);
+                startFrom += count;
+
+                board.AddRange(boardWithGhosts.Where(p => p.UserDisplayName != null));
+
+                // Stop condition, we have iterated through the entire board
+                if (boardWithGhosts.Count < count)
+                {
+                    break;
+                }
+            }
+
+            // Trim the result to desired number of items
+            if (board.Count > count)
+            {
+                board.RemoveRange(count, board.Count - count);
             }
 
             return board;
