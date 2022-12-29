@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace Inkluzitron.Modules.Help
+namespace Inkluzitron.Modules.Reminders
 {
     public class HelpPageEmbedMetadata : IEmbedMetadata
     {

@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Inkluzitron.Modules.Help
+namespace Inkluzitron.Modules.Reminders
 {
     public class HelpPageEmbed : EmbedBuilder
     {

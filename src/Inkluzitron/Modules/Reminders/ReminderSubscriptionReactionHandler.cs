@@ -9,14 +9,12 @@ using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Reminders
 {
-    // TODO: ReminderDefinitionParser etc.
-
-    public class SubscribeToReminderReactionHandler : IReactionHandler
+    public class ReminderSubscriptionReactionHandler : IReactionHandler
     {
         public ReactionSettings ReactionSettings { get; }
         public ScheduledTasksService ScheduledTasksService { get; }
 
-        public SubscribeToReminderReactionHandler(ReactionSettings reactionSettings, ScheduledTasksService scheduledTasksService)
+        public ReminderSubscriptionReactionHandler(ReactionSettings reactionSettings, ScheduledTasksService scheduledTasksService)
         {
             ReactionSettings = reactionSettings;
             ScheduledTasksService = scheduledTasksService;
@@ -38,16 +36,16 @@ namespace Inkluzitron.Modules.Reminders
             if (reminder == null)
                 return false;
 
-            if (reminders.Any(r => r.ParseData<ReminderData>().UserId == user.Id))
+            if (reminders.Any(r => r.ParseData<Reminder>().UserId == user.Id))
                 return false;
 
-            var reminderData = reminder.ParseData<ReminderData>();
+            var reminderData = reminder.ParseData<Reminder>();
             var clone = new ScheduledTask
             {
                 Discriminator = reminder.Discriminator,
                 Tag = reminder.Tag,
                 When = reminder.When,
-                Data = JsonConvert.SerializeObject(new ReminderData
+                Data = JsonConvert.SerializeObject(new Reminder
                 {
                     MessageUrl = reminderData.MessageUrl,
                     Reason = reminderData.Reason,

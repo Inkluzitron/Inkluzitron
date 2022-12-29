@@ -31,10 +31,8 @@ namespace Inkluzitron.Modules.Reminders
                 throw new InvalidOperationException("Could not locate home guild");
 
             await guild.DownloadUsersAsync();
-            var guildMember = guild.GetUser(data.UserId);
-            if (guildMember == null)
-                return ScheduledTaskResult.HandledAndCompleted;
-
+            var guildMember = guild.GetUser(data.OwnerId);
+            
             var messageBuilder = new StringBuilder();
 
             messageBuilder.AppendFormat("Upozornění #{0}: {1}", scheduledTask.ScheduledTaskId, Discord.Format.Sanitize(data.Reason));

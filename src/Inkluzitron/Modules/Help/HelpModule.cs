@@ -7,7 +7,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Inkluzitron.Modules.Help
+namespace Inkluzitron.Modules.Reminders
 {
     [Name("Nápověda")]
     public class HelpModule : ModuleBase

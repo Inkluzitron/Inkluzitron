@@ -2,7 +2,7 @@
 {
     public class ReminderSubscription
     {
-        public ulong ReminderId { get; set; }
+        public Reminder Reminder { get; set; }
 
         public ulong UserId { get; set; }
     }

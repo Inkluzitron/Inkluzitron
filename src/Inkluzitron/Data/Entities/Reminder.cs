@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Inkluzitron.Data.Entities
@@ -8,6 +9,12 @@ namespace Inkluzitron.Data.Entities
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long ReminderId { get; set; }
+
+        [Required]
+        public DateTimeOffset When { get; set; }
+
+        [Required]
+        public ulong OwnerId { get; set; }
 
         [Required]
         public string MessageUrl { get; set; }

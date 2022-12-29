@@ -1,31 +1,27 @@
 ﻿using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
 using Inkluzitron.Contracts;
+using Inkluzitron.Data.Entities;
 using Inkluzitron.Extensions;
 using Inkluzitron.Models.Settings;
+using Inkluzitron.Modules.Reminders;
+using Inkluzitron.Services;
 using Microsoft.Extensions.Configuration;
-using System;
+using Newtonsoft.Json;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Inkluzitron.Modules.Reminders
 {
-    public class HelpReactionHandler : IReactionHandler
+    public class ReminderEmbedReactionHandler : IReactionHandler
     {
         private ReactionSettings ReactionSettings { get; }
-        private CommandService CommandService { get; }
-        private DiscordSocketClient Client { get; }
-        private IServiceProvider Provider { get; }
+        private ReminderManager ReminderManager { get; }
         private IConfiguration Configuration { get; }
 
-        public HelpReactionHandler(ReactionSettings reactionSettings, CommandService commandService, DiscordSocketClient client,
-            IServiceProvider provider, IConfiguration configuration)
+        public ReminderEmbedReactionHandler(ReactionSettings reactionSettings, ReminderManager reminderManager, IConfiguration configuration)
         {
             ReactionSettings = reactionSettings;
-            CommandService = commandService;
-            Client = client;
-            Provider = provider;
+            ReminderManager = reminderManager;
             Configuration = configuration;
         }
 
@@ -41,23 +37,18 @@ namespace Inkluzitron.Modules.Reminders
             if (message.ReferencedMessage == null)
                 return false;
 
-            if (!embed.TryParseMetadata<HelpPageEmbedMetadata>(out var metadata))
+            if (!embed.TryParseMetadata<ReminderEmbedMetadata>(out var metadata))
                 return false; // Not a help embed.
 
-            var context = new CommandContext(Client, message.ReferencedMessage);
-            var availableModules = await CommandService.Modules
-                .FindAllAsync(async mod => (await mod.GetExecutableCommandsAsync(context, Provider)).Count > 0);
+            var anchor = (metadata.ReminderId, metadata.When);
 
-            int maxPages = Math.Min(metadata.PageCount, availableModules.Count); // Maximal count of available pages.
-            int newPage = metadata.PageNumber;
-            if (reaction.IsEqual(ReactionSettings.MoveToFirst))
-                newPage = 1;
-            else if (reaction.IsEqual(ReactionSettings.MoveToLast))
-                newPage = maxPages;
-            else if (reaction.IsEqual(ReactionSettings.MoveToNext) && newPage < maxPages)
-                newPage++;
-            else if (reaction.IsEqual(ReactionSettings.MoveToPrevious) && newPage > 1)
-                newPage--;
+            var embedData = await ReminderManager.FindForUserAsync(
+                user.Id,
+                findBefore: reaction.IsEqual(ReactionSettings.MoveToPrevious) ? anchor : null,
+                findAfter: reaction.IsEqual(ReactionSettings.MoveToNext) ? anchor : null,
+                findFirst: reaction.IsEqual(ReactionSettings.MoveToFirst),
+                findLast: reaction.IsEqual(ReactionSettings.MoveToLast)
+            );
 
             if (newPage != metadata.PageNumber)
             {
