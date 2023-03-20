@@ -32,6 +32,30 @@ namespace Inkluzitron.Handlers
             Config = config;
 
             DiscordSocketClient.UserJoined += OnUserJoinedAsync;
+            DiscordSocketClient.UserLeft += OnUserLeftAsync;
+        }
+
+        private string GetRandomMessageTemplate(string templateKey)
+        {
+            var firstLine = Config.GetValue<string[]>(templateKey);
+
+            return firstLine[ThreadSafeRandom.Next(firstLine.Length)];
+        }
+
+        private async Task OnUserLeftAsync(SocketGuildUser user)
+        {
+            await using var dbContext = DatabaseFactory.Create();
+            var userDb = await dbContext.GetOrCreateUserEntityAsync(user);
+
+            var leaveMessageTemplate = GetRandomMessageTemplate("Welcoming:LeaveMessage");
+
+            var leaveMessage = string.Format(
+                leaveMessageTemplate,
+                userDb.Gender,
+                Format.Sanitize(await UsersService.GetDisplayNameAsync(user))
+            );
+
+            await user.Guild.DefaultChannel.SendMessageAsync(leaveMessage);
         }
 
         /// <summary>
@@ -63,13 +87,13 @@ namespace Inkluzitron.Handlers
 
                 await link.DeleteAsync();
 
-                var welcomeMessageTemplate = Config.GetValue<string>("Welcoming:Message");
-                if (welcomeMessageTemplate == null)
-                    return;
+                var welcomeMessageTemplate = GetRandomMessageTemplate(inviteeDb.IsNewbie ? "Welcoming:JoinFirstTimeMessage" : "Welcoming:JoinMessage");
 
                 var welcomeMessage = string.Format(
                     welcomeMessageTemplate,
-                    await UsersService.GetDisplayNameAsync(user)
+                    inviteeDb.Gender,
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(user)),
+                    Format.Sanitize(await UsersService.GetDisplayNameAsync(invite.GeneratedByUserId))
                 );
 
                 await user.Guild.DefaultChannel.SendMessageAsync(welcomeMessage);
@@ -77,7 +101,7 @@ namespace Inkluzitron.Handlers
             }
 
             await user.Guild.DefaultChannel.SendMessageAsync(
-                $"Nový uživatel **{Format.Sanitize(user.Username)}** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
+                $"Uživatel **{Format.Sanitize(user.Username)}** se připojil na server pomocí odkazu, který nebyl vytvořen `$invite` příkazem!");
         }
     }
 }
