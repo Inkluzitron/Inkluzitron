@@ -12,20 +12,17 @@ namespace Inkluzitron.Handlers
 {
     public class NewbieHandler: IHandler
     {
-        private IConfiguration Config { get; }
         private DiscordSocketClient DiscordSocketClient { get; }
         private DatabaseFactory DatabaseFactory { get; }
         private BotSettings BotSettings { get; }
 
         public NewbieHandler(DiscordSocketClient discordSocketClient,
             DatabaseFactory databaseFactory,
-            BotSettings botSettings,
-            IConfiguration config)
+            BotSettings botSettings)
         {
             DiscordSocketClient = discordSocketClient;
             DatabaseFactory = databaseFactory;
             BotSettings = botSettings;
-            Config = config;
 
             DiscordSocketClient.UserJoined += OnUserJoinedAsync;
             DiscordSocketClient.GuildMemberUpdated += GuildMemberUpdated;
@@ -69,15 +66,6 @@ namespace Inkluzitron.Handlers
             }
 
             await user.AddRoleAsync(BotSettings.NewbieRoleId);
-
-            try
-            {
-                await user.SendMessageAsync(Config.GetValue<string>("Welcoming:DirectMessage"));
-            }
-            catch (HttpException ex) when (ex.DiscordCode == 50007)
-            {
-                // User has disabled DMs
-            }
         }
     }
 }
