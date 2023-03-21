@@ -178,58 +178,6 @@ namespace Inkluzitron.Migrations
                     b.ToTable("RicePurityResults");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>
-                {
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("ChannelId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("MessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("CanSelectMultiple")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("GuildId", "ChannelId", "MessageId");
-
-                    b.ToTable("RoleMenuMessages");
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessageRole", b =>
-                {
-                    b.Property<ulong>("RoleId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("GuildId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("ChannelId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<ulong>("MessageId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Emote")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Mention")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("RoleId", "GuildId", "ChannelId", "MessageId");
-
-                    b.HasIndex("GuildId", "ChannelId", "MessageId");
-
-                    b.ToTable("RoleMenuMessageRoles");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.ScheduledTask", b =>
                 {
                     b.Property<long>("ScheduledTaskId")
@@ -408,25 +356,9 @@ namespace Inkluzitron.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessageRole", b =>
-                {
-                    b.HasOne("Inkluzitron.Data.Entities.RoleMenuMessage", "Message")
-                        .WithMany("Roles")
-                        .HasForeignKey("GuildId", "ChannelId", "MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-                });
-
             modelBuilder.Entity("Inkluzitron.Data.Entities.BdsmTestOrgResult", b =>
                 {
                     b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("Inkluzitron.Data.Entities.RoleMenuMessage", b =>
-                {
-                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("Inkluzitron.Data.Entities.User", b =>

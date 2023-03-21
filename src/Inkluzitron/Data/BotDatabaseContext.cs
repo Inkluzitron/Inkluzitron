@@ -18,9 +18,6 @@ namespace Inkluzitron.Data
         public DbSet<BdsmTestOrgResult> BdsmTestOrgResults { get; set; }
         public DbSet<BdsmTestOrgItem> BdsmTestOrgItems { get; set; }
 
-        public DbSet<RoleMenuMessage> RoleMenuMessages { get; set; }
-        public DbSet<RoleMenuMessageRole> RoleMenuMessageRoles { get; set; }
-
         public DbSet<User> Users { get; set; }
         public DbSet<DailyUserActivity> DailyUsersActivities { get; set; }
 
@@ -42,14 +39,6 @@ namespace Inkluzitron.Data
 
             modelBuilder.Entity<BdsmTestOrgResult>().HasIndex(r => r.Link).IsUnique();
             modelBuilder.Entity<BdsmTestOrgItem>().Property("Trait").HasConversion<string>();
-
-            modelBuilder.Entity<RoleMenuMessage>().HasKey(m => new { m.GuildId, m.ChannelId, m.MessageId });
-            modelBuilder.Entity<RoleMenuMessage>().HasMany(m => m.Roles)
-                .WithOne(i => i.Message)
-                .HasForeignKey(i => new { i.GuildId, i.ChannelId, i.MessageId })
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<RoleMenuMessageRole>().HasKey(i => new { i.RoleId, i.GuildId, i.ChannelId, i.MessageId });
 
             modelBuilder.Entity<DailyUserActivity>().HasKey(i => new { i.UserId, i.Day });
             modelBuilder.Entity<DailyUserActivity>()
