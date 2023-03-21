@@ -34,13 +34,12 @@ namespace Inkluzitron.Modules
         private DatabaseFactory DatabaseFactory { get; }
         private BotDatabaseContext DbContext { get; set; }
         private UsersService UsersService { get; }
-        private KisSettings KisSettings { get; }
         private BirthdayNotificationService BirthdayService { get; }
         private BirthdaySettings BirthdaySettings { get; }
         private FamilyTreeService FamilyTreeService { get; }
 
         public UserModule(IConfiguration configuration, ReactionSettings reactionSettings,
-            DatabaseFactory databaseFactory, UsersService usersService, KisSettings kisSettings,
+            DatabaseFactory databaseFactory, UsersService usersService,
             BirthdayNotificationService birthdayService, BirthdaySettings birthdaySettings,
             FamilyTreeService familyTreeService)
         {
@@ -48,7 +47,6 @@ namespace Inkluzitron.Modules
             ReactionSettings = reactionSettings;
             DatabaseFactory = databaseFactory;
             UsersService = usersService;
-            KisSettings = kisSettings;
             BirthdayService = birthdayService;
             BirthdaySettings = birthdaySettings;
             FamilyTreeService = familyTreeService;
@@ -301,61 +299,6 @@ namespace Inkluzitron.Modules
             await DbContext.SaveChangesAsync();
             await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
         }
-
-        [Command("duck set")]
-        [Alias("kachna set")]
-        [Summary("Nastaví přezdívku používanou v kachničce, aby bylo možné stáhnout prestiž za nákupy.")]
-        public async Task SetKisNicknameAsync([Remainder][Name("přezdívka")] string nickname)
-        {
-            if (await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
-            {
-                await ReplyAsync(Configuration["Kis:Messages:NonUniqueNick"]);
-                return;
-            }
-
-            await Patiently.HandleDbConcurrency(async () =>
-            {
-                var user = await DbContext.GetOrCreateUserEntityAsync(Context.User);
-
-                if (!string.IsNullOrEmpty(user.KisNickname))
-                {
-                    await ReplyAsync(KisSettings.Messages["AlreadySet"]);
-                    return;
-                }
-
-                user.KisNickname = nickname;
-                await DbContext.SaveChangesAsync();
-                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-            });
-        }
-
-        [Command("duck set")]
-        [Alias("kachna set")]
-        [Summary("Nastaví danému uživateli přezdívku používanou v kachničce.")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task SetKisNicknameAsync(IUser user, [Remainder][Name("přezdívka")] string nickname)
-        {
-            if (await DbContext.Users.AsQueryable().AnyAsync(o => o.KisNickname == nickname))
-            {
-                await ReplyAsync(KisSettings.Messages["NonUniqueNick"]);
-                return;
-            }
-
-            await Patiently.HandleDbConcurrency(async () =>
-            {
-                var userEntity = await DbContext.GetOrCreateUserEntityAsync(user);
-
-                userEntity.KisNickname = nickname;
-                await DbContext.SaveChangesAsync();
-                await Context.Message.AddReactionAsync(ReactionSettings.Checkmark);
-            });
-        }
-
-        [Command("duck unset")]
-        [Alias("duck clear", "kachna unset", "kachna clear")]
-        [Summary("Smaže přezdívku používanou v kachničce.")]
-        [RequireUserPermission(GuildPermission.Administrator)]
-        public Task UnsetKisNicknameAsync(IUser user) => SetKisNicknameAsync(user, null);
 
         [Command("consent")]
         [Summary("Udělí nebo odvolá souhlas s funkcemi bota. Aktuální stav se zobrazí příkazem $about.")]

@@ -30,7 +30,6 @@ namespace Inkluzitron.Services
         private ImagesService ImagesService { get; }
         private BotSettings BotSettings { get; }
         private UsersService UsersService { get; }
-        private KisService KisService { get; }
 
         private DrawableFont DataFont { get; }
         private double DataFontSize { get; }
@@ -44,14 +43,12 @@ namespace Inkluzitron.Services
         private double SmallDataFontSize { get; }
 
         public PointsService(DatabaseFactory factory, DiscordSocketClient discordClient,
-            ImagesService imagesService, BotSettings botSettings, UsersService usersService,
-            KisService kisService)
+            ImagesService imagesService, BotSettings botSettings, UsersService usersService)
         {
             DatabaseFactory = factory;
             DiscordClient = discordClient;
             ImagesService = imagesService;
             BotSettings = botSettings;
-            KisService = kisService;
             UsersService = usersService;
 
             const string font = "Open Sans";
@@ -510,41 +507,6 @@ namespace Inkluzitron.Services
             finalImage.Composite(image, 20, 20, CompositeOperator.Over);
 
             return finalImage;
-        }
-
-        public async Task<string> SynchronizeKisPointsAsync(IUser user)
-        {
-            using var context = DatabaseFactory.Create();
-
-            var now = DateTime.UtcNow;
-            var userEntity = await context.GetOrCreateUserEntityAsync(user);
-
-            if (userEntity.KisLastCheck != null && userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays) > DateTime.UtcNow)
-            {
-                return string.Format(KisService.Settings.Messages["SyncTooSoon"],
-                    KisService.Settings.SyncDays,
-                    new FormatByValue(KisService.Settings.SyncDays),
-                    userEntity.KisLastCheck.Value.AddDays(KisService.Settings.SyncDays + 1));
-            }
-
-            var points = await KisService.GetPrestigeAsync(userEntity.KisNickname, userEntity.KisLastCheck, now);
-
-            if (!points.IsOk)
-                return points.ErrorMessage;
-
-            var calculatedPoints = points.Prestige * KisService.Settings.PointsMultiplication;
-            await AddPointsAsync(context, user, calculatedPoints);
-            await Patiently.HandleDbConcurrency(async () =>
-            {
-                var entity = await context.GetOrCreateUserEntityAsync(user);
-
-                entity.KisLastCheck = now;
-                await context.SaveChangesAsync();
-            });
-
-            return string.Format(KisService.Settings.Messages["Done"],
-                calculatedPoints,
-                new FormatByValue(calculatedPoints));
         }
     }
 }

@@ -88,7 +88,6 @@ namespace Inkluzitron
                 .AddSingleton<PointsGraphPaintingStrategy>()
                 .AddSingleton<BdsmGraphPaintingStrategy>()
                 .AddSingleton<UsersService>()
-                .AddSingleton<KisSettings>()
                 .AddSingleton<FamilyTreeService>()
                 .AddSingletonWithInterface<ScheduledTasksService, IRuntimeEventHandler>()
                 .AddVoteModule()
@@ -102,7 +101,7 @@ namespace Inkluzitron
                         .AddConsole()
                         .AddChannelLogger();
                 })
-                .AddSingleton<KisService>();
+            ;
 
             var handlers = Assembly.GetExecutingAssembly().GetTypes()
                 .Where(o => o.GetInterface(nameof(IHandler)) != null)
@@ -114,15 +113,6 @@ namespace Inkluzitron
                 .Where(o => o.GetInterface(nameof(IReactionHandler)) != null)
                 .ToList()
                 .ForEach(reactionHandlerType => services.RegisterAs(reactionHandlerType, typeof(IReactionHandler)));
-
-            if (!string.IsNullOrEmpty(configuration["Kis:Token"]))
-            {
-                services.AddHttpClient("Kis", c =>
-                {
-                    c.BaseAddress = new Uri(configuration["Kis:Api"]);
-                    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", configuration["Kis:Token"]);
-                });
-            }
 
             var provider = services.BuildServiceProvider();
 
