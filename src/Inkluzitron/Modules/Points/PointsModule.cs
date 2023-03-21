@@ -124,14 +124,5 @@ namespace Inkluzitron.Modules.Points
 
             await ReplyFileAsync(file.Path);
         }
-
-        [Command("z kachny")]
-        [Alias("get kis", "kachna")]
-        [Summary("Synchronizuje body získané nákupem z kachničky.")]
-        public async Task SynchronizeKisPointsAsync()
-        {
-            var message = await PointsService.SynchronizeKisPointsAsync(Context.User);
-            await ReplyAsync(message);
-        }
     }
 }
